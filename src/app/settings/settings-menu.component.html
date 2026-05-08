@@ -1,0 +1,85 @@
+<div class="settings-menu">
+  <button
+    type="button"
+    class="settings-trigger"
+    [attr.aria-label]="i18n.t('settings')"
+    [attr.aria-expanded]="isOpen()"
+    (click)="toggle()"
+  >
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"></path>
+      <path d="M19.4 15a8 8 0 0 0 .1-1.1 8 8 0 0 0-.1-1.1l2-1.5-2-3.5-2.4 1a8.8 8.8 0 0 0-1.9-1.1L14.8 5h-4l-.4 2.7a8.8 8.8 0 0 0-1.9 1.1l-2.4-1-2 3.5 2 1.5a8 8 0 0 0-.1 1.1 8 8 0 0 0 .1 1.1l-2 1.5 2 3.5 2.4-1a8.8 8.8 0 0 0 1.9 1.1l.4 2.7h4l.4-2.7a8.8 8.8 0 0 0 1.9-1.1l2.4 1 2-3.5-2.1-1.5Z"></path>
+    </svg>
+  </button>
+
+  @if (isOpen()) {
+    <section class="settings-popover" [attr.aria-label]="i18n.t('settings')">
+      <div class="user-card">
+        <span>{{ i18n.t('user') }}</span>
+        <strong>{{ userService.currentUser().displayName }}</strong>
+        <dl>
+          <div>
+            <dt>ID</dt>
+            <dd>{{ userService.currentUser().id }}</dd>
+          </div>
+          <div>
+            <dt>{{ i18n.t('login') }}</dt>
+            <dd>{{ userService.currentUser().login }}</dd>
+          </div>
+          <div>
+            <dt>{{ i18n.t('role') }}</dt>
+            <dd>{{ i18n.t('playerRole') }}</dd>
+          </div>
+        </dl>
+      </div>
+
+      <div class="control-group">
+        <span>{{ i18n.t('theme') }}</span>
+        <div class="segmented-control">
+          <button
+            type="button"
+            [class.active]="settings.theme() === 'light'"
+            [attr.aria-pressed]="settings.theme() === 'light'"
+            (click)="setTheme('light')"
+          >
+            {{ i18n.t('lightTheme') }}
+          </button>
+          <button
+            type="button"
+            [class.active]="settings.theme() === 'dark'"
+            [attr.aria-pressed]="settings.theme() === 'dark'"
+            (click)="setTheme('dark')"
+          >
+            {{ i18n.t('darkTheme') }}
+          </button>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <span>{{ i18n.t('language') }}</span>
+        <div class="segmented-control">
+          <button
+            type="button"
+            [class.active]="settings.language() === 'ru'"
+            [attr.aria-pressed]="settings.language() === 'ru'"
+            (click)="setLanguage('ru')"
+          >
+            RU
+          </button>
+          <button
+            type="button"
+            [class.active]="settings.language() === 'en'"
+            [attr.aria-pressed]="settings.language() === 'en'"
+            (click)="setLanguage('en')"
+          >
+            EN
+          </button>
+        </div>
+      </div>
+
+      <button type="button" class="close-popover" (click)="close()">
+        {{ i18n.t('closeSettings') }}
+      </button>
+    </section>
+  }
+</div>

@@ -1,0 +1,22 @@
+<section class="home">
+  <div class="intro">
+    <p class="eyebrow">{{ i18n.t('homeEyebrow') }}</p>
+    <h1>{{ i18n.t('homeTitle') }}</h1>
+    <p class="lead">
+      {{ i18n.t('homeLead') }}
+    </p>
+    <a class="play-link" routerLink="/games/tic-tac-toe">{{ i18n.t('openFirstGame') }}</a>
+  </div>
+
+  <div class="preview" aria-hidden="true">
+    <div class="preview-cell cross"></div>
+    <div class="preview-cell"></div>
+    <div class="preview-cell circle"></div>
+    <div class="preview-cell"></div>
+    <div class="preview-cell circle"></div>
+    <div class="preview-cell"></div>
+    <div class="preview-cell cross"></div>
+    <div class="preview-cell"></div>
+    <div class="preview-cell"></div>
+  </div>
+</section>

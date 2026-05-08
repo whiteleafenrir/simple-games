@@ -1,0 +1,45 @@
+.shell {
+  width: min(1120px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 24px 0 48px;
+}
+
+.topbar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  margin-bottom: 32px;
+}
+
+.topbar a {
+  color: var(--muted-text);
+  text-decoration: none;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.topbar a:hover,
+.topbar a.active {
+  color: var(--text);
+  background: var(--soft-surface);
+}
+
+.brand {
+  margin-right: auto;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+@media (max-width: 560px) {
+  .shell {
+    width: min(100% - 20px, 1120px);
+    padding-top: 12px;
+  }
+
+  .topbar {
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+}

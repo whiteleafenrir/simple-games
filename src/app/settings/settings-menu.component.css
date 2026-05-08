@@ -1,0 +1,137 @@
+.settings-menu {
+  position: relative;
+}
+
+.settings-trigger {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  aspect-ratio: 1;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.settings-trigger:hover,
+.settings-trigger[aria-expanded="true"] {
+  border-color: var(--primary);
+}
+
+.settings-trigger svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.settings-popover {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 10;
+  display: grid;
+  gap: 14px;
+  width: min(320px, calc(100vw - 32px));
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: var(--shadow-strong);
+}
+
+.user-card {
+  display: grid;
+  gap: 8px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.user-card > span,
+.control-group > span {
+  color: var(--subtle-text);
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.user-card strong {
+  color: var(--text);
+  font-size: 1.15rem;
+}
+
+.user-card dl {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+}
+
+.user-card dl div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.user-card dt,
+.user-card dd {
+  margin: 0;
+  color: var(--muted-text);
+  font-size: 0.92rem;
+}
+
+.user-card dd {
+  color: var(--text);
+  font-weight: 800;
+}
+
+.control-group {
+  display: grid;
+  gap: 8px;
+}
+
+.segmented-control {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: 3px;
+  border-radius: 8px;
+  background: var(--soft-surface);
+}
+
+.segmented-control button {
+  min-height: 34px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 6px;
+  color: var(--muted-text);
+  background: transparent;
+  font-weight: 800;
+}
+
+.segmented-control button.active {
+  color: var(--text);
+  background: var(--surface);
+  box-shadow: var(--control-shadow);
+}
+
+.close-popover {
+  min-height: 38px;
+  border: 0;
+  border-radius: 8px;
+  color: var(--primary-contrast);
+  background: var(--primary);
+  font-weight: 800;
+}
+
+.close-popover:hover {
+  background: var(--primary-hover);
+}
+
+@media (max-width: 560px) {
+  .settings-menu {
+    margin-left: auto;
+  }
+}

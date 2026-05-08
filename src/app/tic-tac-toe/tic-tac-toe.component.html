@@ -1,0 +1,125 @@
+<section class="game-page">
+  <div class="game-copy">
+    <a class="back-link" routerLink="/">{{ i18n.t('backHome') }}</a>
+    <h1>{{ i18n.t('ticTacToe') }}</h1>
+    <p>
+      {{ i18n.t('ticTacToeIntro') }}
+    </p>
+
+    <div class="mode-switcher" [attr.aria-label]="i18n.t('gameMode')">
+      @for (mode of modes; track mode.id) {
+        <button
+          type="button"
+          [class.active]="selectedMode().id === mode.id"
+          [attr.aria-pressed]="selectedMode().id === mode.id"
+          (click)="selectMode(mode)"
+        >
+          <strong>{{ i18n.t(mode.titleKey) }}</strong>
+          <span>{{ i18n.t(mode.descriptionKey) }}</span>
+        </button>
+      }
+    </div>
+
+    <div class="scoreboard" [attr.aria-label]="i18n.t('matchScore')">
+      <div>
+        <span>{{ i18n.t('playerX') }}</span>
+        <strong>{{ score().X }}</strong>
+      </div>
+      <div>
+        <span>{{ i18n.t('playerO') }}</span>
+        <strong>{{ score().O }}</strong>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button type="button" (click)="resetRound()">{{ i18n.t('newRound') }}</button>
+      <button type="button" class="secondary" (click)="resetMatch()">{{ i18n.t('resetScore') }}</button>
+    </div>
+  </div>
+
+  <div class="board-panel">
+    <div class="mode-summary">{{ i18n.t(selectedMode().descriptionKey) }}</div>
+    <div class="status" [class.finished]="!canContinue()">{{ statusText() }}</div>
+
+    <svg
+      class="board"
+      [class.large]="selectedMode().id === 'five-in-row'"
+      [attr.viewBox]="'0 0 ' + viewBoxSize + ' ' + viewBoxSize"
+      role="grid"
+      [attr.aria-label]="i18n.t('gameBoard')"
+    >
+      @for (line of gridLines(); track line) {
+        <line
+          class="grid-line"
+          [attr.x1]="gridPosition(line)"
+          y1="0"
+          [attr.x2]="gridPosition(line)"
+          [attr.y2]="viewBoxSize"
+          [attr.stroke-width]="gridStroke()"
+        ></line>
+        <line
+          class="grid-line"
+          x1="0"
+          [attr.y1]="gridPosition(line)"
+          [attr.x2]="viewBoxSize"
+          [attr.y2]="gridPosition(line)"
+          [attr.stroke-width]="gridStroke()"
+        ></line>
+      }
+
+      @for (index of cells(); track index) {
+        <rect
+          class="cell-hitbox"
+          [attr.x]="cellX(index)"
+          [attr.y]="cellY(index)"
+          [attr.width]="cellSize()"
+          [attr.height]="cellSize()"
+          [attr.rx]="selectedMode().id === 'classic' ? 8 : 2"
+          role="gridcell"
+          tabindex="0"
+          [attr.aria-label]="i18n.t('cell') + ' ' + (index + 1)"
+          (click)="play(index)"
+          (keyup.enter)="play(index)"
+          (keyup.space)="play(index)"
+        ></rect>
+
+        @if (board()[index] === 'X') {
+          <g class="mark cross">
+            <line
+              [attr.x1]="cellX(index) + markPadding()"
+              [attr.y1]="cellY(index) + markPadding()"
+              [attr.x2]="cellX(index) + cellSize() - markPadding()"
+              [attr.y2]="cellY(index) + cellSize() - markPadding()"
+              [attr.stroke-width]="markStroke()"
+            ></line>
+            <line
+              [attr.x1]="cellX(index) + cellSize() - markPadding()"
+              [attr.y1]="cellY(index) + markPadding()"
+              [attr.x2]="cellX(index) + markPadding()"
+              [attr.y2]="cellY(index) + cellSize() - markPadding()"
+              [attr.stroke-width]="markStroke()"
+            ></line>
+          </g>
+        }
+
+        @if (board()[index] === 'O') {
+          <circle
+            class="mark circle"
+            [attr.cx]="cellX(index) + cellSize() / 2"
+            [attr.cy]="cellY(index) + cellSize() / 2"
+            [attr.r]="circleRadius()"
+            [attr.stroke-width]="markStroke()"
+          ></circle>
+        }
+      }
+
+      @if (winningLinePoints()) {
+        <polyline
+          class="win-line"
+          [attr.points]="winningLinePoints()"
+          [attr.stroke-width]="winStroke()"
+        ></polyline>
+      }
+    </svg>
+  </div>
+</section>
