@@ -134,4 +134,23 @@
   .settings-menu {
     margin-left: auto;
   }
+
+  .settings-trigger {
+    width: 40px;
+  }
+
+  .settings-popover {
+    position: fixed;
+    top: 64px;
+    right: 8px;
+    left: 8px;
+    width: auto;
+    max-height: calc(100dvh - 80px);
+    overflow: auto;
+  }
+
+  .user-card dl div {
+    display: grid;
+    gap: 2px;
+  }
 }
