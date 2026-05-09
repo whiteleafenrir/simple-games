@@ -1,0 +1,82 @@
+<section class="pet-page">
+  <div class="pet-copy">
+    <a class="back-link" routerLink="/">{{ i18n.t('backHome') }}</a>
+    <p class="eyebrow">{{ i18n.t('mainGame') }}</p>
+    <h1>{{ i18n.t('pocketPet') }}</h1>
+    <p class="lead">{{ i18n.t('pocketPetIntro') }}</p>
+  </div>
+
+  <section class="selection-panel" [attr.aria-label]="i18n.t('petSessionTitle')">
+    <div class="section-heading">
+      <span>01</span>
+      <h2>{{ i18n.t('petSessionTitle') }}</h2>
+    </div>
+
+    <div class="session-grid">
+      @for (sessionLength of sessionLengths; track sessionLength.id) {
+        <button
+          type="button"
+          [class.active]="selectedSession().id === sessionLength.id"
+          [attr.aria-pressed]="selectedSession().id === sessionLength.id"
+          (click)="selectSession(sessionLength)"
+        >
+          <strong>{{ i18n.t(sessionLength.titleKey) }}</strong>
+          <span>{{ i18n.t(sessionLength.descriptionKey) }}</span>
+          <b>{{ sessionDurationLabel(sessionLength) }}</b>
+        </button>
+      }
+    </div>
+  </section>
+
+  <section class="selection-panel" [attr.aria-label]="i18n.t('petAnimalTitle')">
+    <div class="section-heading">
+      <span>02</span>
+      <h2>{{ i18n.t('petAnimalTitle') }}</h2>
+    </div>
+
+    <div class="pet-grid">
+      @for (pet of petOptions; track pet.id) {
+        <button
+          type="button"
+          class="pet-card"
+          [class.active]="selectedPet().id === pet.id"
+          [class.disabled]="pet.disabled"
+          [class.accent-blue]="pet.accent === 'blue'"
+          [class.accent-green]="pet.accent === 'green'"
+          [class.accent-gold]="pet.accent === 'gold'"
+          [class.accent-ember]="pet.accent === 'ember'"
+          [disabled]="pet.disabled"
+          [attr.aria-pressed]="selectedPet().id === pet.id"
+          (click)="selectPet(pet)"
+        >
+          <span class="mode-badge">{{ i18n.t(pet.modeKey) }}</span>
+          <span
+            class="pet-portrait"
+            [class.cat]="pet.id === 'cat'"
+            [class.dog]="pet.id === 'dog'"
+            [class.parrot]="pet.id === 'parrot'"
+            [class.dragon]="pet.id === 'dragon'"
+            aria-hidden="true"
+          >
+            <span></span>
+          </span>
+          <strong>{{ i18n.t(pet.titleKey) }}</strong>
+          <small>{{ i18n.t(pet.descriptionKey) }}</small>
+        </button>
+      }
+    </div>
+  </section>
+
+  <aside class="summary-panel">
+    <span>{{ i18n.t('petSelectionSummary') }}</span>
+    <strong>{{ i18n.t(selectedPet().titleKey) }} · {{ i18n.t(selectedSession().titleKey) }}</strong>
+    <p>{{ i18n.t('petSelectionHint') }}</p>
+    @if (createdPetMessage()) {
+      <p class="success-message">{{ createdPetMessage() }}</p>
+    }
+    <div class="summary-actions">
+      <button type="button" (click)="createPet()">{{ i18n.t('createPet') }}</button>
+      <a routerLink="/profile">{{ i18n.t('goToProfile') }}</a>
+    </div>
+  </aside>
+</section>

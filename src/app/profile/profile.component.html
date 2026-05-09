@@ -1,0 +1,59 @@
+<section class="profile-page">
+  <div class="profile-copy">
+    <a class="back-link" routerLink="/">{{ i18n.t('backHome') }}</a>
+    <p class="eyebrow">{{ userService.currentUser().displayName }}</p>
+    <h1>{{ i18n.t('profileTitle') }}</h1>
+    <p>{{ i18n.t('profileIntro') }}</p>
+  </div>
+
+  <section class="pets-panel">
+    <div class="panel-heading">
+      <span>{{ i18n.t('ownedPets') }}</span>
+      <strong>{{ pets.pets().length }}</strong>
+    </div>
+
+    @if (pets.pets().length === 0) {
+      <div class="empty-state">
+        <strong>{{ i18n.t('noPetsTitle') }}</strong>
+        <p>{{ i18n.t('noPetsText') }}</p>
+        <a routerLink="/games/pocket-pet">{{ i18n.t('openFirstGame') }}</a>
+      </div>
+    } @else {
+      <div class="pets-grid">
+        @for (ownedPet of pets.pets(); track ownedPet.id) {
+          <article class="owned-pet-card">
+            <div class="pet-card-top">
+              <span
+                class="pet-avatar"
+                [class.cat]="ownedPet.petId === 'cat'"
+                [class.dog]="ownedPet.petId === 'dog'"
+                [class.parrot]="ownedPet.petId === 'parrot'"
+                [class.dragon]="ownedPet.petId === 'dragon'"
+                aria-hidden="true"
+              ></span>
+              <div>
+                <strong>{{ i18n.t(petOption(ownedPet).titleKey) }}</strong>
+                <span>{{ i18n.t(petOption(ownedPet).modeKey) }} · {{ i18n.t(sessionLength(ownedPet).titleKey) }}</span>
+              </div>
+            </div>
+
+            <dl>
+              <div>
+                <dt>{{ i18n.t('petStatus') }}</dt>
+                <dd>{{ statusLabel(ownedPet.status) }}</dd>
+              </div>
+              <div>
+                <dt>{{ i18n.t('sessionEnds') }}</dt>
+                <dd>{{ formatDate(ownedPet.endsAt) }}</dd>
+              </div>
+              <div>
+                <dt>{{ i18n.t('createdAt') }}</dt>
+                <dd>{{ formatDate(ownedPet.createdAt) }}</dd>
+              </div>
+            </dl>
+          </article>
+        }
+      </div>
+    }
+  </section>
+</section>

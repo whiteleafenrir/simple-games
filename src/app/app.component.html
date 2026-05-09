@@ -1,8 +1,12 @@
 <main class="shell">
   <nav class="topbar" [attr.aria-label]="i18n.t('mainNavigation')">
     <a class="brand" routerLink="/">Simple Games</a>
-    <a routerLink="/games/tic-tac-toe" routerLinkActive="active">{{ i18n.t('ticTacToe') }}</a>
-    <app-settings-menu></app-settings-menu>
+    <div class="nav-actions">
+      <a routerLink="/games/pocket-pet" routerLinkActive="active">{{ i18n.t('pocketPetNav') }}</a>
+      <a routerLink="/profile" routerLinkActive="active">{{ i18n.t('petProfile') }}</a>
+      <a routerLink="/games/tic-tac-toe" routerLinkActive="active">{{ i18n.t('miniGames') }}</a>
+      <app-settings-menu></app-settings-menu>
+    </div>
   </nav>
 
   <router-outlet></router-outlet>

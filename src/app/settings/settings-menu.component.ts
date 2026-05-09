@@ -1,4 +1,4 @@
-import { Component, signal } from '@angular/core';
+import { Component, HostListener, signal } from '@angular/core';
 
 import { I18nService } from '../i18n/i18n.service';
 import { Language } from '../i18n/translations';
@@ -26,6 +26,11 @@ export class SettingsMenuComponent {
 
   close(): void {
     this.isOpen.set(false);
+  }
+
+  @HostListener('document:keydown.escape')
+  closeByEscape(): void {
+    this.close();
   }
 
   setTheme(theme: Theme): void {
