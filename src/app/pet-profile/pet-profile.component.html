@@ -1,0 +1,57 @@
+<section class="pet-profile-page">
+  <a class="back-link" routerLink="/profile">{{ i18n.t('petProfile') }}</a>
+
+  @if (pet(); as ownedPet) {
+    <section class="pet-hero">
+      <span
+        class="pet-avatar"
+        [class.cat]="ownedPet.petId === 'cat'"
+        [class.dog]="ownedPet.petId === 'dog'"
+        [class.parrot]="ownedPet.petId === 'parrot'"
+        [class.dinosaur]="ownedPet.petId === 'dinosaur'"
+        [class.dragon]="ownedPet.petId === 'dragon'"
+        aria-hidden="true"
+      ></span>
+      <div>
+        <p class="eyebrow">{{ i18n.t('petDetailsTitle') }}</p>
+        <h1>{{ ownedPet.name }}</h1>
+        <p>{{ i18n.t(petOption(ownedPet).titleKey) }} · {{ i18n.t(petOption(ownedPet).modeKey) }}</p>
+      </div>
+    </section>
+
+    <section class="details-panel">
+      <dl>
+        <div>
+          <dt>{{ i18n.t('petIdLabel') }}</dt>
+          <dd>{{ ownedPet.id }}</dd>
+        </div>
+        <div>
+          <dt>{{ i18n.t('animalType') }}</dt>
+          <dd>{{ i18n.t(petOption(ownedPet).titleKey) }}</dd>
+        </div>
+        <div>
+          <dt>{{ i18n.t('petStatus') }}</dt>
+          <dd>{{ statusLabel(ownedPet.status) }}</dd>
+        </div>
+        <div>
+          <dt>{{ i18n.t('petSessionTitle') }}</dt>
+          <dd>{{ i18n.t(sessionLength(ownedPet).titleKey) }}</dd>
+        </div>
+        <div>
+          <dt>{{ i18n.t('sessionEnds') }}</dt>
+          <dd>{{ formatDate(ownedPet.endsAt) }}</dd>
+        </div>
+        <div>
+          <dt>{{ i18n.t('createdAt') }}</dt>
+          <dd>{{ formatDate(ownedPet.createdAt) }}</dd>
+        </div>
+      </dl>
+    </section>
+  } @else {
+    <section class="details-panel empty-state">
+      <strong>{{ i18n.t('petNotFoundTitle') }}</strong>
+      <p>{{ i18n.t('petNotFoundText') }}</p>
+      <a routerLink="/profile">{{ i18n.t('goToProfile') }}</a>
+    </section>
+  }
+</section>

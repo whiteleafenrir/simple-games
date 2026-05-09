@@ -50,6 +50,15 @@ export const PET_OPTIONS: readonly PetOption[] = [
     accent: 'gold'
   },
   {
+    id: 'dinosaur',
+    titleKey: 'petDinosaur',
+    descriptionKey: 'petDinosaurDescription',
+    modeKey: 'petModeMedium',
+    mode: 'medium',
+    disabled: false,
+    accent: 'green'
+  },
+  {
     id: 'dragon',
     titleKey: 'petDragon',
     descriptionKey: 'petDragonDescription',

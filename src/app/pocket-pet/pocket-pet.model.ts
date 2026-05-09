@@ -1,7 +1,7 @@
 import { TranslationKey } from '../i18n/translations';
 
-export type PetId = 'cat' | 'dog' | 'parrot' | 'dragon';
-export type PetMode = 'easy' | 'insane';
+export type PetId = 'cat' | 'dog' | 'parrot' | 'dinosaur' | 'dragon';
+export type PetMode = 'easy' | 'medium' | 'insane';
 export type SessionLengthId = 'short' | 'standard' | 'long';
 
 export interface SessionLength {

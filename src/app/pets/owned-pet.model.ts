@@ -1,9 +1,10 @@
 import { PetId, PetMode, SessionLengthId } from '../pocket-pet/pocket-pet.model';
 
-export type PetStatus = 'active' | 'resting' | 'needs-care';
+export type PetStatus = 'pet' | 'grown' | 'left';
 
 export interface OwnedPet {
   id: string;
+  name: string;
   petId: PetId;
   mode: PetMode;
   status: PetStatus;

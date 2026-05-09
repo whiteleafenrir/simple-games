@@ -1,4 +1,4 @@
-import { Component, signal } from '@angular/core';
+import { Component, computed, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 import { I18nService } from '../i18n/i18n.service';
@@ -19,16 +19,20 @@ export class PocketPetComponent {
   readonly petOptions: readonly PetOption[] = PET_OPTIONS;
   readonly selectedSession = signal<SessionLength>(SESSION_LENGTHS[1]);
   readonly selectedPet = signal<PetOption>(PET_OPTIONS[0]);
+  readonly petName = signal<string>('');
   readonly createdPetMessage = signal<string | null>(null);
+  readonly errorMessage = signal<string | null>(null);
+  readonly canCreatePet = computed((): boolean => this.petName().trim().length > 0 && !this.petStorage.activePet());
 
   constructor(
     public readonly i18n: I18nService,
-    private readonly petStorage: PetStorageService
+    public readonly petStorage: PetStorageService
   ) {}
 
   selectSession(sessionLength: SessionLength): void {
     this.selectedSession.set(sessionLength);
     this.createdPetMessage.set(null);
+    this.errorMessage.set(null);
   }
 
   selectPet(pet: PetOption): void {
@@ -38,11 +42,33 @@ export class PocketPetComponent {
 
     this.selectedPet.set(pet);
     this.createdPetMessage.set(null);
+    this.errorMessage.set(null);
+  }
+
+  updatePetName(name: string): void {
+    this.petName.set(name);
+    this.createdPetMessage.set(null);
+    this.errorMessage.set(null);
   }
 
   createPet(): void {
-    this.petStorage.addPet(this.selectedPet(), this.selectedSession());
+    const name = this.petName().trim();
+
+    if (!name) {
+      this.errorMessage.set(this.i18n.t('petNameRequired'));
+      return;
+    }
+
+    const ownedPet = this.petStorage.addPet(this.selectedPet(), this.selectedSession(), name);
+
+    if (!ownedPet) {
+      this.errorMessage.set(this.i18n.t('activePetExists'));
+      return;
+    }
+
+    this.petName.set('');
     this.createdPetMessage.set(this.i18n.t('petCreated'));
+    this.errorMessage.set(null);
   }
 
   sessionDurationLabel(sessionLength: SessionLength): string {

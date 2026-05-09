@@ -122,7 +122,7 @@ h1 {
 }
 
 .pet-grid {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
 .pet-card {
@@ -246,6 +246,32 @@ h1 {
   background: var(--success);
 }
 
+.pet-portrait.dinosaur span {
+  width: 58px;
+  height: 42px;
+  border-radius: 50% 42% 48% 46%;
+  background: var(--success);
+}
+
+.pet-portrait.dinosaur::before {
+  top: 23px;
+  right: 18px;
+  width: 26px;
+  height: 22px;
+  border-radius: 55% 45% 48% 52%;
+  background: var(--success);
+}
+
+.pet-portrait.dinosaur::after {
+  top: 24px;
+  left: 18px;
+  width: 24px;
+  height: 12px;
+  border-radius: 999px 0 0 999px;
+  background: var(--success);
+  transform: rotate(-18deg);
+}
+
 .pet-portrait.dragon span {
   width: 58px;
   height: 46px;
@@ -278,6 +304,33 @@ h1 {
   padding: 18px;
 }
 
+.name-field {
+  display: grid;
+  gap: 8px;
+}
+
+.name-field span {
+  color: var(--subtle-text);
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.name-field input {
+  width: 100%;
+  min-height: 46px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0 14px;
+  color: var(--text);
+  background: var(--surface);
+  outline: none;
+}
+
+.name-field input:focus {
+  border-color: var(--primary);
+  box-shadow: var(--primary-shadow);
+}
+
 .summary-panel span {
   color: var(--subtle-text);
   font-weight: 800;
@@ -291,6 +344,17 @@ h1 {
 
 .success-message {
   color: var(--success-text);
+  font-weight: 800;
+}
+
+.error-message {
+  color: #b42318;
+  font-weight: 800;
+}
+
+.inline-profile-link {
+  justify-self: start;
+  color: var(--primary);
   font-weight: 800;
 }
 
@@ -321,6 +385,11 @@ h1 {
 
 .summary-actions button:hover {
   background: var(--primary-hover);
+}
+
+.summary-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.54;
 }
 
 .summary-actions a {

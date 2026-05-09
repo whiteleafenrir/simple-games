@@ -28,12 +28,13 @@
                 [class.cat]="ownedPet.petId === 'cat'"
                 [class.dog]="ownedPet.petId === 'dog'"
                 [class.parrot]="ownedPet.petId === 'parrot'"
+                [class.dinosaur]="ownedPet.petId === 'dinosaur'"
                 [class.dragon]="ownedPet.petId === 'dragon'"
                 aria-hidden="true"
               ></span>
               <div>
-                <strong>{{ i18n.t(petOption(ownedPet).titleKey) }}</strong>
-                <span>{{ i18n.t(petOption(ownedPet).modeKey) }} · {{ i18n.t(sessionLength(ownedPet).titleKey) }}</span>
+                <strong>{{ ownedPet.name }}</strong>
+                <span>{{ i18n.t(petOption(ownedPet).titleKey) }} · {{ i18n.t(petOption(ownedPet).modeKey) }} · {{ i18n.t(sessionLength(ownedPet).titleKey) }}</span>
               </div>
             </div>
 
@@ -51,6 +52,8 @@
                 <dd>{{ formatDate(ownedPet.createdAt) }}</dd>
               </div>
             </dl>
+
+            <a class="pet-details-link" [routerLink]="['/profile/pets', ownedPet.id]">{{ i18n.t('viewPet') }}</a>
           </article>
         }
       </div>

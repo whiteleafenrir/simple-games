@@ -1,26 +1,27 @@
-import { Component } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Component, computed } from '@angular/core';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 
 import { I18nService } from '../i18n/i18n.service';
 import { PET_OPTIONS, SESSION_LENGTHS } from '../pocket-pet/pocket-pet.config';
 import { PetOption, SessionLength } from '../pocket-pet/pocket-pet.model';
 import { OwnedPet, PetStatus } from '../pets/owned-pet.model';
 import { PetStorageService } from '../pets/pet-storage.service';
-import { UserService } from '../users/user.service';
 
 @Component({
-  selector: 'app-profile',
+  selector: 'app-pet-profile',
   imports: [
     RouterLink
   ],
-  templateUrl: './profile.component.html',
-  styleUrls: ['./profile.component.css']
+  templateUrl: './pet-profile.component.html',
+  styleUrls: ['./pet-profile.component.css']
 })
-export class ProfileComponent {
+export class PetProfileComponent {
+  readonly pet = computed((): OwnedPet | null => this.pets.petById(this.route.snapshot.paramMap.get('petId')));
+
   constructor(
     public readonly i18n: I18nService,
-    public readonly pets: PetStorageService,
-    public readonly userService: UserService
+    private readonly route: ActivatedRoute,
+    private readonly pets: PetStorageService
   ) {}
 
   petOption(ownedPet: OwnedPet): PetOption {

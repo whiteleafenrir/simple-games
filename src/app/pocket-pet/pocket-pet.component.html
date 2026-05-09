@@ -55,6 +55,7 @@
             [class.cat]="pet.id === 'cat'"
             [class.dog]="pet.id === 'dog'"
             [class.parrot]="pet.id === 'parrot'"
+            [class.dinosaur]="pet.id === 'dinosaur'"
             [class.dragon]="pet.id === 'dragon'"
             aria-hidden="true"
           >
@@ -67,15 +68,41 @@
     </div>
   </section>
 
+  <section class="selection-panel" [attr.aria-label]="i18n.t('petName')">
+    <div class="section-heading">
+      <span>03</span>
+      <h2>{{ i18n.t('petName') }}</h2>
+    </div>
+
+    <label class="name-field">
+      <span>{{ i18n.t('petName') }}</span>
+      <input
+        type="text"
+        [value]="petName()"
+        (input)="updatePetName($any($event.target).value)"
+        [placeholder]="i18n.t('petNamePlaceholder')"
+        required
+        maxlength="32"
+      >
+    </label>
+  </section>
+
   <aside class="summary-panel">
     <span>{{ i18n.t('petSelectionSummary') }}</span>
-    <strong>{{ i18n.t(selectedPet().titleKey) }} · {{ i18n.t(selectedSession().titleKey) }}</strong>
+    <strong>{{ petName().trim() || i18n.t(selectedPet().titleKey) }} · {{ i18n.t(selectedSession().titleKey) }}</strong>
     <p>{{ i18n.t('petSelectionHint') }}</p>
+    @if (petStorage.activePet()) {
+      <p class="error-message">{{ i18n.t('activePetExists') }}</p>
+      <a class="inline-profile-link" [routerLink]="['/profile/pets', petStorage.activePet()?.id]">{{ i18n.t('viewPet') }}</a>
+    }
     @if (createdPetMessage()) {
       <p class="success-message">{{ createdPetMessage() }}</p>
     }
+    @if (errorMessage()) {
+      <p class="error-message">{{ errorMessage() }}</p>
+    }
     <div class="summary-actions">
-      <button type="button" (click)="createPet()">{{ i18n.t('createPet') }}</button>
+      <button type="button" [disabled]="!canCreatePet()" (click)="createPet()">{{ i18n.t('createPet') }}</button>
       <a routerLink="/profile">{{ i18n.t('goToProfile') }}</a>
     </div>
   </aside>
