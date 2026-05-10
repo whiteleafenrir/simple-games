@@ -5,6 +5,8 @@ import { I18nService } from '../i18n/i18n.service';
 import { PetStorageService } from '../pets/pet-storage.service';
 import { PET_OPTIONS, SESSION_LENGTHS } from './pocket-pet.config';
 import { PetOption, SessionLength } from './pocket-pet.model';
+import { ActivatedRoute } from '@angular/router';
+import { OwnedPet, PetMood } from '../pets/owned-pet.model';
 
 @Component({
   selector: 'app-pocket-pet',
@@ -15,6 +17,11 @@ import { PetOption, SessionLength } from './pocket-pet.model';
   styleUrls: ['./pocket-pet.component.css']
 })
 export class PocketPetComponent {
+  readonly viewedPet = computed((): OwnedPet | null => {
+    const id = this.route.snapshot.paramMap.get('petId');
+    return id ? this.petStorage.petById(id) : this.petStorage.activePet();
+  });
+
   readonly sessionLengths: readonly SessionLength[] = SESSION_LENGTHS;
   readonly petOptions: readonly PetOption[] = PET_OPTIONS;
   readonly selectedSession = signal<SessionLength>(SESSION_LENGTHS[1]);
@@ -26,6 +33,7 @@ export class PocketPetComponent {
 
   constructor(
     public readonly i18n: I18nService,
+    private readonly route: ActivatedRoute,
     public readonly petStorage: PetStorageService
   ) {}
 
@@ -81,5 +89,29 @@ export class PocketPetComponent {
     }
 
     return `${sessionLength.minutes} ${this.i18n.t('minutesShort')}`;
+  }
+
+  petOption(ownedPet: OwnedPet) {
+    return PET_OPTIONS.find((pet) => pet.id === ownedPet.petId) ?? PET_OPTIONS[0];
+  }
+
+  moodLabel(mood: PetMood): string {
+    return this.i18n.t(`petMood${this.capitalize(mood)}`);
+  }
+
+  petAgeLabel(pet: OwnedPet): string {
+    const ms = Date.now() - Date.parse(pet.createdAt);
+    const minutes = Math.floor(ms / 60000);
+    if (minutes >= 1440) {
+      return `${Math.floor(minutes / 1440)} ${this.i18n.t('dayShort')}`;
+    }
+    if (minutes >= 60) {
+      return `${Math.floor(minutes / 60)} ${this.i18n.t('hourShort')}`;
+    }
+    return `${minutes} ${this.i18n.t('minutesShort')}`;
+  }
+
+  private capitalize(value: PetMood): Capitalize<PetMood> {
+    return `${value.charAt(0).toUpperCase()}${value.slice(1)}` as Capitalize<PetMood>;
   }
 }

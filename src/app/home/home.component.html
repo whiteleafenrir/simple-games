@@ -8,7 +8,8 @@
     <div class="home-actions">
       <a class="play-link" routerLink="/games/pocket-pet">{{ i18n.t('openFirstGame') }}</a>
       <a class="secondary-link" routerLink="/games/tic-tac-toe">{{ i18n.t('openTicTacToe') }}</a>
-      <a *ngIf="activePetId()" class="secondary-link" [routerLink]="['/games/pocket-pet', activePetId()]">Открыть игровую сессию питомца</a>
+      <a *ngIf="activePetId()" class="secondary-link" [routerLink]="['/games/pocket-pet', activePetId()]">{{ i18n.t('viewPetSession') }}</a>
+      <a *ngIf="activePetId()" class="secondary-link" [routerLink]="['/profile/pets', activePetId()]">{{ i18n.t('viewPet') }}</a>
     </div>
   </div>
 
