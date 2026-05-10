@@ -11,6 +11,7 @@ export const routes: Routes = [
   { path: 'profile', component: ProfileComponent },
   { path: 'profile/pets/:petId', component: PetProfileComponent },
   { path: 'games/pocket-pet', component: PocketPetComponent },
+  { path: 'games/pocket-pet/:petId', component: PocketPetComponent },
   { path: 'games/tic-tac-toe', component: TicTacToeComponent },
   { path: '**', redirectTo: '' }
 ];

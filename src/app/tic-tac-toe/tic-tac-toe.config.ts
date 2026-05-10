@@ -12,7 +12,7 @@ export const GAME_MODES: readonly GameMode[] = [
     id: 'five-in-row',
     titleKey: 'fiveInRowModeTitle',
     descriptionKey: 'fiveInRowModeDescription',
-    boardSize: 20,
+    boardSize: 16,
     winLength: 5
   }
 ] as const;
