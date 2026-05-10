@@ -2,7 +2,14 @@ import { Injectable, effect, signal } from '@angular/core';
 
 import { PetOption, SessionLength } from '../pocket-pet/pocket-pet.model';
 import { UserService } from '../users/user.service';
-import { OwnedPet, PetStatus } from './owned-pet.model';
+import { OwnedPet, PetMood, PetPeriodOfLife, PetStatus } from './owned-pet.model';
+
+const PET_STORAGE_VERSION = '0.1.0';
+
+interface StoredPets {
+  version: string;
+  pets: Partial<OwnedPet>[];
+}
 
 @Injectable({
   providedIn: 'root'
@@ -35,6 +42,8 @@ export class PetStorageService {
       petId: pet.id,
       mode: pet.mode,
       status: 'pet',
+      mood: 'joyful',
+      periodOfLife: 'teen',
       sessionLengthId: sessionLength.id,
       createdAt: now.toISOString(),
       endsAt: endsAt.toISOString()
@@ -68,8 +77,13 @@ export class PetStorageService {
     }
 
     try {
-      const parsedPets = JSON.parse(rawPets) as Partial<OwnedPet>[];
-      return Array.isArray(parsedPets) ? parsedPets.map((pet: Partial<OwnedPet>): OwnedPet => this.normalizePet(pet)) : [];
+      const parsedPets = JSON.parse(rawPets) as Partial<StoredPets>;
+
+      if (parsedPets.version !== PET_STORAGE_VERSION || !Array.isArray(parsedPets.pets)) {
+        return [];
+      }
+
+      return parsedPets.pets.map((pet: Partial<OwnedPet>): OwnedPet => this.normalizePet(pet));
     } catch {
       return [];
     }
@@ -80,7 +94,10 @@ export class PetStorageService {
       return;
     }
 
-    localStorage.setItem(this.storageKey(), JSON.stringify(pets));
+    localStorage.setItem(this.storageKey(), JSON.stringify({
+      version: PET_STORAGE_VERSION,
+      pets
+    }));
   }
 
   private findActivePet(pets: OwnedPet[]): OwnedPet | null {
@@ -94,6 +111,8 @@ export class PetStorageService {
       petId: pet.petId ?? 'cat',
       mode: pet.mode ?? 'easy',
       status: this.normalizeStatus(pet.status),
+      mood: this.normalizeMood(pet.mood),
+      periodOfLife: this.normalizePeriodOfLife(pet.periodOfLife),
       sessionLengthId: pet.sessionLengthId ?? 'standard',
       createdAt: pet.createdAt ?? new Date().toISOString(),
       endsAt: pet.endsAt ?? new Date().toISOString()
@@ -106,5 +125,21 @@ export class PetStorageService {
     }
 
     return 'pet';
+  }
+
+  private normalizeMood(mood: PetMood | undefined): PetMood {
+    if (mood === 'neutral' || mood === 'angry' || mood === 'upset' || mood === 'thoughtful' || mood === 'irritated') {
+      return mood;
+    }
+
+    return 'joyful';
+  }
+
+  private normalizePeriodOfLife(periodOfLife: PetPeriodOfLife | undefined): PetPeriodOfLife {
+    if (periodOfLife === 'child' || periodOfLife === 'adult') {
+      return periodOfLife;
+    }
+
+    return 'teen';
   }
 }

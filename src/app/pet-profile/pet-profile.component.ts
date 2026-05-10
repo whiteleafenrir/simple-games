@@ -4,7 +4,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { I18nService } from '../i18n/i18n.service';
 import { PET_OPTIONS, SESSION_LENGTHS } from '../pocket-pet/pocket-pet.config';
 import { PetOption, SessionLength } from '../pocket-pet/pocket-pet.model';
-import { OwnedPet, PetStatus } from '../pets/owned-pet.model';
+import { OwnedPet, PetMood, PetPeriodOfLife, PetStatus } from '../pets/owned-pet.model';
 import { PetStorageService } from '../pets/pet-storage.service';
 
 @Component({
@@ -44,10 +44,30 @@ export class PetProfileComponent {
     return this.i18n.t('petStatusPet');
   }
 
+  moodLabel(mood: PetMood): string {
+    return this.i18n.t(`petMood${this.capitalize(mood)}`);
+  }
+
+  periodOfLifeLabel(periodOfLife: PetPeriodOfLife): string {
+    if (periodOfLife === 'child') {
+      return this.i18n.t('petPeriodChild');
+    }
+
+    if (periodOfLife === 'adult') {
+      return this.i18n.t('petPeriodAdult');
+    }
+
+    return this.i18n.t('petPeriodTeen');
+  }
+
   formatDate(value: string): string {
     return new Intl.DateTimeFormat(this.i18n.language(), {
       dateStyle: 'medium',
       timeStyle: 'short'
     }).format(new Date(value));
+  }
+
+  private capitalize(value: PetMood): Capitalize<PetMood> {
+    return `${value.charAt(0).toUpperCase()}${value.slice(1)}` as Capitalize<PetMood>;
   }
 }

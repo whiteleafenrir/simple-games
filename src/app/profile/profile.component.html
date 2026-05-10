@@ -44,6 +44,14 @@
                 <dd>{{ statusLabel(ownedPet.status) }}</dd>
               </div>
               <div>
+                <dt>{{ i18n.t('petMood') }}</dt>
+                <dd>{{ moodLabel(ownedPet.mood) }}</dd>
+              </div>
+              <div>
+                <dt>{{ i18n.t('petPeriodOfLife') }}</dt>
+                <dd>{{ periodOfLifeLabel(ownedPet.periodOfLife) }}</dd>
+              </div>
+              <div>
                 <dt>{{ i18n.t('sessionEnds') }}</dt>
                 <dd>{{ formatDate(ownedPet.endsAt) }}</dd>
               </div>
