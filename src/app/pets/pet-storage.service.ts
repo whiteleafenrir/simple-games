@@ -5,7 +5,6 @@ import { UserService } from '../users/user.service';
 import { OwnedPet, PetMood, PetPeriodOfLife, PetStatus } from './owned-pet.model';
 
 const PET_STORAGE_VERSION = '0.1.1';
-const SUPPORTED_PET_STORAGE_VERSIONS = new Set(['0.1.0', PET_STORAGE_VERSION]);
 
 interface StoredPets {
   version: string;
@@ -78,13 +77,9 @@ export class PetStorageService {
     }
 
     try {
-      const parsedPets = JSON.parse(rawPets) as Partial<StoredPets> | Partial<OwnedPet>[];
+      const parsedPets = JSON.parse(rawPets) as Partial<StoredPets>;
 
-      if (Array.isArray(parsedPets)) {
-        return parsedPets.map((pet: Partial<OwnedPet>): OwnedPet => this.normalizePet(pet));
-      }
-
-      if (!parsedPets.version || !SUPPORTED_PET_STORAGE_VERSIONS.has(parsedPets.version) || !Array.isArray(parsedPets.pets)) {
+      if (parsedPets.version !== PET_STORAGE_VERSION || !Array.isArray(parsedPets.pets)) {
         return [];
       }
 
