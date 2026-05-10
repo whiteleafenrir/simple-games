@@ -8,22 +8,24 @@
     <div class="home-actions">
       <a class="play-link" routerLink="/games/pocket-pet">{{ i18n.t('openFirstGame') }}</a>
       <a class="secondary-link" routerLink="/games/tic-tac-toe">{{ i18n.t('openTicTacToe') }}</a>
-      <a *ngIf="activePetId()" class="secondary-link" [routerLink]="['/games/pocket-pet', activePetId()]">{{ i18n.t('viewPetSession') }}</a>
-      <a *ngIf="activePetId()" class="secondary-link" [routerLink]="['/profile/pets', activePetId()]">{{ i18n.t('viewPet') }}</a>
+      @if (activePetId(); as petId) {
+        <a class="secondary-link" [routerLink]="['/games/pocket-pet', petId]">{{ i18n.t('viewPetSession') }}</a>
+        <a class="secondary-link" [routerLink]="['/profile/pets', petId]">{{ i18n.t('viewPet') }}</a>
+      }
     </div>
   </div>
 
   <div class="preview" aria-hidden="true">
-    <!-- Заменённое превью: простая SVG-иллюстрация животного (печаток лапы) -->
-    <svg width="240" height="240" viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="paw">
-      <rect width="100%" height="100%" fill="transparent"/>
-      <g transform="translate(60,40)" fill="#3a8f47">
-        <ellipse cx="30" cy="24" rx="14" ry="20"/>
-        <ellipse cx="70" cy="24" rx="14" ry="20"/>
-        <ellipse cx="18" cy="50" rx="12" ry="16"/>
-        <ellipse cx="82" cy="50" rx="12" ry="16"/>
-        <circle cx="50" cy="80" r="26"/>
-      </g>
-    </svg>
+    <div class="pet-scene">
+      <span class="sun"></span>
+      <span class="hill hill-back"></span>
+      <span class="hill hill-front"></span>
+      <span class="dino-body"></span>
+      <span class="dino-neck"></span>
+      <span class="dino-head"></span>
+      <span class="dino-tail"></span>
+      <span class="dino-leg leg-left"></span>
+      <span class="dino-leg leg-right"></span>
+    </div>
   </div>
 </section>

@@ -1,12 +1,12 @@
 import { Component, computed, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 
 import { I18nService } from '../i18n/i18n.service';
+import { OwnedPet, PetMood } from '../pets/owned-pet.model';
+import { petMoodKey, petOption } from '../pets/pet-display.utils';
 import { PetStorageService } from '../pets/pet-storage.service';
 import { PET_OPTIONS, SESSION_LENGTHS } from './pocket-pet.config';
 import { PetOption, SessionLength } from './pocket-pet.model';
-import { ActivatedRoute } from '@angular/router';
-import { OwnedPet, PetMood } from '../pets/owned-pet.model';
 
 @Component({
   selector: 'app-pocket-pet',
@@ -91,12 +91,10 @@ export class PocketPetComponent {
     return `${sessionLength.minutes} ${this.i18n.t('minutesShort')}`;
   }
 
-  petOption(ownedPet: OwnedPet) {
-    return PET_OPTIONS.find((pet) => pet.id === ownedPet.petId) ?? PET_OPTIONS[0];
-  }
+  readonly petOption = petOption;
 
   moodLabel(mood: PetMood): string {
-    return this.i18n.t(`petMood${this.capitalize(mood)}`);
+    return this.i18n.t(petMoodKey(mood));
   }
 
   petAgeLabel(pet: OwnedPet): string {
@@ -111,7 +109,4 @@ export class PocketPetComponent {
     return `${minutes} ${this.i18n.t('minutesShort')}`;
   }
 
-  private capitalize(value: PetMood): Capitalize<PetMood> {
-    return `${value.charAt(0).toUpperCase()}${value.slice(1)}` as Capitalize<PetMood>;
-  }
 }

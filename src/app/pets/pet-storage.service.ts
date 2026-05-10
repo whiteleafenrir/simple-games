@@ -4,7 +4,8 @@ import { PetOption, SessionLength } from '../pocket-pet/pocket-pet.model';
 import { UserService } from '../users/user.service';
 import { OwnedPet, PetMood, PetPeriodOfLife, PetStatus } from './owned-pet.model';
 
-const PET_STORAGE_VERSION = '0.1.0';
+const PET_STORAGE_VERSION = '0.1.1';
+const SUPPORTED_PET_STORAGE_VERSIONS = new Set(['0.1.0', PET_STORAGE_VERSION]);
 
 interface StoredPets {
   version: string;
@@ -43,7 +44,7 @@ export class PetStorageService {
       mode: pet.mode,
       status: 'pet',
       mood: 'joyful',
-      periodOfLife: 'teen',
+      periodOfLife: 'child',
       sessionLengthId: sessionLength.id,
       createdAt: now.toISOString(),
       endsAt: endsAt.toISOString()
@@ -77,9 +78,13 @@ export class PetStorageService {
     }
 
     try {
-      const parsedPets = JSON.parse(rawPets) as Partial<StoredPets>;
+      const parsedPets = JSON.parse(rawPets) as Partial<StoredPets> | Partial<OwnedPet>[];
 
-      if (parsedPets.version !== PET_STORAGE_VERSION || !Array.isArray(parsedPets.pets)) {
+      if (Array.isArray(parsedPets)) {
+        return parsedPets.map((pet: Partial<OwnedPet>): OwnedPet => this.normalizePet(pet));
+      }
+
+      if (!parsedPets.version || !SUPPORTED_PET_STORAGE_VERSIONS.has(parsedPets.version) || !Array.isArray(parsedPets.pets)) {
         return [];
       }
 
