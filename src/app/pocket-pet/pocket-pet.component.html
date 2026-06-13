@@ -12,6 +12,11 @@
       <p>{{ i18n.t('petPeriodOfLife') }}: {{ periodOfLifeLabel(pet.periodOfLife) }}</p>
       <p>{{ i18n.t('timeSince') }}: {{ petAgeLabel(pet) }}</p>
       <p>{{ i18n.t('sessionEnds') }}: {{ formatDate(pet.endsAt) }}</p>
+      @if (pet.farewell; as farewell) {
+        <p>{{ i18n.t('petFarewellReason') }}: {{ farewellReasonLabel(farewell.reason) }}</p>
+        <p>{{ i18n.t('petFinalCareScore') }}: {{ farewell.finalCareScore }}</p>
+        <p><strong>{{ farewellPhraseLabel(farewell.phraseId) }}</strong></p>
+      }
     </div>
   </div>
 

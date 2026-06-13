@@ -1,8 +1,12 @@
 import { PetMode } from '../pocket-pet/pocket-pet.model';
 import {
   OwnedPet,
+  PetCareActionEntry,
   PetCareActionId,
   PetCareActionResult,
+  PetFarewellPhraseId,
+  PetFarewellReason,
+  PetFarewellResult,
   PetLastActionAt,
   PetMood,
   PetPeriodOfLife,
@@ -66,11 +70,15 @@ export function createEmptyLastActionAt(): PetLastActionAt {
   };
 }
 
-export function createInitialPetCareState(now: Date = new Date()): Pick<OwnedPet, 'stats' | 'lastResolvedAt' | 'lastActionAt'> {
+export function createInitialPetCareState(
+  now: Date = new Date()
+): Pick<OwnedPet, 'stats' | 'lastResolvedAt' | 'lastActionAt' | 'careHistory' | 'farewell'> {
   return {
     stats: { ...DEFAULT_PET_STATS },
     lastResolvedAt: now.toISOString(),
-    lastActionAt: createEmptyLastActionAt()
+    lastActionAt: createEmptyLastActionAt(),
+    careHistory: [],
+    farewell: null
   };
 }
 
@@ -81,10 +89,13 @@ export function resolvePetState(pet: OwnedPet, now: Date = new Date()): OwnedPet
   const periodOfLife = petPeriodOfLife(createdAtMs, endsAtMs, Math.min(nowMs, endsAtMs));
 
   if (pet.status !== 'pet') {
+    const stats = normalizeStats(pet.stats);
     return {
       ...pet,
-      mood: petMood(pet.stats),
-      periodOfLife
+      mood: petMood(stats),
+      periodOfLife,
+      stats,
+      farewell: pet.farewell ?? createFarewellResult(pet.status, stats, new Date(endsAtMs))
     };
   }
 
@@ -93,6 +104,7 @@ export function resolvePetState(pet: OwnedPet, now: Date = new Date()): OwnedPet
   const elapsedHours = Math.max(0, resolveUntilMs - Math.min(lastResolvedMs, resolveUntilMs)) / HOUR_MS;
   const stats = elapsedHours > 0 ? decayStats(pet.stats, elapsedHours, pet.mode) : normalizeStats(pet.stats);
   const status = petStatus(stats, nowMs, endsAtMs);
+  const farewell = status === 'pet' ? null : createFarewellResult(status, stats, new Date(endsAtMs));
 
   return {
     ...pet,
@@ -100,6 +112,7 @@ export function resolvePetState(pet: OwnedPet, now: Date = new Date()): OwnedPet
     mood: petMood(stats),
     periodOfLife,
     stats,
+    farewell,
     lastResolvedAt: now.toISOString()
   };
 }
@@ -133,14 +146,20 @@ export function applyPetCareAction(
   }
 
   const action = PET_CARE_ACTIONS[actionId];
+  const statsBefore = normalizeStats(resolvedPet.stats);
+  const statsAfter = applyStatChanges(statsBefore, action.statChanges);
   const changedPet: OwnedPet = {
     ...resolvedPet,
-    stats: applyStatChanges(resolvedPet.stats, action.statChanges),
+    stats: statsAfter,
     lastResolvedAt: now.toISOString(),
     lastActionAt: {
       ...resolvedPet.lastActionAt,
       [actionId]: now.toISOString()
-    }
+    },
+    careHistory: [
+      ...resolvedPet.careHistory,
+      createCareActionEntry(resolvedPet, actionId, now, statsBefore, statsAfter)
+    ]
   };
   const nextPet = resolvePetState(changedPet, now);
 
@@ -250,6 +269,51 @@ function petStatus(stats: PetStats, nowMs: number, endsAtMs: number): PetStatus 
   }
 
   return careScore(stats) >= 50 ? 'grown' : 'left';
+}
+
+function createCareActionEntry(
+  pet: OwnedPet,
+  actionId: PetCareActionId,
+  now: Date,
+  statsBefore: PetStats,
+  statsAfter: PetStats
+): PetCareActionEntry {
+  return {
+    id: `${actionId}-${now.getTime()}-${pet.careHistory.length + 1}`,
+    actionId,
+    appliedAt: now.toISOString(),
+    statsBefore,
+    statsAfter,
+    careScoreBefore: careScore(statsBefore),
+    careScoreAfter: careScore(statsAfter),
+    moodBefore: petMood(statsBefore),
+    moodAfter: petMood(statsAfter)
+  };
+}
+
+function createFarewellResult(status: Exclude<PetStatus, 'pet'>, stats: PetStats, farewellAt: Date): PetFarewellResult {
+  const finalCareScore = careScore(stats);
+  const reason: PetFarewellReason = status === 'grown' ? 'grown-up' : 'lack-of-care';
+
+  return {
+    reason,
+    farewellAt: farewellAt.toISOString(),
+    phraseId: farewellPhraseId(reason, finalCareScore),
+    finalCareScore,
+    finalStats: { ...stats }
+  };
+}
+
+function farewellPhraseId(reason: PetFarewellReason, finalCareScore: number): PetFarewellPhraseId {
+  if (reason === 'lack-of-care') {
+    return 'needed-more-care';
+  }
+
+  if (finalCareScore >= 80) {
+    return 'bright-future';
+  }
+
+  return 'ready-for-adventure';
 }
 
 function careActionNextAvailableAt(pet: OwnedPet, actionId: PetCareActionId): Date | null {

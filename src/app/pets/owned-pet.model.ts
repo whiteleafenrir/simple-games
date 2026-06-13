@@ -5,6 +5,8 @@ export type PetMood = 'joyful' | 'neutral' | 'angry' | 'upset' | 'thoughtful' | 
 export type PetPeriodOfLife = 'child' | 'teen' | 'adult';
 export type PetCareActionId = 'feed' | 'clean' | 'play';
 export type PetStatId = 'satiety' | 'cleanliness' | 'happiness';
+export type PetFarewellReason = 'grown-up' | 'lack-of-care';
+export type PetFarewellPhraseId = 'bright-future' | 'ready-for-adventure' | 'needed-more-care';
 
 export interface PetStats {
   satiety: number;
@@ -13,6 +15,26 @@ export interface PetStats {
 }
 
 export type PetLastActionAt = Record<PetCareActionId, string | null>;
+
+export interface PetFarewellResult {
+  reason: PetFarewellReason;
+  farewellAt: string;
+  phraseId: PetFarewellPhraseId;
+  finalCareScore: number;
+  finalStats: PetStats;
+}
+
+export interface PetCareActionEntry {
+  id: string;
+  actionId: PetCareActionId;
+  appliedAt: string;
+  statsBefore: PetStats;
+  statsAfter: PetStats;
+  careScoreBefore: number;
+  careScoreAfter: number;
+  moodBefore: PetMood;
+  moodAfter: PetMood;
+}
 
 export interface OwnedPet {
   id: string;
@@ -28,6 +50,8 @@ export interface OwnedPet {
   endsAt: string;
   lastResolvedAt: string;
   lastActionAt: PetLastActionAt;
+  careHistory: PetCareActionEntry[];
+  farewell: PetFarewellResult | null;
 }
 
 export type PetCareActionFailureReason = 'cooldown' | 'inactive';

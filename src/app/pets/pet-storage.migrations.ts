@@ -1,5 +1,6 @@
 import { PetId, PetMode, SessionLengthId } from '../pocket-pet/pocket-pet.model';
 import {
+  careScore,
   createEmptyLastActionAt,
   DEFAULT_PET_STATS,
   normalizeStats,
@@ -7,6 +8,11 @@ import {
 } from './pet-engine';
 import {
   OwnedPet,
+  PetCareActionEntry,
+  PetCareActionId,
+  PetFarewellPhraseId,
+  PetFarewellReason,
+  PetFarewellResult,
   PetLastActionAt,
   PetMood,
   PetPeriodOfLife,
@@ -14,8 +20,9 @@ import {
   PetStats
 } from './owned-pet.model';
 
-export const PET_STORAGE_VERSION = '0.2.0';
+export const PET_STORAGE_VERSION = '0.3.0';
 
+const PREVIOUS_STORAGE_VERSION = '0.2.0';
 const LEGACY_STORAGE_VERSION = '0.1.1';
 
 interface StoredPets {
@@ -35,7 +42,7 @@ export function deserializePets(rawPets: string | null, now: Date = new Date()):
       return [];
     }
 
-    if (parsedPets.version === PET_STORAGE_VERSION) {
+    if (parsedPets.version === PET_STORAGE_VERSION || parsedPets.version === PREVIOUS_STORAGE_VERSION) {
       return parsedPets.pets.map((pet: Partial<OwnedPet>): OwnedPet => normalizePet(pet, now, false));
     }
 
@@ -62,13 +69,14 @@ function normalizePet(pet: Partial<OwnedPet>, now: Date, isLegacyPet: boolean): 
   const endsAt = normalizeDate(pet.endsAt, createdAt);
   const stats = isLegacyPet ? { ...DEFAULT_PET_STATS } : normalizeStoredStats(pet.stats);
   const lastResolvedAt = isLegacyPet ? nowIso : normalizeDate(pet.lastResolvedAt, createdAt);
+  const status = normalizeStatus(pet.status);
 
   return resolvePetState({
     id: pet.id ?? `pet-${now.getTime()}`,
     name: pet.name?.trim() || 'Pocket Pet',
     petId: normalizePetId(pet.petId),
     mode: normalizePetMode(pet.mode),
-    status: normalizeStatus(pet.status),
+    status,
     mood: normalizeMood(pet.mood),
     periodOfLife: normalizePeriodOfLife(pet.periodOfLife),
     stats,
@@ -76,7 +84,9 @@ function normalizePet(pet: Partial<OwnedPet>, now: Date, isLegacyPet: boolean): 
     createdAt,
     endsAt,
     lastResolvedAt,
-    lastActionAt: normalizeLastActionAt(pet.lastActionAt)
+    lastActionAt: normalizeLastActionAt(pet.lastActionAt),
+    careHistory: normalizeCareHistory(pet.careHistory),
+    farewell: normalizeFarewell(pet.farewell)
   }, now);
 }
 
@@ -94,6 +104,66 @@ function normalizeLastActionAt(lastActionAt: Partial<PetLastActionAt> | undefine
   };
 }
 
+function normalizeCareHistory(careHistory: Partial<PetCareActionEntry>[] | undefined): PetCareActionEntry[] {
+  if (!Array.isArray(careHistory)) {
+    return [];
+  }
+
+  return careHistory
+    .map((entry: Partial<PetCareActionEntry>, index: number): PetCareActionEntry | null =>
+      normalizeCareHistoryEntry(entry, index)
+    )
+    .filter((entry: PetCareActionEntry | null): entry is PetCareActionEntry => entry !== null);
+}
+
+function normalizeCareHistoryEntry(entry: Partial<PetCareActionEntry>, index: number): PetCareActionEntry | null {
+  const actionId = normalizeCareActionId(entry.actionId);
+  const appliedAt = normalizeNullableDate(entry.appliedAt);
+
+  if (!actionId || !appliedAt) {
+    return null;
+  }
+
+  const statsBefore = normalizeStoredStats(entry.statsBefore);
+  const statsAfter = normalizeStoredStats(entry.statsAfter);
+
+  return {
+    id: entry.id?.trim() || `${actionId}-${Date.parse(appliedAt)}-${index + 1}`,
+    actionId,
+    appliedAt,
+    statsBefore,
+    statsAfter,
+    careScoreBefore: normalizeScore(entry.careScoreBefore, careScore(statsBefore)),
+    careScoreAfter: normalizeScore(entry.careScoreAfter, careScore(statsAfter)),
+    moodBefore: normalizeMood(entry.moodBefore),
+    moodAfter: normalizeMood(entry.moodAfter)
+  };
+}
+
+function normalizeFarewell(farewell: Partial<PetFarewellResult> | null | undefined): PetFarewellResult | null {
+  if (!farewell) {
+    return null;
+  }
+
+  const reason = normalizeFarewellReason(farewell.reason);
+  const farewellAt = normalizeNullableDate(farewell.farewellAt);
+
+  if (!reason || !farewellAt) {
+    return null;
+  }
+
+  const finalStats = normalizeStoredStats(farewell.finalStats);
+  const finalCareScore = normalizeScore(farewell.finalCareScore, careScore(finalStats));
+
+  return {
+    reason,
+    farewellAt,
+    phraseId: normalizeFarewellPhraseId(farewell.phraseId, reason, finalCareScore),
+    finalCareScore,
+    finalStats
+  };
+}
+
 function normalizeStatus(status: PetStatus | 'active' | 'resting' | 'needs-care' | undefined): PetStatus {
   if (status === 'grown' || status === 'left') {
     return status;
@@ -108,6 +178,38 @@ function normalizeMood(mood: PetMood | undefined): PetMood {
   }
 
   return 'joyful';
+}
+
+function normalizeCareActionId(actionId: PetCareActionId | undefined): PetCareActionId | null {
+  if (actionId === 'feed' || actionId === 'clean' || actionId === 'play') {
+    return actionId;
+  }
+
+  return null;
+}
+
+function normalizeFarewellReason(reason: PetFarewellReason | undefined): PetFarewellReason | null {
+  if (reason === 'grown-up' || reason === 'lack-of-care') {
+    return reason;
+  }
+
+  return null;
+}
+
+function normalizeFarewellPhraseId(
+  phraseId: PetFarewellPhraseId | undefined,
+  reason: PetFarewellReason,
+  finalCareScore: number
+): PetFarewellPhraseId {
+  if (phraseId === 'bright-future' || phraseId === 'ready-for-adventure' || phraseId === 'needed-more-care') {
+    return phraseId;
+  }
+
+  if (reason === 'lack-of-care') {
+    return 'needed-more-care';
+  }
+
+  return finalCareScore >= 80 ? 'bright-future' : 'ready-for-adventure';
 }
 
 function normalizePeriodOfLife(periodOfLife: PetPeriodOfLife | undefined): PetPeriodOfLife {
@@ -156,4 +258,12 @@ function normalizeNullableDate(value: string | null | undefined): string | null 
   }
 
   return value;
+}
+
+function normalizeScore(value: number | undefined, fallback: number): number {
+  if (typeof value !== 'number' || Number.isNaN(value)) {
+    return fallback;
+  }
+
+  return Math.round(Math.max(0, Math.min(100, value)) * 10) / 10;
 }

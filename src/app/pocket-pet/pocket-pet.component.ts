@@ -3,11 +3,22 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 
 import { I18nService } from '../i18n/i18n.service';
 import { PET_CARE_ACTION_IDS, careActionCooldownRemainingMs } from '../pets/pet-engine';
-import { OwnedPet, PetCareActionId, PetMood, PetPeriodOfLife, PetStatId, PetStatus } from '../pets/owned-pet.model';
+import {
+  OwnedPet,
+  PetCareActionId,
+  PetFarewellPhraseId,
+  PetFarewellReason,
+  PetMood,
+  PetPeriodOfLife,
+  PetStatId,
+  PetStatus
+} from '../pets/owned-pet.model';
 import {
   PET_STAT_IDS,
   petCareActionHintKey,
   petCareActionKey,
+  petFarewellPhraseKey,
+  petFarewellReasonKey,
   petMoodKey,
   petOption,
   petPeriodOfLifeKey,
@@ -168,6 +179,14 @@ export class PocketPetComponent implements OnDestroy {
 
   careActionHint(actionId: PetCareActionId): string {
     return this.i18n.t(petCareActionHintKey(actionId));
+  }
+
+  farewellReasonLabel(reason: PetFarewellReason): string {
+    return this.i18n.t(petFarewellReasonKey(reason));
+  }
+
+  farewellPhraseLabel(phraseId: PetFarewellPhraseId): string {
+    return this.i18n.t(petFarewellPhraseKey(phraseId));
   }
 
   statValue(pet: OwnedPet, statId: PetStatId): number {

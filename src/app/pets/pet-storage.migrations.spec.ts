@@ -32,11 +32,13 @@ describe('pet storage migrations', () => {
     });
     expect(pets[0].lastResolvedAt).toBe('2026-06-13T12:00:00.000Z');
     expect(pets[0].status).toBe('pet');
+    expect(pets[0].careHistory).toEqual([]);
+    expect(pets[0].farewell).toBeNull();
   });
 
-  it('deserializes 0.2.0 pets with elapsed time applied', () => {
+  it('migrates 0.2.0 pets with elapsed time applied', () => {
     const rawPets = JSON.stringify({
-      version: PET_STORAGE_VERSION,
+      version: '0.2.0',
       pets: [
         {
           id: 'cat-new',
@@ -70,6 +72,87 @@ describe('pet storage migrations', () => {
       satiety: 77,
       cleanliness: 78,
       happiness: 78.5
+    });
+    expect(pets[0].careHistory).toEqual([]);
+    expect(pets[0].farewell).toBeNull();
+  });
+
+  it('preserves 0.3.0 care history and farewell results', () => {
+    const rawPets = JSON.stringify({
+      version: PET_STORAGE_VERSION,
+      pets: [
+        {
+          id: 'cat-new',
+          name: 'Mila',
+          petId: 'cat',
+          mode: 'easy',
+          status: 'grown',
+          mood: 'joyful',
+          periodOfLife: 'adult',
+          stats: {
+            satiety: 90,
+            cleanliness: 85,
+            happiness: 95
+          },
+          sessionLengthId: 'standard',
+          createdAt: '2026-06-13T10:00:00.000Z',
+          endsAt: '2026-06-16T10:00:00.000Z',
+          lastResolvedAt: '2026-06-16T10:00:00.000Z',
+          lastActionAt: {
+            feed: '2026-06-13T10:00:00.000Z',
+            clean: null,
+            play: null
+          },
+          careHistory: [
+            {
+              id: 'feed-1',
+              actionId: 'feed',
+              appliedAt: '2026-06-13T10:00:00.000Z',
+              statsBefore: {
+                satiety: 50,
+                cleanliness: 50,
+                happiness: 50
+              },
+              statsAfter: {
+                satiety: 85,
+                cleanliness: 45,
+                happiness: 55
+              },
+              careScoreBefore: 50,
+              careScoreAfter: 61.7,
+              moodBefore: 'thoughtful',
+              moodAfter: 'neutral'
+            }
+          ],
+          farewell: {
+            reason: 'grown-up',
+            farewellAt: '2026-06-16T10:00:00.000Z',
+            phraseId: 'bright-future',
+            finalCareScore: 90,
+            finalStats: {
+              satiety: 90,
+              cleanliness: 85,
+              happiness: 95
+            }
+          }
+        }
+      ]
+    });
+
+    const pets = deserializePets(rawPets, new Date('2026-06-17T10:00:00.000Z'));
+
+    expect(pets[0].careHistory).toHaveLength(1);
+    expect(pets[0].careHistory[0].actionId).toBe('feed');
+    expect(pets[0].farewell).toEqual({
+      reason: 'grown-up',
+      farewellAt: '2026-06-16T10:00:00.000Z',
+      phraseId: 'bright-future',
+      finalCareScore: 90,
+      finalStats: {
+        satiety: 90,
+        cleanliness: 85,
+        happiness: 95
+      }
     });
   });
 

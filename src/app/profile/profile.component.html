@@ -48,11 +48,27 @@
               }
             </div>
 
+            @if (ownedPet.farewell; as farewell) {
+              <div class="farewell-summary">
+                <div>
+                  <span>{{ i18n.t('petFinalCareScore') }}</span>
+                  <strong>{{ farewell.finalCareScore }}</strong>
+                </div>
+                <p>{{ farewellPhraseLabel(farewell.phraseId) }}</p>
+              </div>
+            }
+
             <dl>
               <div>
                 <dt>{{ i18n.t('petStatus') }}</dt>
                 <dd>{{ statusLabel(ownedPet.status) }}</dd>
               </div>
+              @if (ownedPet.farewell; as farewell) {
+                <div>
+                  <dt>{{ i18n.t('petFarewellReason') }}</dt>
+                  <dd>{{ farewellReasonLabel(farewell.reason) }}</dd>
+                </div>
+              }
               <div>
                 <dt>{{ i18n.t('petMood') }}</dt>
                 <dd>{{ moodLabel(ownedPet.mood) }}</dd>
@@ -68,6 +84,10 @@
               <div>
                 <dt>{{ i18n.t('createdAt') }}</dt>
                 <dd>{{ formatDate(ownedPet.createdAt) }}</dd>
+              </div>
+              <div>
+                <dt>{{ i18n.t('petCareHistoryCount') }}</dt>
+                <dd>{{ ownedPet.careHistory.length }}</dd>
               </div>
             </dl>
 

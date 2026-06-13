@@ -11,7 +11,9 @@
 }
 
 .pet-hero,
-.details-panel {
+.details-panel,
+.result-panel,
+.history-panel {
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--surface-glass-strong);
@@ -72,8 +74,47 @@ h1 {
   font-weight: 800;
 }
 
-.details-panel {
+.details-panel,
+.result-panel,
+.history-panel {
   padding: 18px;
+}
+
+.result-panel,
+.history-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.panel-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.panel-heading span {
+  color: var(--text);
+  font-size: 1.2rem;
+  font-weight: 900;
+}
+
+.panel-heading strong {
+  display: grid;
+  place-items: center;
+  min-width: 38px;
+  height: 38px;
+  padding: 0 10px;
+  border-radius: 8px;
+  color: var(--primary-contrast);
+  background: var(--primary);
+}
+
+.farewell-phrase {
+  color: var(--text);
+  font-size: 1.08rem;
+  font-weight: 800;
+  line-height: 1.5;
 }
 
 .pet-stats-mini {
@@ -177,6 +218,59 @@ dd {
   text-decoration: none;
 }
 
+.history-empty {
+  color: var(--muted-text);
+}
+
+.history-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.history-list li {
+  display: grid;
+  gap: 9px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.history-topline {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.history-topline strong {
+  color: var(--text);
+}
+
+.history-topline time,
+.history-list small {
+  color: var(--muted-text);
+  font-weight: 800;
+}
+
+.history-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.history-stats span {
+  padding: 5px 8px;
+  border-radius: 8px;
+  color: var(--secondary-text);
+  background: var(--secondary);
+  font-size: 0.86rem;
+  font-weight: 900;
+}
+
 @media (max-width: 560px) {
   .pet-hero {
     align-items: flex-start;
@@ -191,7 +285,9 @@ dd {
     font-size: 2rem;
   }
 
-  .details-panel {
+  .details-panel,
+  .result-panel,
+  .history-panel {
     padding: 14px;
   }
 
@@ -207,5 +303,10 @@ dd {
   dd {
     max-width: 100%;
     text-align: left;
+  }
+
+  .history-topline {
+    display: grid;
+    gap: 4px;
   }
 }

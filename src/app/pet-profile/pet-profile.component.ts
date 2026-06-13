@@ -2,9 +2,23 @@ import { Component, computed } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 
 import { I18nService } from '../i18n/i18n.service';
-import { OwnedPet, PetMood, PetPeriodOfLife, PetStatId, PetStatus } from '../pets/owned-pet.model';
+import {
+  OwnedPet,
+  PetCareActionEntry,
+  PetCareActionId,
+  PetFarewellPhraseId,
+  PetFarewellReason,
+  PetFarewellResult,
+  PetMood,
+  PetPeriodOfLife,
+  PetStatId,
+  PetStatus
+} from '../pets/owned-pet.model';
 import {
   PET_STAT_IDS,
+  petCareActionKey,
+  petFarewellPhraseKey,
+  petFarewellReasonKey,
   petMoodKey,
   petOption,
   petPeriodOfLifeKey,
@@ -55,11 +69,44 @@ export class PetProfileComponent {
     return Math.round(pet.stats[statId]);
   }
 
+  finalStatValue(farewell: PetFarewellResult, statId: PetStatId): number {
+    return Math.round(farewell.finalStats[statId]);
+  }
+
+  farewellReasonLabel(reason: PetFarewellReason): string {
+    return this.i18n.t(petFarewellReasonKey(reason));
+  }
+
+  farewellPhraseLabel(phraseId: PetFarewellPhraseId): string {
+    return this.i18n.t(petFarewellPhraseKey(phraseId));
+  }
+
+  careActionLabel(actionId: PetCareActionId): string {
+    return this.i18n.t(petCareActionKey(actionId));
+  }
+
+  careHistory(pet: OwnedPet): readonly PetCareActionEntry[] {
+    return [...pet.careHistory].reverse();
+  }
+
+  statDelta(entry: PetCareActionEntry, statId: PetStatId): string {
+    return this.formatSigned(entry.statsAfter[statId] - entry.statsBefore[statId]);
+  }
+
+  scoreDelta(entry: PetCareActionEntry): string {
+    return this.formatSigned(entry.careScoreAfter - entry.careScoreBefore);
+  }
+
   formatDate(value: string): string {
     return new Intl.DateTimeFormat(this.i18n.language(), {
       dateStyle: 'medium',
       timeStyle: 'short'
     }).format(new Date(value));
+  }
+
+  private formatSigned(value: number): string {
+    const rounded = Math.round(value * 10) / 10;
+    return `${rounded > 0 ? '+' : ''}${rounded}`;
   }
 
 }

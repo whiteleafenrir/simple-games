@@ -29,6 +29,8 @@ function pet(overrides: Partial<OwnedPet> = {}): OwnedPet {
     endsAt,
     lastResolvedAt: createdAt,
     lastActionAt: createEmptyLastActionAt(),
+    careHistory: [],
+    farewell: null,
     ...overrides
   };
 }
@@ -87,6 +89,23 @@ describe('pet engine', () => {
     expect(played.stats).toEqual({ satiety: 38, cleanliness: 42, happiness: 80 });
   });
 
+  it('records applied care actions in history', () => {
+    const start = pet({ stats: { satiety: 50, cleanliness: 50, happiness: 50 } });
+    const result = applyPetCareAction(start, 'play', new Date(createdAt));
+
+    expect(result.pet.careHistory).toHaveLength(1);
+    expect(result.pet.careHistory[0]).toMatchObject({
+      actionId: 'play',
+      appliedAt: createdAt,
+      statsBefore: { satiety: 50, cleanliness: 50, happiness: 50 },
+      statsAfter: { satiety: 38, cleanliness: 42, happiness: 80 },
+      careScoreBefore: 50,
+      careScoreAfter: 53.3,
+      moodBefore: 'thoughtful',
+      moodAfter: 'thoughtful'
+    });
+  });
+
   it('derives mood from stat thresholds', () => {
     expect(petMood(stats(80, 80, 80))).toBe('joyful');
     expect(petMood(stats(60, 65, 70))).toBe('neutral');
@@ -108,7 +127,29 @@ describe('pet engine', () => {
 
     expect(grown.status).toBe('grown');
     expect(grown.periodOfLife).toBe('adult');
+    expect(grown.farewell).toEqual({
+      reason: 'grown-up',
+      farewellAt: endsAt,
+      phraseId: 'bright-future',
+      finalCareScore: 88.9,
+      finalStats: {
+        satiety: 88.5,
+        cleanliness: 89,
+        happiness: 89.3
+      }
+    });
     expect(left.status).toBe('left');
+    expect(left.farewell).toEqual({
+      reason: 'lack-of-care',
+      farewellAt: endsAt,
+      phraseId: 'needed-more-care',
+      finalCareScore: 8.9,
+      finalStats: {
+        satiety: 8.5,
+        cleanliness: 9,
+        happiness: 9.3
+      }
+    });
   });
 
   it('calculates an average care score', () => {

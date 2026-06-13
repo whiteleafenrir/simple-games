@@ -180,6 +180,37 @@ h1 {
   background: var(--success);
 }
 
+.farewell-summary {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--tile-bg);
+}
+
+.farewell-summary div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.farewell-summary span {
+  color: var(--muted-text);
+  font-weight: 800;
+}
+
+.farewell-summary strong {
+  color: var(--primary);
+  font-size: 1.35rem;
+}
+
+.farewell-summary p {
+  color: var(--text);
+  line-height: 1.45;
+}
+
 .pet-avatar {
   width: 54px;
   aspect-ratio: 1;

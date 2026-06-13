@@ -1,7 +1,16 @@
 import { TranslationKey } from '../i18n/translations';
 import { PET_OPTIONS, SESSION_LENGTHS } from '../pocket-pet/pocket-pet.config';
 import { PetOption, SessionLength } from '../pocket-pet/pocket-pet.model';
-import { OwnedPet, PetCareActionId, PetMood, PetPeriodOfLife, PetStatId, PetStatus } from './owned-pet.model';
+import {
+  OwnedPet,
+  PetCareActionId,
+  PetFarewellPhraseId,
+  PetFarewellReason,
+  PetMood,
+  PetPeriodOfLife,
+  PetStatId,
+  PetStatus
+} from './owned-pet.model';
 
 export const PET_STAT_IDS: readonly PetStatId[] = ['satiety', 'cleanliness', 'happiness'] as const;
 
@@ -84,4 +93,24 @@ export function petCareActionHintKey(actionId: PetCareActionId): TranslationKey 
   }
 
   return 'playWithPetHint';
+}
+
+export function petFarewellReasonKey(reason: PetFarewellReason): TranslationKey {
+  if (reason === 'grown-up') {
+    return 'petFarewellReasonGrownUp';
+  }
+
+  return 'petFarewellReasonLackOfCare';
+}
+
+export function petFarewellPhraseKey(phraseId: PetFarewellPhraseId): TranslationKey {
+  if (phraseId === 'bright-future') {
+    return 'petFarewellPhraseBrightFuture';
+  }
+
+  if (phraseId === 'ready-for-adventure') {
+    return 'petFarewellPhraseReadyForAdventure';
+  }
+
+  return 'petFarewellPhraseNeededMoreCare';
 }

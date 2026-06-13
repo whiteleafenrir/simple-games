@@ -63,7 +63,79 @@
           <dt>{{ i18n.t('createdAt') }}</dt>
           <dd>{{ formatDate(ownedPet.createdAt) }}</dd>
         </div>
+        <div>
+          <dt>{{ i18n.t('petCareHistoryCount') }}</dt>
+          <dd>{{ ownedPet.careHistory.length }}</dd>
+        </div>
       </dl>
+    </section>
+
+    @if (ownedPet.farewell; as farewell) {
+      <section class="result-panel">
+        <div class="panel-heading">
+          <span>{{ i18n.t('petFarewellTitle') }}</span>
+          <strong>{{ farewell.finalCareScore }}</strong>
+        </div>
+
+        <p class="farewell-phrase">{{ farewellPhraseLabel(farewell.phraseId) }}</p>
+
+        <div class="pet-stats-mini">
+          @for (statId of statIds; track statId) {
+            <div>
+              <span>{{ statLabel(statId) }}</span>
+              <strong>{{ finalStatValue(farewell, statId) }}</strong>
+              <b aria-hidden="true"><i [style.width.%]="finalStatValue(farewell, statId)"></i></b>
+            </div>
+          }
+        </div>
+
+        <dl>
+          <div>
+            <dt>{{ i18n.t('petFarewellReason') }}</dt>
+            <dd>{{ farewellReasonLabel(farewell.reason) }}</dd>
+          </div>
+          <div>
+            <dt>{{ i18n.t('petFarewellAt') }}</dt>
+            <dd>{{ formatDate(farewell.farewellAt) }}</dd>
+          </div>
+          <div>
+            <dt>{{ i18n.t('petFinalCareScore') }}</dt>
+            <dd>{{ farewell.finalCareScore }}</dd>
+          </div>
+        </dl>
+      </section>
+    }
+
+    <section class="history-panel">
+      <div class="panel-heading">
+        <span>{{ i18n.t('petCareHistoryTitle') }}</span>
+        <strong>{{ ownedPet.careHistory.length }}</strong>
+      </div>
+
+      @if (ownedPet.careHistory.length === 0) {
+        <p class="history-empty">{{ i18n.t('petCareHistoryEmpty') }}</p>
+      } @else {
+        <ol class="history-list">
+          @for (entry of careHistory(ownedPet); track entry.id) {
+            <li>
+              <div class="history-topline">
+                <strong>{{ careActionLabel(entry.actionId) }}</strong>
+                <time [attr.datetime]="entry.appliedAt">{{ formatDate(entry.appliedAt) }}</time>
+              </div>
+              <div class="history-stats">
+                @for (statId of statIds; track statId) {
+                  <span>{{ statLabel(statId) }} {{ statDelta(entry, statId) }}</span>
+                }
+              </div>
+              <small>
+                {{ i18n.t('petCareScore') }}
+                {{ entry.careScoreBefore }} -> {{ entry.careScoreAfter }}
+                ({{ scoreDelta(entry) }})
+              </small>
+            </li>
+          }
+        </ol>
+      }
     </section>
   } @else {
     <section class="details-panel empty-state">

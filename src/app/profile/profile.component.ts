@@ -2,9 +2,19 @@ import { Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 import { I18nService } from '../i18n/i18n.service';
-import { OwnedPet, PetMood, PetPeriodOfLife, PetStatId, PetStatus } from '../pets/owned-pet.model';
+import {
+  OwnedPet,
+  PetFarewellPhraseId,
+  PetFarewellReason,
+  PetMood,
+  PetPeriodOfLife,
+  PetStatId,
+  PetStatus
+} from '../pets/owned-pet.model';
 import {
   PET_STAT_IDS,
+  petFarewellPhraseKey,
+  petFarewellReasonKey,
   petMoodKey,
   petOption,
   petPeriodOfLifeKey,
@@ -53,6 +63,14 @@ export class ProfileComponent {
 
   statValue(pet: OwnedPet, statId: PetStatId): number {
     return Math.round(pet.stats[statId]);
+  }
+
+  farewellReasonLabel(reason: PetFarewellReason): string {
+    return this.i18n.t(petFarewellReasonKey(reason));
+  }
+
+  farewellPhraseLabel(phraseId: PetFarewellPhraseId): string {
+    return this.i18n.t(petFarewellPhraseKey(phraseId));
   }
 
   formatDate(value: string): string {
