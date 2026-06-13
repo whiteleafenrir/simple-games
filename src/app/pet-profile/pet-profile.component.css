@@ -76,6 +76,46 @@ h1 {
   padding: 18px;
 }
 
+.pet-stats-mini {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.pet-stats-mini div {
+  display: grid;
+  gap: 7px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.pet-stats-mini span {
+  color: var(--muted-text);
+  font-weight: 800;
+}
+
+.pet-stats-mini strong {
+  color: var(--text);
+  font-size: 1.35rem;
+}
+
+.pet-stats-mini b {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--secondary);
+  overflow: hidden;
+}
+
+.pet-stats-mini i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--success), var(--primary));
+}
+
 dl {
   display: grid;
   gap: 10px;
@@ -153,6 +193,10 @@ dd {
 
   .details-panel {
     padding: 14px;
+  }
+
+  .pet-stats-mini {
+    grid-template-columns: 1fr;
   }
 
   dl div {

@@ -1,7 +1,9 @@
 import { TranslationKey } from '../i18n/translations';
 import { PET_OPTIONS, SESSION_LENGTHS } from '../pocket-pet/pocket-pet.config';
 import { PetOption, SessionLength } from '../pocket-pet/pocket-pet.model';
-import { OwnedPet, PetMood, PetPeriodOfLife, PetStatus } from './owned-pet.model';
+import { OwnedPet, PetCareActionId, PetMood, PetPeriodOfLife, PetStatId, PetStatus } from './owned-pet.model';
+
+export const PET_STAT_IDS: readonly PetStatId[] = ['satiety', 'cleanliness', 'happiness'] as const;
 
 export function petOption(ownedPet: OwnedPet): PetOption {
   return PET_OPTIONS.find((pet: PetOption): boolean => pet.id === ownedPet.petId) ?? PET_OPTIONS[0];
@@ -46,4 +48,40 @@ export function petPeriodOfLifeKey(periodOfLife: PetPeriodOfLife): TranslationKe
   }
 
   return 'petPeriodTeen';
+}
+
+export function petStatKey(statId: PetStatId): TranslationKey {
+  if (statId === 'satiety') {
+    return 'petStatSatiety';
+  }
+
+  if (statId === 'cleanliness') {
+    return 'petStatCleanliness';
+  }
+
+  return 'petStatHappiness';
+}
+
+export function petCareActionKey(actionId: PetCareActionId): TranslationKey {
+  if (actionId === 'feed') {
+    return 'feedPet';
+  }
+
+  if (actionId === 'clean') {
+    return 'cleanPet';
+  }
+
+  return 'playWithPet';
+}
+
+export function petCareActionHintKey(actionId: PetCareActionId): TranslationKey {
+  if (actionId === 'feed') {
+    return 'feedPetHint';
+  }
+
+  if (actionId === 'clean') {
+    return 'cleanPetHint';
+  }
+
+  return 'playWithPetHint';
 }

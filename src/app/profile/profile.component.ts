@@ -2,8 +2,16 @@ import { Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 import { I18nService } from '../i18n/i18n.service';
-import { OwnedPet, PetMood, PetPeriodOfLife, PetStatus } from '../pets/owned-pet.model';
-import { petMoodKey, petOption, petPeriodOfLifeKey, petStatusKey, sessionLength } from '../pets/pet-display.utils';
+import { OwnedPet, PetMood, PetPeriodOfLife, PetStatId, PetStatus } from '../pets/owned-pet.model';
+import {
+  PET_STAT_IDS,
+  petMoodKey,
+  petOption,
+  petPeriodOfLifeKey,
+  petStatKey,
+  petStatusKey,
+  sessionLength
+} from '../pets/pet-display.utils';
 import { PetStorageService } from '../pets/pet-storage.service';
 import { UserService } from '../users/user.service';
 
@@ -16,6 +24,8 @@ import { UserService } from '../users/user.service';
   styleUrls: ['./profile.component.css']
 })
 export class ProfileComponent {
+  readonly statIds: readonly PetStatId[] = PET_STAT_IDS;
+
   constructor(
     public readonly i18n: I18nService,
     public readonly pets: PetStorageService,
@@ -35,6 +45,14 @@ export class ProfileComponent {
 
   periodOfLifeLabel(periodOfLife: PetPeriodOfLife): string {
     return this.i18n.t(petPeriodOfLifeKey(periodOfLife));
+  }
+
+  statLabel(statId: PetStatId): string {
+    return this.i18n.t(petStatKey(statId));
+  }
+
+  statValue(pet: OwnedPet, statId: PetStatId): number {
+    return Math.round(pet.stats[statId]);
   }
 
   formatDate(value: string): string {

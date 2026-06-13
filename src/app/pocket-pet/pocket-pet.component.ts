@@ -1,9 +1,19 @@
-import { Component, computed, signal } from '@angular/core';
+import { Component, OnDestroy, computed, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 
 import { I18nService } from '../i18n/i18n.service';
-import { OwnedPet, PetMood } from '../pets/owned-pet.model';
-import { petMoodKey, petOption } from '../pets/pet-display.utils';
+import { PET_CARE_ACTION_IDS, careActionCooldownRemainingMs } from '../pets/pet-engine';
+import { OwnedPet, PetCareActionId, PetMood, PetPeriodOfLife, PetStatId, PetStatus } from '../pets/owned-pet.model';
+import {
+  PET_STAT_IDS,
+  petCareActionHintKey,
+  petCareActionKey,
+  petMoodKey,
+  petOption,
+  petPeriodOfLifeKey,
+  petStatKey,
+  petStatusKey
+} from '../pets/pet-display.utils';
 import { PetStorageService } from '../pets/pet-storage.service';
 import { PET_OPTIONS, SESSION_LENGTHS } from './pocket-pet.config';
 import { PetOption, SessionLength } from './pocket-pet.model';
@@ -16,12 +26,15 @@ import { PetOption, SessionLength } from './pocket-pet.model';
   templateUrl: './pocket-pet.component.html',
   styleUrls: ['./pocket-pet.component.css']
 })
-export class PocketPetComponent {
+export class PocketPetComponent implements OnDestroy {
   readonly viewedPet = computed((): OwnedPet | null => {
     const id = this.route.snapshot.paramMap.get('petId');
     return id ? this.petStorage.petById(id) : this.petStorage.activePet();
   });
 
+  readonly now = signal<Date>(new Date());
+  readonly statIds: readonly PetStatId[] = PET_STAT_IDS;
+  readonly careActions: readonly PetCareActionId[] = PET_CARE_ACTION_IDS;
   readonly sessionLengths: readonly SessionLength[] = SESSION_LENGTHS;
   readonly petOptions: readonly PetOption[] = PET_OPTIONS;
   readonly selectedSession = signal<SessionLength>(SESSION_LENGTHS[1]);
@@ -29,13 +42,31 @@ export class PocketPetComponent {
   readonly petName = signal<string>('');
   readonly createdPetMessage = signal<string | null>(null);
   readonly errorMessage = signal<string | null>(null);
+  readonly careMessage = signal<string | null>(null);
   readonly canCreatePet = computed((): boolean => this.petName().trim().length > 0 && !this.petStorage.activePet());
+  private readonly timerId: ReturnType<typeof setInterval> | null = null;
 
   constructor(
     public readonly i18n: I18nService,
     private readonly route: ActivatedRoute,
     public readonly petStorage: PetStorageService
-  ) {}
+  ) {
+    this.petStorage.resolvePets(this.now());
+
+    if (typeof setInterval !== 'undefined') {
+      this.timerId = setInterval((): void => {
+        const now = new Date();
+        this.now.set(now);
+        this.petStorage.resolvePets(now);
+      }, 30_000);
+    }
+  }
+
+  ngOnDestroy(): void {
+    if (this.timerId) {
+      clearInterval(this.timerId);
+    }
+  }
 
   selectSession(sessionLength: SessionLength): void {
     this.selectedSession.set(sessionLength);
@@ -79,6 +110,28 @@ export class PocketPetComponent {
     this.errorMessage.set(null);
   }
 
+  careForPet(pet: OwnedPet, actionId: PetCareActionId): void {
+    const now = new Date();
+    const result = this.petStorage.careForPet(pet.id, actionId, now);
+    this.now.set(now);
+
+    if (!result) {
+      return;
+    }
+
+    if (result.applied) {
+      this.careMessage.set(this.i18n.t('careActionApplied'));
+      return;
+    }
+
+    if (result.reason === 'cooldown') {
+      this.careMessage.set(this.i18n.t('careActionCoolingDown'));
+      return;
+    }
+
+    this.careMessage.set(this.i18n.t('careActionInactive'));
+  }
+
   sessionDurationLabel(sessionLength: SessionLength): string {
     if (sessionLength.minutes % 1440 === 0) {
       return `${sessionLength.minutes / 1440} ${this.i18n.t('dayShort')}`;
@@ -97,6 +150,48 @@ export class PocketPetComponent {
     return this.i18n.t(petMoodKey(mood));
   }
 
+  statusLabel(status: PetStatus): string {
+    return this.i18n.t(petStatusKey(status));
+  }
+
+  periodOfLifeLabel(periodOfLife: PetPeriodOfLife): string {
+    return this.i18n.t(petPeriodOfLifeKey(periodOfLife));
+  }
+
+  statLabel(statId: PetStatId): string {
+    return this.i18n.t(petStatKey(statId));
+  }
+
+  careActionLabel(actionId: PetCareActionId): string {
+    return this.i18n.t(petCareActionKey(actionId));
+  }
+
+  careActionHint(actionId: PetCareActionId): string {
+    return this.i18n.t(petCareActionHintKey(actionId));
+  }
+
+  statValue(pet: OwnedPet, statId: PetStatId): number {
+    return Math.round(pet.stats[statId]);
+  }
+
+  isCareActionDisabled(pet: OwnedPet, actionId: PetCareActionId): boolean {
+    return pet.status !== 'pet' || careActionCooldownRemainingMs(pet, actionId, this.now()) > 0;
+  }
+
+  careActionState(pet: OwnedPet, actionId: PetCareActionId): string {
+    if (pet.status !== 'pet') {
+      return this.i18n.t('careActionInactive');
+    }
+
+    const remainingMs = careActionCooldownRemainingMs(pet, actionId, this.now());
+
+    if (remainingMs <= 0) {
+      return this.i18n.t('careActionReady');
+    }
+
+    return `${this.i18n.t('careCooldown')}: ${this.formatRemaining(remainingMs)}`;
+  }
+
   petAgeLabel(pet: OwnedPet): string {
     const ms = Date.now() - Date.parse(pet.createdAt);
     const minutes = Math.floor(ms / 60000);
@@ -109,4 +204,27 @@ export class PocketPetComponent {
     return `${minutes} ${this.i18n.t('minutesShort')}`;
   }
 
+  formatDate(value: string): string {
+    return new Intl.DateTimeFormat(this.i18n.language(), {
+      dateStyle: 'medium',
+      timeStyle: 'short'
+    }).format(new Date(value));
+  }
+
+  private formatRemaining(ms: number): string {
+    const minutes = Math.max(1, Math.ceil(ms / 60000));
+
+    if (minutes >= 60) {
+      const hours = Math.floor(minutes / 60);
+      const restMinutes = minutes % 60;
+
+      if (restMinutes === 0) {
+        return `${hours} ${this.i18n.t('hourShort')}`;
+      }
+
+      return `${hours} ${this.i18n.t('hourShort')} ${restMinutes} ${this.i18n.t('minutesShort')}`;
+    }
+
+    return `${minutes} ${this.i18n.t('minutesShort')}`;
+  }
 }

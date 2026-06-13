@@ -141,6 +141,45 @@ h1 {
   color: var(--muted-text);
 }
 
+.pet-stats-mini {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.pet-stats-mini div {
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--tile-bg);
+}
+
+.pet-stats-mini span {
+  color: var(--muted-text);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.pet-stats-mini strong {
+  color: var(--text);
+}
+
+.pet-stats-mini b {
+  height: 7px;
+  border-radius: 999px;
+  background: var(--secondary);
+  overflow: hidden;
+}
+
+.pet-stats-mini i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--success);
+}
+
 .pet-avatar {
   width: 54px;
   aspect-ratio: 1;
@@ -215,6 +254,10 @@ dd {
   .owned-pet-card,
   .empty-state {
     padding: 14px;
+  }
+
+  .pet-stats-mini {
+    grid-template-columns: 1fr;
   }
 
   dl div {

@@ -38,6 +38,16 @@
               </div>
             </div>
 
+            <div class="pet-stats-mini">
+              @for (statId of statIds; track statId) {
+                <div>
+                  <span>{{ statLabel(statId) }}</span>
+                  <strong>{{ statValue(ownedPet, statId) }}</strong>
+                  <b aria-hidden="true"><i [style.width.%]="statValue(ownedPet, statId)"></i></b>
+                </div>
+              }
+            </div>
+
             <dl>
               <div>
                 <dt>{{ i18n.t('petStatus') }}</dt>

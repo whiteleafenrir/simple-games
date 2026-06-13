@@ -7,10 +7,52 @@
     <div class="pet-avatar" [class.cat]="pet.petId === 'cat'" [class.dog]="pet.petId === 'dog'" [class.parrot]="pet.petId === 'parrot'" [class.dinosaur]="pet.petId === 'dinosaur'" [class.dragon]="pet.petId === 'dragon'" aria-hidden="true"></div>
     <div class="pet-meta">
       <p><strong>{{ i18n.t(petOption(pet).titleKey) }}</strong></p>
+      <p>{{ i18n.t('petStatus') }}: {{ statusLabel(pet.status) }}</p>
       <p>{{ i18n.t('petMood') }}: {{ moodLabel(pet.mood) }}</p>
+      <p>{{ i18n.t('petPeriodOfLife') }}: {{ periodOfLifeLabel(pet.periodOfLife) }}</p>
       <p>{{ i18n.t('timeSince') }}: {{ petAgeLabel(pet) }}</p>
+      <p>{{ i18n.t('sessionEnds') }}: {{ formatDate(pet.endsAt) }}</p>
     </div>
   </div>
+
+  <section class="care-panel" [attr.aria-label]="i18n.t('petCareTitle')">
+    <div class="care-heading">
+      <span>{{ i18n.t('petCareTitle') }}</span>
+      <strong>{{ i18n.t('petCareHint') }}</strong>
+    </div>
+
+    <div class="stats-grid">
+      @for (statId of statIds; track statId) {
+        <article class="stat-card">
+          <div>
+            <span>{{ statLabel(statId) }}</span>
+            <strong>{{ statValue(pet, statId) }}</strong>
+          </div>
+          <div class="stat-bar" aria-hidden="true">
+            <span [style.width.%]="statValue(pet, statId)"></span>
+          </div>
+        </article>
+      }
+    </div>
+
+    <div class="care-actions">
+      @for (actionId of careActions; track actionId) {
+        <button
+          type="button"
+          [disabled]="isCareActionDisabled(pet, actionId)"
+          (click)="careForPet(pet, actionId)"
+        >
+          <strong>{{ careActionLabel(actionId) }}</strong>
+          <span>{{ careActionHint(actionId) }}</span>
+          <small>{{ careActionState(pet, actionId) }}</small>
+        </button>
+      }
+    </div>
+
+    @if (careMessage()) {
+      <p class="care-message">{{ careMessage() }}</p>
+    }
+  </section>
 </section>
 } @if (!viewedPet()) {
 <section class="pet-page">
