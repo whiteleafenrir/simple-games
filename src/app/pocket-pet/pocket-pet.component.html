@@ -10,6 +10,10 @@
       <p>{{ i18n.t('petStatus') }}: {{ statusLabel(pet.status) }}</p>
       <p>{{ i18n.t('petMood') }}: {{ moodLabel(pet.mood) }}</p>
       <p>{{ i18n.t('petPeriodOfLife') }}: {{ periodOfLifeLabel(pet.periodOfLife) }}</p>
+      <p>{{ i18n.t('petLight') }}: {{ lightLabel(pet) }}</p>
+      @if (awayUntilLabel(pet); as awayUntil) {
+        <p>{{ i18n.t('petAwayUntil') }}: {{ awayUntil }}</p>
+      }
       <p>{{ i18n.t('timeSince') }}: {{ petAgeLabel(pet) }}</p>
       <p>{{ i18n.t('sessionEnds') }}: {{ formatDate(pet.endsAt) }}</p>
       @if (pet.farewell; as farewell) {
@@ -47,7 +51,7 @@
           [disabled]="isCareActionDisabled(pet, actionId)"
           (click)="careForPet(pet, actionId)"
         >
-          <strong>{{ careActionLabel(actionId) }}</strong>
+          <strong>{{ careActionLabel(actionId, pet) }}</strong>
           <span>{{ careActionHint(actionId) }}</span>
           <small>{{ careActionState(pet, actionId) }}</small>
         </button>

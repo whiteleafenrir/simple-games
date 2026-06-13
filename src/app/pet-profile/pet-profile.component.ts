@@ -69,6 +69,10 @@ export class PetProfileComponent {
     return Math.round(pet.stats[statId]);
   }
 
+  lightLabel(pet: OwnedPet): string {
+    return pet.isLightOn ? this.i18n.t('petLightOn') : this.i18n.t('petLightOff');
+  }
+
   finalStatValue(farewell: PetFarewellResult, statId: PetStatId): number {
     return Math.round(farewell.finalStats[statId]);
   }
@@ -95,6 +99,24 @@ export class PetProfileComponent {
 
   scoreDelta(entry: PetCareActionEntry): string {
     return this.formatSigned(entry.careScoreAfter - entry.careScoreBefore);
+  }
+
+  lightChangeLabel(entry: PetCareActionEntry): string | null {
+    if (entry.isLightOnBefore === entry.isLightOnAfter) {
+      return null;
+    }
+
+    const before = entry.isLightOnBefore ? this.i18n.t('petLightOn') : this.i18n.t('petLightOff');
+    const after = entry.isLightOnAfter ? this.i18n.t('petLightOn') : this.i18n.t('petLightOff');
+    return `${this.i18n.t('petLight')}: ${before} -> ${after}`;
+  }
+
+  awayChangeLabel(entry: PetCareActionEntry): string | null {
+    if (!entry.awayUntilAfter || entry.awayUntilBefore === entry.awayUntilAfter) {
+      return null;
+    }
+
+    return `${this.i18n.t('petAwayUntil')}: ${this.formatDate(entry.awayUntilAfter)}`;
   }
 
   formatDate(value: string): string {

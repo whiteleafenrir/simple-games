@@ -12,7 +12,7 @@ import {
   PetStatus
 } from './owned-pet.model';
 
-export const PET_STAT_IDS: readonly PetStatId[] = ['satiety', 'cleanliness', 'happiness'] as const;
+export const PET_STAT_IDS: readonly PetStatId[] = ['satiety', 'cleanliness', 'happiness', 'health', 'energy'] as const;
 
 export function petOption(ownedPet: OwnedPet): PetOption {
   return PET_OPTIONS.find((pet: PetOption): boolean => pet.id === ownedPet.petId) ?? PET_OPTIONS[0];
@@ -68,7 +68,15 @@ export function petStatKey(statId: PetStatId): TranslationKey {
     return 'petStatCleanliness';
   }
 
-  return 'petStatHappiness';
+  if (statId === 'happiness') {
+    return 'petStatHappiness';
+  }
+
+  if (statId === 'health') {
+    return 'petStatHealth';
+  }
+
+  return 'petStatEnergy';
 }
 
 export function petCareActionKey(actionId: PetCareActionId): TranslationKey {
@@ -76,11 +84,23 @@ export function petCareActionKey(actionId: PetCareActionId): TranslationKey {
     return 'feedPet';
   }
 
+  if (actionId === 'junkFood') {
+    return 'giveJunkFood';
+  }
+
   if (actionId === 'clean') {
     return 'cleanPet';
   }
 
-  return 'playWithPet';
+  if (actionId === 'play') {
+    return 'playWithPet';
+  }
+
+  if (actionId === 'walk') {
+    return 'walkPet';
+  }
+
+  return 'togglePetLight';
 }
 
 export function petCareActionHintKey(actionId: PetCareActionId): TranslationKey {
@@ -88,11 +108,23 @@ export function petCareActionHintKey(actionId: PetCareActionId): TranslationKey 
     return 'feedPetHint';
   }
 
+  if (actionId === 'junkFood') {
+    return 'giveJunkFoodHint';
+  }
+
   if (actionId === 'clean') {
     return 'cleanPetHint';
   }
 
-  return 'playWithPetHint';
+  if (actionId === 'play') {
+    return 'playWithPetHint';
+  }
+
+  if (actionId === 'walk') {
+    return 'walkPetHint';
+  }
+
+  return 'togglePetLightHint';
 }
 
 export function petFarewellReasonKey(reason: PetFarewellReason): TranslationKey {

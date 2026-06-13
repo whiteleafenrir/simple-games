@@ -52,6 +52,16 @@
           <dd>{{ periodOfLifeLabel(ownedPet.periodOfLife) }}</dd>
         </div>
         <div>
+          <dt>{{ i18n.t('petLight') }}</dt>
+          <dd>{{ lightLabel(ownedPet) }}</dd>
+        </div>
+        @if (ownedPet.awayUntil; as awayUntil) {
+          <div>
+            <dt>{{ i18n.t('petAwayUntil') }}</dt>
+            <dd>{{ formatDate(awayUntil) }}</dd>
+          </div>
+        }
+        <div>
           <dt>{{ i18n.t('petSessionTitle') }}</dt>
           <dd>{{ i18n.t(sessionLength(ownedPet).titleKey) }}</dd>
         </div>
@@ -125,6 +135,14 @@
               <div class="history-stats">
                 @for (statId of statIds; track statId) {
                   <span>{{ statLabel(statId) }} {{ statDelta(entry, statId) }}</span>
+                }
+              </div>
+              <div class="history-stats">
+                @if (lightChangeLabel(entry); as lightChange) {
+                  <span>{{ lightChange }}</span>
+                }
+                @if (awayChangeLabel(entry); as awayChange) {
+                  <span>{{ awayChange }}</span>
                 }
               </div>
               <small>

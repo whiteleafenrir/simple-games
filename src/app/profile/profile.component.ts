@@ -65,6 +65,10 @@ export class ProfileComponent {
     return Math.round(pet.stats[statId]);
   }
 
+  lightLabel(pet: OwnedPet): string {
+    return pet.isLightOn ? this.i18n.t('petLightOn') : this.i18n.t('petLightOff');
+  }
+
   farewellReasonLabel(reason: PetFarewellReason): string {
     return this.i18n.t(petFarewellReasonKey(reason));
   }

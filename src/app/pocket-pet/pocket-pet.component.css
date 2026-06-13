@@ -117,8 +117,15 @@ h1 {
 .stats-grid,
 .care-actions {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
+}
+
+.stats-grid {
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}
+
+.care-actions {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .stat-card,

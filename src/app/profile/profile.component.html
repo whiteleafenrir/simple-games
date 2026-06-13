@@ -78,6 +78,16 @@
                 <dd>{{ periodOfLifeLabel(ownedPet.periodOfLife) }}</dd>
               </div>
               <div>
+                <dt>{{ i18n.t('petLight') }}</dt>
+                <dd>{{ lightLabel(ownedPet) }}</dd>
+              </div>
+              @if (ownedPet.awayUntil; as awayUntil) {
+                <div>
+                  <dt>{{ i18n.t('petAwayUntil') }}</dt>
+                  <dd>{{ formatDate(awayUntil) }}</dd>
+                </div>
+              }
+              <div>
                 <dt>{{ i18n.t('sessionEnds') }}</dt>
                 <dd>{{ formatDate(ownedPet.endsAt) }}</dd>
               </div>

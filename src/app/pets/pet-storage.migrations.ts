@@ -20,9 +20,9 @@ import {
   PetStats
 } from './owned-pet.model';
 
-export const PET_STORAGE_VERSION = '0.3.0';
+export const PET_STORAGE_VERSION = '0.4.0';
 
-const PREVIOUS_STORAGE_VERSION = '0.2.0';
+const PREVIOUS_STORAGE_VERSIONS = ['0.3.0', '0.2.0'] as const;
 const LEGACY_STORAGE_VERSION = '0.1.1';
 
 interface StoredPets {
@@ -42,7 +42,10 @@ export function deserializePets(rawPets: string | null, now: Date = new Date()):
       return [];
     }
 
-    if (parsedPets.version === PET_STORAGE_VERSION || parsedPets.version === PREVIOUS_STORAGE_VERSION) {
+    if (
+      parsedPets.version === PET_STORAGE_VERSION ||
+      PREVIOUS_STORAGE_VERSIONS.some((version: string): boolean => version === parsedPets.version)
+    ) {
       return parsedPets.pets.map((pet: Partial<OwnedPet>): OwnedPet => normalizePet(pet, now, false));
     }
 
@@ -85,6 +88,8 @@ function normalizePet(pet: Partial<OwnedPet>, now: Date, isLegacyPet: boolean): 
     endsAt,
     lastResolvedAt,
     lastActionAt: normalizeLastActionAt(pet.lastActionAt),
+    isLightOn: normalizeLight(pet.isLightOn),
+    awayUntil: normalizeNullableDate(pet.awayUntil),
     careHistory: normalizeCareHistory(pet.careHistory),
     farewell: normalizeFarewell(pet.farewell)
   }, now);
@@ -99,8 +104,11 @@ function normalizeLastActionAt(lastActionAt: Partial<PetLastActionAt> | undefine
 
   return {
     feed: normalizeNullableDate(lastActionAt?.feed) ?? fallback.feed,
+    junkFood: normalizeNullableDate(lastActionAt?.junkFood) ?? fallback.junkFood,
     clean: normalizeNullableDate(lastActionAt?.clean) ?? fallback.clean,
-    play: normalizeNullableDate(lastActionAt?.play) ?? fallback.play
+    play: normalizeNullableDate(lastActionAt?.play) ?? fallback.play,
+    walk: normalizeNullableDate(lastActionAt?.walk) ?? fallback.walk,
+    toggleLight: normalizeNullableDate(lastActionAt?.toggleLight) ?? fallback.toggleLight
   };
 }
 
@@ -136,7 +144,11 @@ function normalizeCareHistoryEntry(entry: Partial<PetCareActionEntry>, index: nu
     careScoreBefore: normalizeScore(entry.careScoreBefore, careScore(statsBefore)),
     careScoreAfter: normalizeScore(entry.careScoreAfter, careScore(statsAfter)),
     moodBefore: normalizeMood(entry.moodBefore),
-    moodAfter: normalizeMood(entry.moodAfter)
+    moodAfter: normalizeMood(entry.moodAfter),
+    isLightOnBefore: normalizeLight(entry.isLightOnBefore),
+    isLightOnAfter: normalizeLight(entry.isLightOnAfter),
+    awayUntilBefore: normalizeNullableDate(entry.awayUntilBefore),
+    awayUntilAfter: normalizeNullableDate(entry.awayUntilAfter)
   };
 }
 
@@ -181,11 +193,22 @@ function normalizeMood(mood: PetMood | undefined): PetMood {
 }
 
 function normalizeCareActionId(actionId: PetCareActionId | undefined): PetCareActionId | null {
-  if (actionId === 'feed' || actionId === 'clean' || actionId === 'play') {
+  if (
+    actionId === 'feed' ||
+    actionId === 'junkFood' ||
+    actionId === 'clean' ||
+    actionId === 'play' ||
+    actionId === 'walk' ||
+    actionId === 'toggleLight'
+  ) {
     return actionId;
   }
 
   return null;
+}
+
+function normalizeLight(isLightOn: boolean | undefined): boolean {
+  return isLightOn !== false;
 }
 
 function normalizeFarewellReason(reason: PetFarewellReason | undefined): PetFarewellReason | null {

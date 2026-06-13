@@ -3,8 +3,8 @@ import { PetId, PetMode, SessionLengthId } from '../pocket-pet/pocket-pet.model'
 export type PetStatus = 'pet' | 'grown' | 'left';
 export type PetMood = 'joyful' | 'neutral' | 'angry' | 'upset' | 'thoughtful' | 'irritated';
 export type PetPeriodOfLife = 'child' | 'teen' | 'adult';
-export type PetCareActionId = 'feed' | 'clean' | 'play';
-export type PetStatId = 'satiety' | 'cleanliness' | 'happiness';
+export type PetCareActionId = 'feed' | 'junkFood' | 'clean' | 'play' | 'walk' | 'toggleLight';
+export type PetStatId = 'satiety' | 'cleanliness' | 'happiness' | 'health' | 'energy';
 export type PetFarewellReason = 'grown-up' | 'lack-of-care';
 export type PetFarewellPhraseId = 'bright-future' | 'ready-for-adventure' | 'needed-more-care';
 
@@ -12,6 +12,8 @@ export interface PetStats {
   satiety: number;
   cleanliness: number;
   happiness: number;
+  health: number;
+  energy: number;
 }
 
 export type PetLastActionAt = Record<PetCareActionId, string | null>;
@@ -34,6 +36,10 @@ export interface PetCareActionEntry {
   careScoreAfter: number;
   moodBefore: PetMood;
   moodAfter: PetMood;
+  isLightOnBefore: boolean;
+  isLightOnAfter: boolean;
+  awayUntilBefore: string | null;
+  awayUntilAfter: string | null;
 }
 
 export interface OwnedPet {
@@ -50,11 +56,13 @@ export interface OwnedPet {
   endsAt: string;
   lastResolvedAt: string;
   lastActionAt: PetLastActionAt;
+  isLightOn: boolean;
+  awayUntil: string | null;
   careHistory: PetCareActionEntry[];
   farewell: PetFarewellResult | null;
 }
 
-export type PetCareActionFailureReason = 'cooldown' | 'inactive';
+export type PetCareActionFailureReason = 'cooldown' | 'inactive' | 'away' | 'sleeping';
 
 export interface PetCareActionResult {
   pet: OwnedPet;

@@ -2,7 +2,12 @@ import { Component, OnDestroy, computed, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 
 import { I18nService } from '../i18n/i18n.service';
-import { PET_CARE_ACTION_IDS, careActionCooldownRemainingMs } from '../pets/pet-engine';
+import {
+  PET_CARE_ACTION_IDS,
+  careActionCooldownRemainingMs,
+  careActionFailureReason,
+  petAwayRemainingMs
+} from '../pets/pet-engine';
 import {
   OwnedPet,
   PetCareActionId,
@@ -140,6 +145,16 @@ export class PocketPetComponent implements OnDestroy {
       return;
     }
 
+    if (result.reason === 'away') {
+      this.careMessage.set(this.i18n.t('careActionAway'));
+      return;
+    }
+
+    if (result.reason === 'sleeping') {
+      this.careMessage.set(this.i18n.t('careActionSleeping'));
+      return;
+    }
+
     this.careMessage.set(this.i18n.t('careActionInactive'));
   }
 
@@ -173,7 +188,11 @@ export class PocketPetComponent implements OnDestroy {
     return this.i18n.t(petStatKey(statId));
   }
 
-  careActionLabel(actionId: PetCareActionId): string {
+  careActionLabel(actionId: PetCareActionId, pet: OwnedPet | null = null): string {
+    if (actionId === 'toggleLight' && pet) {
+      return pet.isLightOn ? this.i18n.t('turnLightOff') : this.i18n.t('turnLightOn');
+    }
+
     return this.i18n.t(petCareActionKey(actionId));
   }
 
@@ -194,21 +213,37 @@ export class PocketPetComponent implements OnDestroy {
   }
 
   isCareActionDisabled(pet: OwnedPet, actionId: PetCareActionId): boolean {
-    return pet.status !== 'pet' || careActionCooldownRemainingMs(pet, actionId, this.now()) > 0;
+    return careActionFailureReason(pet, actionId, this.now()) !== null;
   }
 
   careActionState(pet: OwnedPet, actionId: PetCareActionId): string {
-    if (pet.status !== 'pet') {
+    const reason = careActionFailureReason(pet, actionId, this.now());
+
+    if (reason === 'inactive') {
       return this.i18n.t('careActionInactive');
     }
 
-    const remainingMs = careActionCooldownRemainingMs(pet, actionId, this.now());
-
-    if (remainingMs <= 0) {
-      return this.i18n.t('careActionReady');
+    if (reason === 'away') {
+      return `${this.i18n.t('careActionAway')}: ${this.formatRemaining(petAwayRemainingMs(pet, this.now()))}`;
     }
 
-    return `${this.i18n.t('careCooldown')}: ${this.formatRemaining(remainingMs)}`;
+    if (reason === 'sleeping') {
+      return this.i18n.t('careActionSleeping');
+    }
+
+    if (reason === 'cooldown') {
+      return `${this.i18n.t('careCooldown')}: ${this.formatRemaining(careActionCooldownRemainingMs(pet, actionId, this.now()))}`;
+    }
+
+    return this.i18n.t('careActionReady');
+  }
+
+  lightLabel(pet: OwnedPet): string {
+    return pet.isLightOn ? this.i18n.t('petLightOn') : this.i18n.t('petLightOff');
+  }
+
+  awayUntilLabel(pet: OwnedPet): string | null {
+    return petAwayRemainingMs(pet, this.now()) > 0 && pet.awayUntil ? this.formatDate(pet.awayUntil) : null;
   }
 
   petAgeLabel(pet: OwnedPet): string {

@@ -2,6 +2,7 @@ import { PetMode } from '../pocket-pet/pocket-pet.model';
 import {
   OwnedPet,
   PetCareActionEntry,
+  PetCareActionFailureReason,
   PetCareActionId,
   PetCareActionResult,
   PetFarewellPhraseId,
@@ -23,14 +24,27 @@ interface PetCareActionConfig {
   id: PetCareActionId;
   cooldownMinutes: number;
   statChanges: PetStatDelta;
+  awayMinutes?: number;
+  allowWhenAway?: boolean;
+  allowWhenSleeping?: boolean;
+  toggleLight?: boolean;
 }
 
-export const PET_CARE_ACTION_IDS: readonly PetCareActionId[] = ['feed', 'clean', 'play'] as const;
+export const PET_CARE_ACTION_IDS: readonly PetCareActionId[] = [
+  'feed',
+  'junkFood',
+  'clean',
+  'play',
+  'walk',
+  'toggleLight'
+] as const;
 
 export const DEFAULT_PET_STATS: PetStats = {
   satiety: 80,
   cleanliness: 80,
-  happiness: 80
+  happiness: 80,
+  health: 85,
+  energy: 75
 };
 
 export const PET_CARE_ACTIONS: Record<PetCareActionId, PetCareActionConfig> = {
@@ -38,9 +52,21 @@ export const PET_CARE_ACTIONS: Record<PetCareActionId, PetCareActionConfig> = {
     id: 'feed',
     cooldownMinutes: 10,
     statChanges: {
-      satiety: 35,
-      cleanliness: -5,
-      happiness: 5
+      satiety: 30,
+      cleanliness: -4,
+      happiness: 4,
+      health: 2
+    }
+  },
+  junkFood: {
+    id: 'junkFood',
+    cooldownMinutes: 20,
+    statChanges: {
+      satiety: 45,
+      cleanliness: -8,
+      happiness: 12,
+      health: -18,
+      energy: -4
     }
   },
   clean: {
@@ -57,26 +83,52 @@ export const PET_CARE_ACTIONS: Record<PetCareActionId, PetCareActionConfig> = {
     statChanges: {
       happiness: 30,
       satiety: -12,
-      cleanliness: -8
+      cleanliness: -8,
+      energy: -10
     }
+  },
+  walk: {
+    id: 'walk',
+    cooldownMinutes: 60,
+    awayMinutes: 30,
+    statChanges: {
+      happiness: 24,
+      health: 12,
+      energy: -18,
+      satiety: -14,
+      cleanliness: -10
+    }
+  },
+  toggleLight: {
+    id: 'toggleLight',
+    cooldownMinutes: 0,
+    statChanges: {},
+    allowWhenAway: true,
+    allowWhenSleeping: true,
+    toggleLight: true
   }
 };
 
 export function createEmptyLastActionAt(): PetLastActionAt {
   return {
     feed: null,
+    junkFood: null,
     clean: null,
-    play: null
+    play: null,
+    walk: null,
+    toggleLight: null
   };
 }
 
 export function createInitialPetCareState(
   now: Date = new Date()
-): Pick<OwnedPet, 'stats' | 'lastResolvedAt' | 'lastActionAt' | 'careHistory' | 'farewell'> {
+): Pick<OwnedPet, 'stats' | 'lastResolvedAt' | 'lastActionAt' | 'isLightOn' | 'awayUntil' | 'careHistory' | 'farewell'> {
   return {
     stats: { ...DEFAULT_PET_STATS },
     lastResolvedAt: now.toISOString(),
     lastActionAt: createEmptyLastActionAt(),
+    isLightOn: true,
+    awayUntil: null,
     careHistory: [],
     farewell: null
   };
@@ -87,6 +139,7 @@ export function resolvePetState(pet: OwnedPet, now: Date = new Date()): OwnedPet
   const createdAtMs = safeTime(pet.createdAt, nowMs);
   const endsAtMs = Math.max(createdAtMs, safeTime(pet.endsAt, nowMs));
   const periodOfLife = petPeriodOfLife(createdAtMs, endsAtMs, Math.min(nowMs, endsAtMs));
+  const awayUntil = normalizeAwayUntil(pet.awayUntil, now);
 
   if (pet.status !== 'pet') {
     const stats = normalizeStats(pet.stats);
@@ -95,6 +148,7 @@ export function resolvePetState(pet: OwnedPet, now: Date = new Date()): OwnedPet
       mood: petMood(stats),
       periodOfLife,
       stats,
+      awayUntil,
       farewell: pet.farewell ?? createFarewellResult(pet.status, stats, new Date(endsAtMs))
     };
   }
@@ -102,7 +156,9 @@ export function resolvePetState(pet: OwnedPet, now: Date = new Date()): OwnedPet
   const lastResolvedMs = safeTime(pet.lastResolvedAt, createdAtMs);
   const resolveUntilMs = Math.min(nowMs, endsAtMs);
   const elapsedHours = Math.max(0, resolveUntilMs - Math.min(lastResolvedMs, resolveUntilMs)) / HOUR_MS;
-  const stats = elapsedHours > 0 ? decayStats(pet.stats, elapsedHours, pet.mode) : normalizeStats(pet.stats);
+  const stats = elapsedHours > 0
+    ? decayStats(pet.stats, elapsedHours, pet.mode, pet.isLightOn)
+    : normalizeStats(pet.stats);
   const status = petStatus(stats, nowMs, endsAtMs);
   const farewell = status === 'pet' ? null : createFarewellResult(status, stats, new Date(endsAtMs));
 
@@ -112,6 +168,7 @@ export function resolvePetState(pet: OwnedPet, now: Date = new Date()): OwnedPet
     mood: petMood(stats),
     periodOfLife,
     stats,
+    awayUntil,
     farewell,
     lastResolvedAt: now.toISOString()
   };
@@ -123,34 +180,35 @@ export function applyPetCareAction(
   now: Date = new Date()
 ): PetCareActionResult {
   const resolvedPet = resolvePetState(pet, now);
+  const blockedReason = careActionFailureReason(resolvedPet, actionId, now);
   const nextAvailableAt = careActionNextAvailableAt(resolvedPet, actionId);
 
-  if (resolvedPet.status !== 'pet') {
+  if (blockedReason) {
     return {
       pet: resolvedPet,
       actionId,
       applied: false,
-      reason: 'inactive',
-      nextAvailableAt: nextAvailableAt?.toISOString() ?? null
-    };
-  }
-
-  if (nextAvailableAt && nextAvailableAt.getTime() > now.getTime()) {
-    return {
-      pet: resolvedPet,
-      actionId,
-      applied: false,
-      reason: 'cooldown',
-      nextAvailableAt: nextAvailableAt.toISOString()
+      reason: blockedReason,
+      nextAvailableAt: blockedReason === 'away'
+        ? resolvedPet.awayUntil
+        : nextAvailableAt?.toISOString() ?? null
     };
   }
 
   const action = PET_CARE_ACTIONS[actionId];
   const statsBefore = normalizeStats(resolvedPet.stats);
+  const isLightOnBefore = resolvedPet.isLightOn;
+  const awayUntilBefore = resolvedPet.awayUntil;
+  const isLightOnAfter = action.toggleLight ? !resolvedPet.isLightOn : resolvedPet.isLightOn;
+  const awayUntilAfter = action.awayMinutes
+    ? new Date(now.getTime() + action.awayMinutes * MINUTE_MS).toISOString()
+    : resolvedPet.awayUntil;
   const statsAfter = applyStatChanges(statsBefore, action.statChanges);
   const changedPet: OwnedPet = {
     ...resolvedPet,
     stats: statsAfter,
+    isLightOn: isLightOnAfter,
+    awayUntil: awayUntilAfter,
     lastResolvedAt: now.toISOString(),
     lastActionAt: {
       ...resolvedPet.lastActionAt,
@@ -158,7 +216,17 @@ export function applyPetCareAction(
     },
     careHistory: [
       ...resolvedPet.careHistory,
-      createCareActionEntry(resolvedPet, actionId, now, statsBefore, statsAfter)
+      createCareActionEntry(
+        resolvedPet,
+        actionId,
+        now,
+        statsBefore,
+        statsAfter,
+        isLightOnBefore,
+        isLightOnAfter,
+        awayUntilBefore,
+        awayUntilAfter
+      )
     ]
   };
   const nextPet = resolvePetState(changedPet, now);
@@ -172,6 +240,46 @@ export function applyPetCareAction(
   };
 }
 
+export function careActionFailureReason(
+  pet: OwnedPet,
+  actionId: PetCareActionId,
+  now: Date = new Date()
+): PetCareActionFailureReason | null {
+  const action = PET_CARE_ACTIONS[actionId];
+
+  if (pet.status !== 'pet') {
+    return 'inactive';
+  }
+
+  if (!action.allowWhenAway && petAwayRemainingMs(pet, now) > 0) {
+    return 'away';
+  }
+
+  if (!action.allowWhenSleeping && !pet.isLightOn) {
+    return 'sleeping';
+  }
+
+  if (careActionCooldownRemainingMs(pet, actionId, now) > 0) {
+    return 'cooldown';
+  }
+
+  return null;
+}
+
+export function petAwayRemainingMs(pet: OwnedPet, now: Date = new Date()): number {
+  if (!pet.awayUntil) {
+    return 0;
+  }
+
+  const awayUntilMs = Date.parse(pet.awayUntil);
+
+  if (Number.isNaN(awayUntilMs)) {
+    return 0;
+  }
+
+  return Math.max(0, awayUntilMs - now.getTime());
+}
+
 export function careActionCooldownRemainingMs(pet: OwnedPet, actionId: PetCareActionId, now: Date = new Date()): number {
   const nextAvailableAt = careActionNextAvailableAt(pet, actionId);
 
@@ -183,14 +291,35 @@ export function careActionCooldownRemainingMs(pet: OwnedPet, actionId: PetCareAc
 }
 
 export function careScore(stats: PetStats): number {
-  return roundStat((stats.satiety + stats.cleanliness + stats.happiness) / 3);
+  const normalizedStats = normalizeStats(stats);
+  return roundStat(
+    (
+      normalizedStats.satiety +
+      normalizedStats.cleanliness +
+      normalizedStats.happiness +
+      normalizedStats.health +
+      normalizedStats.energy
+    ) / 5
+  );
 }
 
 export function petMood(stats: PetStats): PetMood {
   const normalizedStats = normalizeStats(stats);
-  const minimum = Math.min(normalizedStats.satiety, normalizedStats.cleanliness, normalizedStats.happiness);
+  const minimum = Math.min(
+    normalizedStats.satiety,
+    normalizedStats.cleanliness,
+    normalizedStats.happiness,
+    normalizedStats.health,
+    normalizedStats.energy
+  );
 
-  if (normalizedStats.satiety >= 75 && normalizedStats.cleanliness >= 75 && normalizedStats.happiness >= 75) {
+  if (
+    normalizedStats.satiety >= 75 &&
+    normalizedStats.cleanliness >= 75 &&
+    normalizedStats.happiness >= 75 &&
+    normalizedStats.health >= 75 &&
+    normalizedStats.energy >= 75
+  ) {
     return 'joyful';
   }
 
@@ -202,7 +331,7 @@ export function petMood(stats: PetStats): PetMood {
     return 'irritated';
   }
 
-  if (normalizedStats.happiness < 25) {
+  if (normalizedStats.happiness < 25 || normalizedStats.health < 25) {
     return 'upset';
   }
 
@@ -241,25 +370,41 @@ export function normalizeStats(stats: Partial<PetStats> | undefined, fallback: P
   return {
     satiety: normalizeStat(stats?.satiety, fallback.satiety),
     cleanliness: normalizeStat(stats?.cleanliness, fallback.cleanliness),
-    happiness: normalizeStat(stats?.happiness, fallback.happiness)
+    happiness: normalizeStat(stats?.happiness, fallback.happiness),
+    health: normalizeStat(stats?.health, fallback.health),
+    energy: normalizeStat(stats?.energy, fallback.energy)
   };
 }
 
-function decayStats(stats: PetStats, elapsedHours: number, mode: PetMode): PetStats {
+function decayStats(stats: PetStats, elapsedHours: number, mode: PetMode, isLightOn: boolean): PetStats {
   const multiplier = modeDecayMultiplier(mode);
+  const normalizedStats = normalizeStats(stats);
+  const happinessDecay = isLightOn ? 1.5 : 0.6;
+  const energyDelta = isLightOn ? -1.25 * multiplier * elapsedHours : 6 * elapsedHours;
 
   return normalizeStats({
-    satiety: stats.satiety - 3 * multiplier * elapsedHours,
-    cleanliness: stats.cleanliness - 2 * multiplier * elapsedHours,
-    happiness: stats.happiness - 1.5 * multiplier * elapsedHours
+    satiety: normalizedStats.satiety - 3 * multiplier * elapsedHours,
+    cleanliness: normalizedStats.cleanliness - 2 * multiplier * elapsedHours,
+    happiness: normalizedStats.happiness - happinessDecay * multiplier * elapsedHours,
+    health: normalizedStats.health - healthDecay(normalizedStats, elapsedHours, multiplier),
+    energy: normalizedStats.energy + energyDelta
   });
+}
+
+function healthDecay(stats: PetStats, elapsedHours: number, multiplier: number): number {
+  const minimum = Math.min(stats.satiety, stats.cleanliness, stats.happiness, stats.energy);
+  const stress = minimum < 25 ? 2 : minimum < 45 ? 1 : 0;
+
+  return (0.4 + stress) * multiplier * elapsedHours;
 }
 
 function applyStatChanges(stats: PetStats, changes: PetStatDelta): PetStats {
   return normalizeStats({
     satiety: stats.satiety + (changes.satiety ?? 0),
     cleanliness: stats.cleanliness + (changes.cleanliness ?? 0),
-    happiness: stats.happiness + (changes.happiness ?? 0)
+    happiness: stats.happiness + (changes.happiness ?? 0),
+    health: stats.health + (changes.health ?? 0),
+    energy: stats.energy + (changes.energy ?? 0)
   }, stats);
 }
 
@@ -276,7 +421,11 @@ function createCareActionEntry(
   actionId: PetCareActionId,
   now: Date,
   statsBefore: PetStats,
-  statsAfter: PetStats
+  statsAfter: PetStats,
+  isLightOnBefore: boolean,
+  isLightOnAfter: boolean,
+  awayUntilBefore: string | null,
+  awayUntilAfter: string | null
 ): PetCareActionEntry {
   return {
     id: `${actionId}-${now.getTime()}-${pet.careHistory.length + 1}`,
@@ -287,7 +436,11 @@ function createCareActionEntry(
     careScoreBefore: careScore(statsBefore),
     careScoreAfter: careScore(statsAfter),
     moodBefore: petMood(statsBefore),
-    moodAfter: petMood(statsAfter)
+    moodAfter: petMood(statsAfter),
+    isLightOnBefore,
+    isLightOnAfter,
+    awayUntilBefore,
+    awayUntilAfter
   };
 }
 
@@ -330,6 +483,20 @@ function careActionNextAvailableAt(pet: OwnedPet, actionId: PetCareActionId): Da
   }
 
   return new Date(lastActionMs + PET_CARE_ACTIONS[actionId].cooldownMinutes * MINUTE_MS);
+}
+
+function normalizeAwayUntil(awayUntil: string | null, now: Date): string | null {
+  if (!awayUntil) {
+    return null;
+  }
+
+  const awayUntilMs = Date.parse(awayUntil);
+
+  if (Number.isNaN(awayUntilMs) || awayUntilMs <= now.getTime()) {
+    return null;
+  }
+
+  return awayUntil;
 }
 
 function modeDecayMultiplier(mode: PetMode): number {

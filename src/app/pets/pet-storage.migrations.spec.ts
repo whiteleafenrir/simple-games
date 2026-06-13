@@ -28,10 +28,14 @@ describe('pet storage migrations', () => {
     expect(pets[0].stats).toEqual({
       satiety: 80,
       cleanliness: 80,
-      happiness: 80
+      happiness: 80,
+      health: 85,
+      energy: 75
     });
     expect(pets[0].lastResolvedAt).toBe('2026-06-13T12:00:00.000Z');
     expect(pets[0].status).toBe('pet');
+    expect(pets[0].isLightOn).toBe(true);
+    expect(pets[0].awayUntil).toBeNull();
     expect(pets[0].careHistory).toEqual([]);
     expect(pets[0].farewell).toBeNull();
   });
@@ -71,13 +75,25 @@ describe('pet storage migrations', () => {
     expect(pets[0].stats).toEqual({
       satiety: 77,
       cleanliness: 78,
-      happiness: 78.5
+      happiness: 78.5,
+      health: 84.6,
+      energy: 73.8
     });
+    expect(pets[0].lastActionAt).toEqual({
+      feed: null,
+      junkFood: null,
+      clean: null,
+      play: null,
+      walk: null,
+      toggleLight: null
+    });
+    expect(pets[0].isLightOn).toBe(true);
+    expect(pets[0].awayUntil).toBeNull();
     expect(pets[0].careHistory).toEqual([]);
     expect(pets[0].farewell).toBeNull();
   });
 
-  it('preserves 0.3.0 care history and farewell results', () => {
+  it('preserves 0.4.0 care history, light state, away state, and farewell results', () => {
     const rawPets = JSON.stringify({
       version: PET_STORAGE_VERSION,
       pets: [
@@ -92,7 +108,9 @@ describe('pet storage migrations', () => {
           stats: {
             satiety: 90,
             cleanliness: 85,
-            happiness: 95
+            happiness: 95,
+            health: 88,
+            energy: 92
           },
           sessionLengthId: 'standard',
           createdAt: '2026-06-13T10:00:00.000Z',
@@ -100,9 +118,14 @@ describe('pet storage migrations', () => {
           lastResolvedAt: '2026-06-16T10:00:00.000Z',
           lastActionAt: {
             feed: '2026-06-13T10:00:00.000Z',
+            junkFood: null,
             clean: null,
-            play: null
+            play: null,
+            walk: '2026-06-13T11:00:00.000Z',
+            toggleLight: '2026-06-13T12:00:00.000Z'
           },
+          isLightOn: false,
+          awayUntil: '2026-06-13T11:30:00.000Z',
           careHistory: [
             {
               id: 'feed-1',
@@ -111,17 +134,25 @@ describe('pet storage migrations', () => {
               statsBefore: {
                 satiety: 50,
                 cleanliness: 50,
-                happiness: 50
+                happiness: 50,
+                health: 50,
+                energy: 50
               },
               statsAfter: {
-                satiety: 85,
-                cleanliness: 45,
-                happiness: 55
+                satiety: 80,
+                cleanliness: 46,
+                happiness: 54,
+                health: 52,
+                energy: 50
               },
               careScoreBefore: 50,
-              careScoreAfter: 61.7,
+              careScoreAfter: 56.4,
               moodBefore: 'thoughtful',
-              moodAfter: 'neutral'
+              moodAfter: 'neutral',
+              isLightOnBefore: true,
+              isLightOnAfter: true,
+              awayUntilBefore: null,
+              awayUntilAfter: null
             }
           ],
           farewell: {
@@ -132,7 +163,9 @@ describe('pet storage migrations', () => {
             finalStats: {
               satiety: 90,
               cleanliness: 85,
-              happiness: 95
+              happiness: 95,
+              health: 88,
+              energy: 92
             }
           }
         }
@@ -141,8 +174,16 @@ describe('pet storage migrations', () => {
 
     const pets = deserializePets(rawPets, new Date('2026-06-17T10:00:00.000Z'));
 
+    expect(pets[0].isLightOn).toBe(false);
+    expect(pets[0].awayUntil).toBeNull();
     expect(pets[0].careHistory).toHaveLength(1);
-    expect(pets[0].careHistory[0].actionId).toBe('feed');
+    expect(pets[0].careHistory[0]).toMatchObject({
+      actionId: 'feed',
+      isLightOnBefore: true,
+      isLightOnAfter: true,
+      awayUntilBefore: null,
+      awayUntilAfter: null
+    });
     expect(pets[0].farewell).toEqual({
       reason: 'grown-up',
       farewellAt: '2026-06-16T10:00:00.000Z',
@@ -151,7 +192,9 @@ describe('pet storage migrations', () => {
       finalStats: {
         satiety: 90,
         cleanliness: 85,
-        happiness: 95
+        happiness: 95,
+        health: 88,
+        energy: 92
       }
     });
   });
