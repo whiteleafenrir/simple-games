@@ -1,6 +1,7 @@
 import { PetMode } from '../pocket-pet/pocket-pet.model';
 import {
   OwnedPet,
+  PetActivityType,
   PetCareActionEntry,
   PetCareActionFailureReason,
   PetCareActionId,
@@ -11,17 +12,22 @@ import {
   PetLastActionAt,
   PetMood,
   PetPeriodOfLife,
+  PetPerceptionTagId,
   PetStats,
   PetStatus
 } from './owned-pet.model';
+import { PetSpeciesTraits, petSpeciesTraits } from './pet-species-traits';
 
 const HOUR_MS = 60 * 60 * 1000;
 const MINUTE_MS = 60 * 1000;
 
 type PetStatDelta = Partial<Record<keyof PetStats, number>>;
 
-interface PetCareActionConfig {
+export interface PetCareActionConfig {
   id: PetCareActionId;
+  activityType: PetActivityType;
+  playerEnergyCost: number;
+  perceptionTags: readonly PetPerceptionTagId[];
   cooldownMinutes: number;
   statChanges: PetStatDelta;
   awayMinutes?: number;
@@ -50,6 +56,9 @@ export const DEFAULT_PET_STATS: PetStats = {
 export const PET_CARE_ACTIONS: Record<PetCareActionId, PetCareActionConfig> = {
   feed: {
     id: 'feed',
+    activityType: 'feeding',
+    playerEnergyCost: 0,
+    perceptionTags: ['basic-care'],
     cooldownMinutes: 10,
     statChanges: {
       satiety: 30,
@@ -60,6 +69,9 @@ export const PET_CARE_ACTIONS: Record<PetCareActionId, PetCareActionConfig> = {
   },
   junkFood: {
     id: 'junkFood',
+    activityType: 'treat',
+    playerEnergyCost: 0,
+    perceptionTags: ['indulgent'],
     cooldownMinutes: 20,
     statChanges: {
       satiety: 45,
@@ -71,6 +83,9 @@ export const PET_CARE_ACTIONS: Record<PetCareActionId, PetCareActionConfig> = {
   },
   clean: {
     id: 'clean',
+    activityType: 'cleaning',
+    playerEnergyCost: 5,
+    perceptionTags: ['basic-care'],
     cooldownMinutes: 10,
     statChanges: {
       cleanliness: 40,
@@ -79,6 +94,9 @@ export const PET_CARE_ACTIONS: Record<PetCareActionId, PetCareActionConfig> = {
   },
   play: {
     id: 'play',
+    activityType: 'play',
+    playerEnergyCost: 15,
+    perceptionTags: ['engaged-care'],
     cooldownMinutes: 15,
     statChanges: {
       happiness: 30,
@@ -89,6 +107,9 @@ export const PET_CARE_ACTIONS: Record<PetCareActionId, PetCareActionConfig> = {
   },
   walk: {
     id: 'walk',
+    activityType: 'walk',
+    playerEnergyCost: 20,
+    perceptionTags: ['engaged-care'],
     cooldownMinutes: 60,
     awayMinutes: 30,
     statChanges: {
@@ -101,6 +122,9 @@ export const PET_CARE_ACTIONS: Record<PetCareActionId, PetCareActionConfig> = {
   },
   toggleLight: {
     id: 'toggleLight',
+    activityType: 'rest',
+    playerEnergyCost: 0,
+    perceptionTags: ['rest-routine'],
     cooldownMinutes: 0,
     statChanges: {},
     allowWhenAway: true,
@@ -157,7 +181,7 @@ export function resolvePetState(pet: OwnedPet, now: Date = new Date()): OwnedPet
   const resolveUntilMs = Math.min(nowMs, endsAtMs);
   const elapsedHours = Math.max(0, resolveUntilMs - Math.min(lastResolvedMs, resolveUntilMs)) / HOUR_MS;
   const stats = elapsedHours > 0
-    ? decayStats(pet.stats, elapsedHours, pet.mode, pet.isLightOn)
+    ? decayStats(pet.stats, elapsedHours, pet.mode, pet.isLightOn, petSpeciesTraits(pet.petId))
     : normalizeStats(pet.stats);
   const status = petStatus(stats, nowMs, endsAtMs);
   const farewell = status === 'pet' ? null : createFarewellResult(status, stats, new Date(endsAtMs));
@@ -196,6 +220,7 @@ export function applyPetCareAction(
   }
 
   const action = PET_CARE_ACTIONS[actionId];
+  const speciesTraits = petSpeciesTraits(resolvedPet.petId);
   const statsBefore = normalizeStats(resolvedPet.stats);
   const isLightOnBefore = resolvedPet.isLightOn;
   const awayUntilBefore = resolvedPet.awayUntil;
@@ -203,7 +228,7 @@ export function applyPetCareAction(
   const awayUntilAfter = action.awayMinutes
     ? new Date(now.getTime() + action.awayMinutes * MINUTE_MS).toISOString()
     : resolvedPet.awayUntil;
-  const statsAfter = applyStatChanges(statsBefore, action.statChanges);
+  const statsAfter = applyStatChanges(statsBefore, action.statChanges, actionId, speciesTraits);
   const changedPet: OwnedPet = {
     ...resolvedPet,
     stats: statsAfter,
@@ -376,36 +401,71 @@ export function normalizeStats(stats: Partial<PetStats> | undefined, fallback: P
   };
 }
 
-function decayStats(stats: PetStats, elapsedHours: number, mode: PetMode, isLightOn: boolean): PetStats {
+function decayStats(
+  stats: PetStats,
+  elapsedHours: number,
+  mode: PetMode,
+  isLightOn: boolean,
+  speciesTraits: PetSpeciesTraits
+): PetStats {
   const multiplier = modeDecayMultiplier(mode);
   const normalizedStats = normalizeStats(stats);
-  const happinessDecay = isLightOn ? 1.5 : 0.6;
-  const energyDelta = isLightOn ? -1.25 * multiplier * elapsedHours : 6 * elapsedHours;
+  const happinessDecay = (isLightOn ? 1.5 : 0.6) * speciesTraits.decayMultipliers.happiness;
+  const energyDelta = isLightOn
+    ? -1.25 * multiplier * elapsedHours * speciesTraits.decayMultipliers.energy
+    : 6 * elapsedHours * speciesTraits.restRecoveryMultiplier;
 
   return normalizeStats({
-    satiety: normalizedStats.satiety - 3 * multiplier * elapsedHours,
-    cleanliness: normalizedStats.cleanliness - 2 * multiplier * elapsedHours,
+    satiety: normalizedStats.satiety - 3 * multiplier * elapsedHours * speciesTraits.decayMultipliers.satiety,
+    cleanliness: normalizedStats.cleanliness - 2 * multiplier * elapsedHours * speciesTraits.decayMultipliers.cleanliness,
     happiness: normalizedStats.happiness - happinessDecay * multiplier * elapsedHours,
-    health: normalizedStats.health - healthDecay(normalizedStats, elapsedHours, multiplier),
+    health: normalizedStats.health - healthDecay(
+      normalizedStats,
+      elapsedHours,
+      multiplier,
+      speciesTraits.decayMultipliers.health
+    ),
     energy: normalizedStats.energy + energyDelta
   });
 }
 
-function healthDecay(stats: PetStats, elapsedHours: number, multiplier: number): number {
+function healthDecay(stats: PetStats, elapsedHours: number, multiplier: number, speciesMultiplier: number): number {
   const minimum = Math.min(stats.satiety, stats.cleanliness, stats.happiness, stats.energy);
   const stress = minimum < 25 ? 2 : minimum < 45 ? 1 : 0;
 
-  return (0.4 + stress) * multiplier * elapsedHours;
+  return (0.4 + stress) * multiplier * elapsedHours * speciesMultiplier;
 }
 
-function applyStatChanges(stats: PetStats, changes: PetStatDelta): PetStats {
+function applyStatChanges(
+  stats: PetStats,
+  changes: PetStatDelta,
+  actionId: PetCareActionId,
+  speciesTraits: PetSpeciesTraits
+): PetStats {
   return normalizeStats({
-    satiety: stats.satiety + (changes.satiety ?? 0),
-    cleanliness: stats.cleanliness + (changes.cleanliness ?? 0),
-    happiness: stats.happiness + (changes.happiness ?? 0),
-    health: stats.health + (changes.health ?? 0),
-    energy: stats.energy + (changes.energy ?? 0)
+    satiety: stats.satiety + statChangeDelta(changes.satiety, 'satiety', actionId, speciesTraits),
+    cleanliness: stats.cleanliness + statChangeDelta(changes.cleanliness, 'cleanliness', actionId, speciesTraits),
+    happiness: stats.happiness + statChangeDelta(changes.happiness, 'happiness', actionId, speciesTraits),
+    health: stats.health + statChangeDelta(changes.health, 'health', actionId, speciesTraits),
+    energy: stats.energy + statChangeDelta(changes.energy, 'energy', actionId, speciesTraits)
   }, stats);
+}
+
+function statChangeDelta(
+  value: number | undefined,
+  statId: keyof PetStats,
+  actionId: PetCareActionId,
+  speciesTraits: PetSpeciesTraits
+): number {
+  if (!value) {
+    return 0;
+  }
+
+  const statMultiplier = value > 0
+    ? speciesTraits.statGainMultipliers[statId]
+    : speciesTraits.statLossMultipliers[statId];
+
+  return value * statMultiplier * speciesTraits.careActionEffectMultipliers[actionId];
 }
 
 function petStatus(stats: PetStats, nowMs: number, endsAtMs: number): PetStatus {
