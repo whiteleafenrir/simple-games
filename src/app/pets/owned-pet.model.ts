@@ -18,6 +18,12 @@ export interface PetStats {
   energy: number;
 }
 
+export interface PlayerEnergyState {
+  current: number;
+  max: number;
+  lastRecoveredAt: string;
+}
+
 export type PetLastActionAt = Record<PetCareActionId, string | null>;
 
 export interface PetFarewellResult {
@@ -57,6 +63,7 @@ export interface OwnedPet {
   createdAt: string;
   endsAt: string;
   lastResolvedAt: string;
+  playerEnergy: PlayerEnergyState;
   lastActionAt: PetLastActionAt;
   isLightOn: boolean;
   awayUntil: string | null;
@@ -64,7 +71,7 @@ export interface OwnedPet {
   farewell: PetFarewellResult | null;
 }
 
-export type PetCareActionFailureReason = 'cooldown' | 'inactive' | 'away' | 'sleeping';
+export type PetCareActionFailureReason = 'cooldown' | 'inactive' | 'away' | 'sleeping' | 'player-energy';
 
 export interface PetCareActionResult {
   pet: OwnedPet;

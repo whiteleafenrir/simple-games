@@ -11,6 +11,7 @@
       <p>{{ i18n.t('petMood') }}: {{ moodLabel(pet.mood) }}</p>
       <p>{{ i18n.t('petPeriodOfLife') }}: {{ periodOfLifeLabel(pet.periodOfLife) }}</p>
       <p>{{ i18n.t('petLight') }}: {{ lightLabel(pet) }}</p>
+      <p>{{ i18n.t('playerEnergy') }}: {{ playerEnergyValue(pet) }}/{{ playerEnergyMax(pet) }}</p>
       @if (awayUntilLabel(pet); as awayUntil) {
         <p>{{ i18n.t('petAwayUntil') }}: {{ awayUntil }}</p>
       }
@@ -28,6 +29,14 @@
     <div class="care-heading">
       <span>{{ i18n.t('petCareTitle') }}</span>
       <strong>{{ i18n.t('petCareHint') }}</strong>
+    </div>
+
+    <div class="player-energy-meter">
+      <div>
+        <span>{{ i18n.t('playerEnergy') }}</span>
+        <strong>{{ playerEnergyValue(pet) }}/{{ playerEnergyMax(pet) }}</strong>
+      </div>
+      <b aria-hidden="true"><i [style.width.%]="playerEnergyPercent(pet)"></i></b>
     </div>
 
     <div class="stats-grid">
@@ -53,6 +62,7 @@
         >
           <strong>{{ careActionLabel(actionId, pet) }}</strong>
           <span>{{ careActionHint(actionId) }}</span>
+          <em>{{ careActionCost(actionId) }}</em>
           <small>{{ careActionState(pet, actionId) }}</small>
         </button>
       }

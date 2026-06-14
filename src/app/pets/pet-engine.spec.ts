@@ -7,6 +7,7 @@ import {
   careActionFailureReason,
   careScore,
   createEmptyLastActionAt,
+  createInitialPlayerEnergy,
   DEFAULT_PET_STATS,
   petMood,
   petAwayRemainingMs,
@@ -30,6 +31,7 @@ function pet(overrides: Partial<OwnedPet> = {}): OwnedPet {
     createdAt,
     endsAt,
     lastResolvedAt: createdAt,
+    playerEnergy: createInitialPlayerEnergy(new Date(createdAt)),
     lastActionAt: createEmptyLastActionAt(),
     isLightOn: true,
     awayUntil: null,
@@ -98,6 +100,40 @@ describe('pet engine', () => {
     expect(result.reason).toBe('cooldown');
     expect(result.nextAvailableAt).toBe('2026-06-13T10:10:00.000Z');
     expect(careActionCooldownRemainingMs(result.pet, 'feed', new Date('2026-06-13T10:05:00.000Z'))).toBe(5 * 60 * 1000);
+  });
+
+  it('recovers player energy over time', () => {
+    const resolved = resolvePetState(pet({
+      playerEnergy: {
+        current: 40,
+        max: 100,
+        lastRecoveredAt: createdAt
+      }
+    }), new Date('2026-06-13T11:30:00.000Z'));
+
+    expect(resolved.playerEnergy).toEqual({
+      current: 58,
+      max: 100,
+      lastRecoveredAt: '2026-06-13T11:30:00.000Z'
+    });
+  });
+
+  it('spends player energy and blocks actions when the budget is too low', () => {
+    const start = pet({
+      playerEnergy: {
+        current: 10,
+        max: 100,
+        lastRecoveredAt: createdAt
+      }
+    });
+    const cleaned = applyPetCareAction(start, 'clean', new Date(createdAt));
+    const blocked = applyPetCareAction(start, 'play', new Date(createdAt));
+
+    expect(cleaned.applied).toBe(true);
+    expect(cleaned.pet.playerEnergy.current).toBe(5);
+    expect(blocked.applied).toBe(false);
+    expect(blocked.reason).toBe('player-energy');
+    expect(blocked.nextAvailableAt).toBe('2026-06-13T10:25:00.000Z');
   });
 
   it('applies feed, junk food, clean, play, and walk effects', () => {

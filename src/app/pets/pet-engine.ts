@@ -1,6 +1,7 @@
 import { PetMode } from '../pocket-pet/pocket-pet.model';
 import {
   OwnedPet,
+  PlayerEnergyState,
   PetActivityType,
   PetCareActionEntry,
   PetCareActionFailureReason,
@@ -20,6 +21,8 @@ import { PetSpeciesTraits, petSpeciesTraits } from './pet-species-traits';
 
 const HOUR_MS = 60 * 60 * 1000;
 const MINUTE_MS = 60 * 1000;
+const DEFAULT_PLAYER_ENERGY_MAX = 100;
+const PLAYER_ENERGY_RECOVERY_PER_HOUR = 12;
 
 type PetStatDelta = Partial<Record<keyof PetStats, number>>;
 
@@ -52,6 +55,14 @@ export const DEFAULT_PET_STATS: PetStats = {
   health: 85,
   energy: 75
 };
+
+export function createInitialPlayerEnergy(now: Date = new Date()): PlayerEnergyState {
+  return {
+    current: DEFAULT_PLAYER_ENERGY_MAX,
+    max: DEFAULT_PLAYER_ENERGY_MAX,
+    lastRecoveredAt: now.toISOString()
+  };
+}
 
 export const PET_CARE_ACTIONS: Record<PetCareActionId, PetCareActionConfig> = {
   feed: {
@@ -146,10 +157,14 @@ export function createEmptyLastActionAt(): PetLastActionAt {
 
 export function createInitialPetCareState(
   now: Date = new Date()
-): Pick<OwnedPet, 'stats' | 'lastResolvedAt' | 'lastActionAt' | 'isLightOn' | 'awayUntil' | 'careHistory' | 'farewell'> {
+): Pick<
+  OwnedPet,
+  'stats' | 'lastResolvedAt' | 'playerEnergy' | 'lastActionAt' | 'isLightOn' | 'awayUntil' | 'careHistory' | 'farewell'
+> {
   return {
     stats: { ...DEFAULT_PET_STATS },
     lastResolvedAt: now.toISOString(),
+    playerEnergy: createInitialPlayerEnergy(now),
     lastActionAt: createEmptyLastActionAt(),
     isLightOn: true,
     awayUntil: null,
@@ -164,6 +179,7 @@ export function resolvePetState(pet: OwnedPet, now: Date = new Date()): OwnedPet
   const endsAtMs = Math.max(createdAtMs, safeTime(pet.endsAt, nowMs));
   const periodOfLife = petPeriodOfLife(createdAtMs, endsAtMs, Math.min(nowMs, endsAtMs));
   const awayUntil = normalizeAwayUntil(pet.awayUntil, now);
+  const playerEnergy = resolvePlayerEnergy(pet.playerEnergy, now);
 
   if (pet.status !== 'pet') {
     const stats = normalizeStats(pet.stats);
@@ -172,6 +188,7 @@ export function resolvePetState(pet: OwnedPet, now: Date = new Date()): OwnedPet
       mood: petMood(stats),
       periodOfLife,
       stats,
+      playerEnergy,
       awayUntil,
       farewell: pet.farewell ?? createFarewellResult(pet.status, stats, new Date(endsAtMs))
     };
@@ -192,6 +209,7 @@ export function resolvePetState(pet: OwnedPet, now: Date = new Date()): OwnedPet
     mood: petMood(stats),
     periodOfLife,
     stats,
+    playerEnergy,
     awayUntil,
     farewell,
     lastResolvedAt: now.toISOString()
@@ -215,6 +233,8 @@ export function applyPetCareAction(
       reason: blockedReason,
       nextAvailableAt: blockedReason === 'away'
         ? resolvedPet.awayUntil
+        : blockedReason === 'player-energy'
+          ? playerEnergyReadyAt(resolvedPet, actionId, now)?.toISOString() ?? null
         : nextAvailableAt?.toISOString() ?? null
     };
   }
@@ -222,6 +242,7 @@ export function applyPetCareAction(
   const action = PET_CARE_ACTIONS[actionId];
   const speciesTraits = petSpeciesTraits(resolvedPet.petId);
   const statsBefore = normalizeStats(resolvedPet.stats);
+  const playerEnergyAfter = spendPlayerEnergy(resolvedPet.playerEnergy, action.playerEnergyCost, now);
   const isLightOnBefore = resolvedPet.isLightOn;
   const awayUntilBefore = resolvedPet.awayUntil;
   const isLightOnAfter = action.toggleLight ? !resolvedPet.isLightOn : resolvedPet.isLightOn;
@@ -232,6 +253,7 @@ export function applyPetCareAction(
   const changedPet: OwnedPet = {
     ...resolvedPet,
     stats: statsAfter,
+    playerEnergy: playerEnergyAfter,
     isLightOn: isLightOnAfter,
     awayUntil: awayUntilAfter,
     lastResolvedAt: now.toISOString(),
@@ -288,6 +310,10 @@ export function careActionFailureReason(
     return 'cooldown';
   }
 
+  if (!hasPlayerEnergy(pet, actionId, now)) {
+    return 'player-energy';
+  }
+
   return null;
 }
 
@@ -313,6 +339,32 @@ export function careActionCooldownRemainingMs(pet: OwnedPet, actionId: PetCareAc
   }
 
   return Math.max(0, nextAvailableAt.getTime() - now.getTime());
+}
+
+export function playerEnergyRecoveryRemainingMs(pet: OwnedPet, actionId: PetCareActionId, now: Date = new Date()): number {
+  const readyAt = playerEnergyReadyAt(pet, actionId, now);
+
+  if (!readyAt) {
+    return 0;
+  }
+
+  return Math.max(0, readyAt.getTime() - now.getTime());
+}
+
+export function resolvePlayerEnergy(
+  playerEnergy: Partial<PlayerEnergyState> | undefined,
+  now: Date = new Date()
+): PlayerEnergyState {
+  const normalizedEnergy = normalizePlayerEnergy(playerEnergy, now);
+  const lastRecoveredMs = safeTime(normalizedEnergy.lastRecoveredAt, now.getTime());
+  const elapsedHours = Math.max(0, now.getTime() - lastRecoveredMs) / HOUR_MS;
+  const recoveredEnergy = normalizedEnergy.current + PLAYER_ENERGY_RECOVERY_PER_HOUR * elapsedHours;
+
+  return {
+    ...normalizedEnergy,
+    current: normalizeEnergyValue(recoveredEnergy, normalizedEnergy.current, normalizedEnergy.max),
+    lastRecoveredAt: now.toISOString()
+  };
 }
 
 export function careScore(stats: PetStats): number {
@@ -398,6 +450,17 @@ export function normalizeStats(stats: Partial<PetStats> | undefined, fallback: P
     happiness: normalizeStat(stats?.happiness, fallback.happiness),
     health: normalizeStat(stats?.health, fallback.health),
     energy: normalizeStat(stats?.energy, fallback.energy)
+  };
+}
+
+function normalizePlayerEnergy(playerEnergy: Partial<PlayerEnergyState> | undefined, now: Date): PlayerEnergyState {
+  const fallback = createInitialPlayerEnergy(now);
+  const max = normalizeEnergyLimit(playerEnergy?.max);
+
+  return {
+    current: normalizeEnergyValue(playerEnergy?.current, fallback.current, max),
+    max,
+    lastRecoveredAt: normalizeDate(playerEnergy?.lastRecoveredAt, fallback.lastRecoveredAt)
   };
 }
 
@@ -529,6 +592,51 @@ function farewellPhraseId(reason: PetFarewellReason, finalCareScore: number): Pe
   return 'ready-for-adventure';
 }
 
+function hasPlayerEnergy(pet: OwnedPet, actionId: PetCareActionId, now: Date): boolean {
+  const cost = PET_CARE_ACTIONS[actionId].playerEnergyCost;
+
+  if (cost <= 0) {
+    return true;
+  }
+
+  return resolvePlayerEnergy(pet.playerEnergy, now).current >= cost;
+}
+
+function spendPlayerEnergy(playerEnergy: PlayerEnergyState, cost: number, now: Date): PlayerEnergyState {
+  const resolvedEnergy = resolvePlayerEnergy(playerEnergy, now);
+
+  if (cost <= 0) {
+    return resolvedEnergy;
+  }
+
+  return {
+    ...resolvedEnergy,
+    current: normalizeEnergyValue(resolvedEnergy.current - cost, resolvedEnergy.current, resolvedEnergy.max),
+    lastRecoveredAt: now.toISOString()
+  };
+}
+
+function playerEnergyReadyAt(pet: OwnedPet, actionId: PetCareActionId, now: Date): Date | null {
+  const cost = PET_CARE_ACTIONS[actionId].playerEnergyCost;
+
+  if (cost <= 0) {
+    return now;
+  }
+
+  const resolvedEnergy = resolvePlayerEnergy(pet.playerEnergy, now);
+  const missingEnergy = cost - resolvedEnergy.current;
+
+  if (missingEnergy <= 0) {
+    return now;
+  }
+
+  if (PLAYER_ENERGY_RECOVERY_PER_HOUR <= 0) {
+    return null;
+  }
+
+  return new Date(now.getTime() + Math.ceil((missingEnergy / PLAYER_ENERGY_RECOVERY_PER_HOUR) * HOUR_MS));
+}
+
 function careActionNextAvailableAt(pet: OwnedPet, actionId: PetCareActionId): Date | null {
   const lastActionAt = pet.lastActionAt[actionId];
 
@@ -571,6 +679,30 @@ function modeDecayMultiplier(mode: PetMode): number {
   return 1;
 }
 
+function normalizeEnergyLimit(value: number | undefined): number {
+  if (typeof value !== 'number' || Number.isNaN(value) || value <= 0) {
+    return DEFAULT_PLAYER_ENERGY_MAX;
+  }
+
+  return roundEnergy(value);
+}
+
+function normalizeEnergyValue(value: number | undefined, fallback: number, max: number): number {
+  if (typeof value !== 'number' || Number.isNaN(value)) {
+    return Math.min(max, roundEnergy(fallback));
+  }
+
+  return Math.min(max, roundEnergy(value));
+}
+
+function normalizeDate(value: string | undefined, fallback: string): string {
+  if (!value || Number.isNaN(Date.parse(value))) {
+    return fallback;
+  }
+
+  return value;
+}
+
 function normalizeStat(value: number | undefined, fallback: number): number {
   if (typeof value !== 'number' || Number.isNaN(value)) {
     return roundStat(fallback);
@@ -581,6 +713,10 @@ function normalizeStat(value: number | undefined, fallback: number): number {
 
 function roundStat(value: number): number {
   return Math.round(Math.max(0, Math.min(100, value)) * 10) / 10;
+}
+
+function roundEnergy(value: number): number {
+  return Math.round(Math.max(0, value) * 10) / 10;
 }
 
 function safeTime(value: string, fallback: number): number {

@@ -2,12 +2,15 @@ import { PetId, PetMode, SessionLengthId } from '../pocket-pet/pocket-pet.model'
 import {
   careScore,
   createEmptyLastActionAt,
+  createInitialPlayerEnergy,
   DEFAULT_PET_STATS,
   normalizeStats,
+  resolvePlayerEnergy,
   resolvePetState
 } from './pet-engine';
 import {
   OwnedPet,
+  PlayerEnergyState,
   PetCareActionEntry,
   PetCareActionId,
   PetFarewellPhraseId,
@@ -20,9 +23,9 @@ import {
   PetStats
 } from './owned-pet.model';
 
-export const PET_STORAGE_VERSION = '0.4.0';
+export const PET_STORAGE_VERSION = '0.5.0';
 
-const PREVIOUS_STORAGE_VERSIONS = ['0.3.0', '0.2.0'] as const;
+const PREVIOUS_STORAGE_VERSIONS = ['0.4.0', '0.3.0', '0.2.0'] as const;
 const LEGACY_STORAGE_VERSION = '0.1.1';
 
 interface StoredPets {
@@ -87,6 +90,7 @@ function normalizePet(pet: Partial<OwnedPet>, now: Date, isLegacyPet: boolean): 
     createdAt,
     endsAt,
     lastResolvedAt,
+    playerEnergy: normalizePlayerEnergy(pet.playerEnergy, now),
     lastActionAt: normalizeLastActionAt(pet.lastActionAt),
     isLightOn: normalizeLight(pet.isLightOn),
     awayUntil: normalizeNullableDate(pet.awayUntil),
@@ -97,6 +101,10 @@ function normalizePet(pet: Partial<OwnedPet>, now: Date, isLegacyPet: boolean): 
 
 function normalizeStoredStats(stats: Partial<PetStats> | undefined): PetStats {
   return normalizeStats(stats, DEFAULT_PET_STATS);
+}
+
+function normalizePlayerEnergy(playerEnergy: Partial<PlayerEnergyState> | undefined, now: Date): PlayerEnergyState {
+  return resolvePlayerEnergy(playerEnergy ?? createInitialPlayerEnergy(now), now);
 }
 
 function normalizeLastActionAt(lastActionAt: Partial<PetLastActionAt> | undefined): PetLastActionAt {

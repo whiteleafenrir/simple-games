@@ -114,6 +114,46 @@ h1 {
   font-size: 0.95rem;
 }
 
+.player-energy-meter {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--tile-bg);
+}
+
+.player-energy-meter div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.player-energy-meter span {
+  color: var(--muted-text);
+  font-weight: 900;
+}
+
+.player-energy-meter strong {
+  color: var(--text);
+  font-size: 1.25rem;
+}
+
+.player-energy-meter b {
+  height: 10px;
+  border-radius: 999px;
+  background: var(--secondary);
+  overflow: hidden;
+}
+
+.player-energy-meter i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--win), var(--success));
+}
+
 .stats-grid,
 .care-actions {
   display: grid;
@@ -197,9 +237,16 @@ h1 {
 }
 
 .care-actions button span,
+.care-actions button em,
 .care-actions button small {
   color: var(--muted-text);
   line-height: 1.35;
+}
+
+.care-actions button em {
+  color: var(--success-text);
+  font-style: normal;
+  font-weight: 900;
 }
 
 .care-actions button small {

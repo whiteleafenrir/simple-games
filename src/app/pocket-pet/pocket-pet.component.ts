@@ -5,10 +5,12 @@ import { map } from 'rxjs';
 
 import { I18nService } from '../i18n/i18n.service';
 import {
+  PET_CARE_ACTIONS,
   PET_CARE_ACTION_IDS,
   careActionCooldownRemainingMs,
   careActionFailureReason,
-  petAwayRemainingMs
+  petAwayRemainingMs,
+  playerEnergyRecoveryRemainingMs
 } from '../pets/pet-engine';
 import {
   OwnedPet,
@@ -161,6 +163,11 @@ export class PocketPetComponent implements OnDestroy {
       return;
     }
 
+    if (result.reason === 'player-energy') {
+      this.careMessage.set(this.i18n.t('careActionNoPlayerEnergy'));
+      return;
+    }
+
     this.careMessage.set(this.i18n.t('careActionInactive'));
   }
 
@@ -218,6 +225,34 @@ export class PocketPetComponent implements OnDestroy {
     return Math.round(pet.stats[statId]);
   }
 
+  playerEnergyValue(pet: OwnedPet): number {
+    return Math.floor(pet.playerEnergy.current);
+  }
+
+  playerEnergyMax(pet: OwnedPet): number {
+    return Math.round(pet.playerEnergy.max);
+  }
+
+  playerEnergyPercent(pet: OwnedPet): number {
+    const max = this.playerEnergyMax(pet);
+
+    if (max <= 0) {
+      return 0;
+    }
+
+    return Math.min(100, Math.max(0, (this.playerEnergyValue(pet) / max) * 100));
+  }
+
+  careActionCost(actionId: PetCareActionId): string {
+    const cost = PET_CARE_ACTIONS[actionId].playerEnergyCost;
+
+    if (cost <= 0) {
+      return this.i18n.t('careActionFree');
+    }
+
+    return `${this.i18n.t('careActionEnergyCost')}: ${cost}`;
+  }
+
   isCareActionDisabled(pet: OwnedPet, actionId: PetCareActionId): boolean {
     return careActionFailureReason(pet, actionId, this.now()) !== null;
   }
@@ -239,6 +274,10 @@ export class PocketPetComponent implements OnDestroy {
 
     if (reason === 'cooldown') {
       return `${this.i18n.t('careCooldown')}: ${this.formatRemaining(careActionCooldownRemainingMs(pet, actionId, this.now()))}`;
+    }
+
+    if (reason === 'player-energy') {
+      return `${this.i18n.t('careActionNoPlayerEnergy')}: ${this.formatRemaining(playerEnergyRecoveryRemainingMs(pet, actionId, this.now()))}`;
     }
 
     return this.i18n.t('careActionReady');
