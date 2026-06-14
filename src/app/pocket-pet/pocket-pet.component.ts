@@ -1,5 +1,7 @@
-import { Component, OnDestroy, computed, signal } from '@angular/core';
+import { Component, OnDestroy, computed, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { map } from 'rxjs';
 
 import { I18nService } from '../i18n/i18n.service';
 import {
@@ -43,8 +45,16 @@ import { PetOption, SessionLength } from './pocket-pet.model';
   styleUrls: ['./pocket-pet.component.css']
 })
 export class PocketPetComponent implements OnDestroy {
+  public readonly i18n = inject(I18nService);
+  public readonly petStorage = inject(PetStorageService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly viewedPetId = toSignal(
+    this.route.paramMap.pipe(map((paramMap) => paramMap.get('petId'))),
+    { initialValue: this.route.snapshot.paramMap.get('petId') }
+  );
+
   readonly viewedPet = computed((): OwnedPet | null => {
-    const id = this.route.snapshot.paramMap.get('petId');
+    const id = this.viewedPetId();
     return id ? this.petStorage.petById(id) : this.petStorage.activePet();
   });
 
@@ -62,11 +72,7 @@ export class PocketPetComponent implements OnDestroy {
   readonly canCreatePet = computed((): boolean => this.petName().trim().length > 0 && !this.petStorage.activePet());
   private readonly timerId: ReturnType<typeof setInterval> | null = null;
 
-  constructor(
-    public readonly i18n: I18nService,
-    private readonly route: ActivatedRoute,
-    public readonly petStorage: PetStorageService
-  ) {
+  constructor() {
     this.petStorage.resolvePets(this.now());
 
     if (typeof setInterval !== 'undefined') {

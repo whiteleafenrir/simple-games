@@ -1,4 +1,4 @@
-import { Injectable, OnDestroy, effect, signal } from '@angular/core';
+import { Injectable, OnDestroy, computed, effect, signal } from '@angular/core';
 
 import { PetOption, SessionLength } from '../pocket-pet/pocket-pet.model';
 import { UserService } from '../users/user.service';
@@ -11,17 +11,14 @@ import { deserializePets, serializePets } from './pet-storage.migrations';
 })
 export class PetStorageService implements OnDestroy {
   readonly pets = signal<OwnedPet[]>([]);
-  readonly activePet = signal<OwnedPet | null>(null);
+  readonly activePet = computed((): OwnedPet | null => this.findActivePet(this.pets()));
   private readonly timerId: ReturnType<typeof setInterval> | null = null;
 
   constructor(private readonly userService: UserService) {
     this.pets.set(this.readPets());
-    this.activePet.set(this.findActivePet(this.pets()));
 
     effect((): void => {
-      const pets = this.pets();
-      this.activePet.set(this.findActivePet(pets));
-      this.writePets(pets);
+      this.writePets(this.pets());
     });
 
     if (typeof setInterval !== 'undefined') {

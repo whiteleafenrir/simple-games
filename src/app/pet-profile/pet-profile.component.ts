@@ -1,5 +1,7 @@
-import { Component, computed } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { map } from 'rxjs';
 
 import { I18nService } from '../i18n/i18n.service';
 import {
@@ -37,14 +39,16 @@ import { PetStorageService } from '../pets/pet-storage.service';
   styleUrls: ['./pet-profile.component.css']
 })
 export class PetProfileComponent {
-  readonly pet = computed((): OwnedPet | null => this.pets.petById(this.route.snapshot.paramMap.get('petId')));
-  readonly statIds: readonly PetStatId[] = PET_STAT_IDS;
+  public readonly i18n = inject(I18nService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly pets = inject(PetStorageService);
+  private readonly petId = toSignal(
+    this.route.paramMap.pipe(map((paramMap) => paramMap.get('petId'))),
+    { initialValue: this.route.snapshot.paramMap.get('petId') }
+  );
 
-  constructor(
-    public readonly i18n: I18nService,
-    private readonly route: ActivatedRoute,
-    private readonly pets: PetStorageService
-  ) {}
+  readonly pet = computed((): OwnedPet | null => this.pets.petById(this.petId()));
+  readonly statIds: readonly PetStatId[] = PET_STAT_IDS;
 
   readonly petOption = petOption;
   readonly sessionLength = sessionLength;
