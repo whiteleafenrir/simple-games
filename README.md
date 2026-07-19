@@ -51,12 +51,18 @@
 
 ## Старт
 
+PostgreSQL подключается через `DATABASE_URL`; пример лежит в `.env.example`.
+
 ```bash
 npm install
+npm run prisma:generate
+npm run dev:api
 npm start
 ```
 
-По умолчанию dev-server слушает `0.0.0.0:4200`, поэтому приложение можно открыть с другого устройства в той же Wi-Fi сети.
+Pocket Pet теперь читает состояние через backend API. Для разработки запусти `npm run dev:api` и `npm start` в двух терминалах. Angular dev-server проксирует `/api` на `http://127.0.0.1:3000`.
+
+По умолчанию Angular dev-server слушает `0.0.0.0:4200`, поэтому приложение можно открыть с другого устройства в той же Wi-Fi сети.
 
 На компьютере открой:
 

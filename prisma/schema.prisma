@@ -1,0 +1,102 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model GuestSession {
+  id         String   @id @default(uuid())
+  createdAt  DateTime @default(now())
+  lastSeenAt DateTime @default(now())
+  pets       Pet[]
+}
+
+model Pet {
+  id              String              @id @default(uuid())
+  guestSessionId  String
+  guestSession    GuestSession        @relation(fields: [guestSessionId], references: [id], onDelete: Cascade)
+  name            String
+  petId           String
+  mode            String
+  status          String
+  mood            String
+  periodOfLife    String
+  sessionLengthId String
+  createdAt       DateTime            @default(now())
+  endsAt          DateTime
+  lastResolvedAt  DateTime
+  isLightOn       Boolean             @default(true)
+  awayUntil       DateTime?
+  stats           PetStats?
+  playerEnergy    PlayerEnergy?
+  actionCooldowns PetActionCooldown[]
+  careHistory     PetCareAction[]
+  farewell        PetFarewellResult?
+
+  @@index([guestSessionId])
+  @@index([guestSessionId, status])
+}
+
+model PetStats {
+  petId       String   @id
+  pet         Pet      @relation(fields: [petId], references: [id], onDelete: Cascade)
+  satiety     Float
+  cleanliness Float
+  happiness   Float
+  health      Float
+  energy      Float
+  updatedAt   DateTime @updatedAt
+}
+
+model PlayerEnergy {
+  petId           String   @id
+  pet             Pet      @relation(fields: [petId], references: [id], onDelete: Cascade)
+  current         Float
+  max             Float
+  lastRecoveredAt DateTime
+  updatedAt       DateTime @updatedAt
+}
+
+model PetActionCooldown {
+  petId        String
+  pet          Pet       @relation(fields: [petId], references: [id], onDelete: Cascade)
+  actionId     String
+  lastActionAt DateTime?
+
+  @@id([petId, actionId])
+}
+
+model PetCareAction {
+  id               String    @id
+  petId            String
+  pet              Pet       @relation(fields: [petId], references: [id], onDelete: Cascade)
+  actionId         String
+  activityType     String
+  appliedAt        DateTime
+  statsBefore      Json
+  statsAfter       Json
+  careScoreBefore  Float
+  careScoreAfter   Float
+  moodBefore       String
+  moodAfter        String
+  isLightOnBefore  Boolean
+  isLightOnAfter   Boolean
+  awayUntilBefore  DateTime?
+  awayUntilAfter   DateTime?
+  playerEnergyCost Int
+  perceptionTags   String[]
+
+  @@index([petId, appliedAt])
+}
+
+model PetFarewellResult {
+  petId          String   @id
+  pet            Pet      @relation(fields: [petId], references: [id], onDelete: Cascade)
+  reason         String
+  farewellAt     DateTime
+  phraseId       String
+  finalCareScore Float
+  finalStats     Json
+}

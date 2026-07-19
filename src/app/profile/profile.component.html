@@ -12,7 +12,15 @@
       <strong>{{ pets.pets().length }}</strong>
     </div>
 
-    @if (pets.pets().length === 0) {
+    @if (pets.loading()) {
+      <div class="empty-state">
+        <strong>{{ i18n.t('petLoading') }}</strong>
+      </div>
+    } @else if (pets.syncError()) {
+      <div class="empty-state">
+        <strong>{{ i18n.t('petBackendUnavailable') }}</strong>
+      </div>
+    } @else if (pets.pets().length === 0) {
       <div class="empty-state">
         <strong>{{ i18n.t('noPetsTitle') }}</strong>
         <p>{{ i18n.t('noPetsText') }}</p>

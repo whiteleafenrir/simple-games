@@ -2,5 +2,7 @@ node_modules/
 dist/
 .angular/
 .vscode/
+.npm-cache/
+.env
 npm-debug.log*
 yarn-error.log*

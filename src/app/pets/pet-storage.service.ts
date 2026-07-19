@@ -1,10 +1,10 @@
-import { Injectable, OnDestroy, computed, effect, signal } from '@angular/core';
+import { Injectable, OnDestroy, computed, signal } from '@angular/core';
 
 import { PetOption, SessionLength } from '../pocket-pet/pocket-pet.model';
-import { UserService } from '../users/user.service';
-import { createInitialPetCareState, applyPetCareAction, resolvePetState } from './pet-engine';
 import { OwnedPet, PetCareActionId, PetCareActionResult } from './owned-pet.model';
-import { deserializePets, serializePets } from './pet-storage.migrations';
+import { PetApiService } from './pet-api.service';
+
+const GUEST_ID_STORAGE_KEY = 'simple-games:pocket-pet:guest-id';
 
 @Injectable({
   providedIn: 'root'
@@ -12,17 +12,20 @@ import { deserializePets, serializePets } from './pet-storage.migrations';
 export class PetStorageService implements OnDestroy {
   readonly pets = signal<OwnedPet[]>([]);
   readonly activePet = computed((): OwnedPet | null => this.findActivePet(this.pets()));
+  readonly guestId = signal<string | null>(null);
+  readonly loading = signal<boolean>(true);
+  readonly syncError = signal<string | null>(null);
+
   private readonly timerId: ReturnType<typeof setInterval> | null = null;
+  private initialization: Promise<void> | null = null;
 
-  constructor(private readonly userService: UserService) {
-    this.pets.set(this.readPets());
-
-    effect((): void => {
-      this.writePets(this.pets());
-    });
+  constructor(private readonly petApi: PetApiService) {
+    void this.startInitialization();
 
     if (typeof setInterval !== 'undefined') {
-      this.timerId = setInterval((): void => this.resolvePets(), 60_000);
+      this.timerId = setInterval((): void => {
+        void this.resolvePets();
+      }, 60_000);
     }
   }
 
@@ -32,45 +35,58 @@ export class PetStorageService implements OnDestroy {
     }
   }
 
-  addPet(pet: PetOption, sessionLength: SessionLength, name: string): OwnedPet | null {
-    if (this.activePet()) {
+  ready(): Promise<void> {
+    return this.initialization ?? Promise.resolve();
+  }
+
+  async addPet(pet: PetOption, sessionLength: SessionLength, name: string): Promise<OwnedPet | null> {
+    const guestId = await this.ensureGuestId();
+
+    if (!guestId || this.activePet()) {
       return null;
     }
 
-    const now = new Date();
-    const endsAt = new Date(now.getTime() + sessionLength.minutes * 60_000);
-    const ownedPet: OwnedPet = {
-      id: `${pet.id}-${now.getTime()}`,
-      name: name.trim(),
-      petId: pet.id,
-      mode: pet.mode,
-      status: 'pet',
-      mood: 'joyful',
-      periodOfLife: 'child',
-      ...createInitialPetCareState(now),
-      sessionLengthId: sessionLength.id,
-      createdAt: now.toISOString(),
-      endsAt: endsAt.toISOString()
-    };
-
-    this.pets.update((pets: OwnedPet[]): OwnedPet[] => [ownedPet, ...pets]);
-    return ownedPet;
+    try {
+      const ownedPet = await this.petApi.createPet(guestId, pet, sessionLength, name.trim());
+      this.pets.update((pets: OwnedPet[]): OwnedPet[] => [ownedPet, ...pets]);
+      this.syncError.set(null);
+      return ownedPet;
+    } catch (error) {
+      this.recordSyncError(error);
+      await this.resolvePets();
+      return null;
+    }
   }
 
-  careForPet(id: string, actionId: PetCareActionId, now: Date = new Date()): PetCareActionResult | null {
-    const pet = this.petById(id);
+  async careForPet(id: string, actionId: PetCareActionId, now: Date = new Date()): Promise<PetCareActionResult | null> {
+    void now;
+    const guestId = await this.ensureGuestId();
 
-    if (!pet) {
+    if (!guestId) {
       return null;
     }
 
-    const result = applyPetCareAction(pet, actionId, now);
-    this.replacePet(result.pet);
-    return result;
+    try {
+      const result = await this.petApi.applyCareAction(guestId, id, actionId);
+      this.replacePet(result.pet);
+      this.syncError.set(null);
+      return result;
+    } catch (error) {
+      this.recordSyncError(error);
+      await this.resolvePets();
+      return null;
+    }
   }
 
-  resolvePets(now: Date = new Date()): void {
-    this.pets.update((pets: OwnedPet[]): OwnedPet[] => pets.map((pet: OwnedPet): OwnedPet => resolvePetState(pet, now)));
+  async resolvePets(now: Date = new Date()): Promise<void> {
+    void now;
+    const guestId = await this.ensureGuestId();
+
+    if (!guestId) {
+      return;
+    }
+
+    await this.loadPets(guestId);
   }
 
   petById(id: string | null): OwnedPet | null {
@@ -81,30 +97,76 @@ export class PetStorageService implements OnDestroy {
     return this.pets().find((pet: OwnedPet): boolean => pet.id === id) ?? null;
   }
 
-  private storageKey(): string {
-    return `simple-games:${this.userService.currentUser().id}:pets`;
+  private async startInitialization(): Promise<void> {
+    const initialization = this.initialize();
+    this.initialization = initialization;
+
+    await initialization.finally((): void => {
+      if (this.initialization === initialization) {
+        this.initialization = null;
+      }
+    });
   }
 
-  private readPets(): OwnedPet[] {
+  private async initialize(): Promise<void> {
+    this.loading.set(true);
+
+    try {
+      const session = await this.petApi.createOrGetGuestSession(this.readGuestId());
+      this.writeGuestId(session.id);
+      this.guestId.set(session.id);
+      await this.loadPets(session.id);
+      this.syncError.set(null);
+    } catch (error) {
+      this.recordSyncError(error);
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
+  private async ensureGuestId(): Promise<string | null> {
+    if (this.initialization) {
+      await this.initialization;
+    }
+
+    const currentGuestId = this.guestId();
+
+    if (currentGuestId) {
+      return currentGuestId;
+    }
+
+    await this.startInitialization();
+    return this.guestId();
+  }
+
+  private async loadPets(guestId: string): Promise<void> {
+    try {
+      this.pets.set(await this.petApi.getPets(guestId));
+      this.syncError.set(null);
+    } catch (error) {
+      this.recordSyncError(error);
+    }
+  }
+
+  private readGuestId(): string | null {
     if (typeof localStorage === 'undefined') {
-      return [];
+      return null;
     }
 
-    const rawPets: string | null = localStorage.getItem(this.storageKey());
-
-    if (!rawPets) {
-      return [];
-    }
-
-    return deserializePets(rawPets);
+    const guestId = localStorage.getItem(GUEST_ID_STORAGE_KEY)?.trim();
+    return guestId || null;
   }
 
-  private writePets(pets: OwnedPet[]): void {
+  private writeGuestId(guestId: string): void {
     if (typeof localStorage === 'undefined') {
       return;
     }
 
-    localStorage.setItem(this.storageKey(), serializePets(pets));
+    localStorage.setItem(GUEST_ID_STORAGE_KEY, guestId);
+  }
+
+  private recordSyncError(error: unknown): void {
+    this.syncError.set(error instanceof Error ? error.message : 'sync-failed');
   }
 
   private findActivePet(pets: OwnedPet[]): OwnedPet | null {

@@ -41,7 +41,7 @@ import { PetStorageService } from '../pets/pet-storage.service';
 export class PetProfileComponent {
   public readonly i18n = inject(I18nService);
   private readonly route = inject(ActivatedRoute);
-  private readonly pets = inject(PetStorageService);
+  public readonly pets = inject(PetStorageService);
   private readonly petId = toSignal(
     this.route.paramMap.pipe(map((paramMap) => paramMap.get('petId'))),
     { initialValue: this.route.snapshot.paramMap.get('petId') }

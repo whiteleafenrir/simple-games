@@ -71,17 +71,22 @@ export class PocketPetComponent implements OnDestroy {
   readonly createdPetMessage = signal<string | null>(null);
   readonly errorMessage = signal<string | null>(null);
   readonly careMessage = signal<string | null>(null);
-  readonly canCreatePet = computed((): boolean => this.petName().trim().length > 0 && !this.petStorage.activePet());
+  readonly canCreatePet = computed((): boolean =>
+    this.petName().trim().length > 0 &&
+    !this.petStorage.activePet() &&
+    !this.petStorage.loading() &&
+    !this.petStorage.syncError()
+  );
   private readonly timerId: ReturnType<typeof setInterval> | null = null;
 
   constructor() {
-    this.petStorage.resolvePets(this.now());
+    void this.petStorage.resolvePets(this.now());
 
     if (typeof setInterval !== 'undefined') {
       this.timerId = setInterval((): void => {
         const now = new Date();
         this.now.set(now);
-        this.petStorage.resolvePets(now);
+        void this.petStorage.resolvePets(now);
       }, 30_000);
     }
   }
@@ -114,7 +119,7 @@ export class PocketPetComponent implements OnDestroy {
     this.errorMessage.set(null);
   }
 
-  createPet(): void {
+  async createPet(): Promise<void> {
     const name = this.petName().trim();
 
     if (!name) {
@@ -122,10 +127,12 @@ export class PocketPetComponent implements OnDestroy {
       return;
     }
 
-    const ownedPet = this.petStorage.addPet(this.selectedPet(), this.selectedSession(), name);
+    const ownedPet = await this.petStorage.addPet(this.selectedPet(), this.selectedSession(), name);
 
     if (!ownedPet) {
-      this.errorMessage.set(this.i18n.t('activePetExists'));
+      this.errorMessage.set(this.petStorage.syncError()
+        ? this.i18n.t('petBackendUnavailable')
+        : this.i18n.t('activePetExists'));
       return;
     }
 
@@ -134,12 +141,15 @@ export class PocketPetComponent implements OnDestroy {
     this.errorMessage.set(null);
   }
 
-  careForPet(pet: OwnedPet, actionId: PetCareActionId): void {
+  async careForPet(pet: OwnedPet, actionId: PetCareActionId): Promise<void> {
     const now = new Date();
-    const result = this.petStorage.careForPet(pet.id, actionId, now);
+    const result = await this.petStorage.careForPet(pet.id, actionId, now);
     this.now.set(now);
 
     if (!result) {
+      if (this.petStorage.syncError()) {
+        this.careMessage.set(this.i18n.t('petBackendUnavailable'));
+      }
       return;
     }
 
@@ -254,10 +264,18 @@ export class PocketPetComponent implements OnDestroy {
   }
 
   isCareActionDisabled(pet: OwnedPet, actionId: PetCareActionId): boolean {
-    return careActionFailureReason(pet, actionId, this.now()) !== null;
+    return this.petStorage.loading() || !!this.petStorage.syncError() || careActionFailureReason(pet, actionId, this.now()) !== null;
   }
 
   careActionState(pet: OwnedPet, actionId: PetCareActionId): string {
+    if (this.petStorage.loading()) {
+      return this.i18n.t('petLoading');
+    }
+
+    if (this.petStorage.syncError()) {
+      return this.i18n.t('petBackendUnavailable');
+    }
+
     const reason = careActionFailureReason(pet, actionId, this.now());
 
     if (reason === 'inactive') {
