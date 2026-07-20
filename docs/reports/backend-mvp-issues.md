@@ -1,18 +1,25 @@
 # Backend MVP Issues Report
 
-## Deferred
+## Проверено 2026-07-20
 
-- Legacy localStorage-питомцы не мигрируются в backend автоматически. Старые ключи остаются в браузере, но новый MVP flow использует только guest id и API.
-- Prisma migration SQL не создается в этом инкременте, потому что для корректной проверки нужен согласованный локальный или CI PostgreSQL. Schema уже готова для `prisma migrate dev`.
-- Production routing для `/api` требует отдельной инфраструктурной настройки: reverse proxy, backend на том же origin или environment-specific API base URL.
+- Добавлен Docker Compose для локальной PostgreSQL 17.
+- Dev database: `simple_games` на `127.0.0.1:5432`.
+- Dev user: `simple_games`.
+- `.env` в корне репозитория настроен на Docker Compose database URL и `PORT=3000`.
+- Основной dev-flow переведен на обычные npm-команды: `npm run dev`, `npm run dev:setup`, `npm run db:start`, `npm run db:push`, `npm run db:studio`, `npm run db:stop`, `npm run db:reset`.
+- `npm run dev` создает `.env` из `.env.example`, если его нет, поднимает PostgreSQL через Docker Compose, ждет готовности базы, применяет Prisma schema через `prisma db push`, собирает API и запускает backend/frontend.
+- `npm run db:studio` открывает Prisma Studio через локальную Prisma CLI из проекта.
+
+## Что осталось проверить вручную
+
+- Live Pocket Pet flow в браузере: guest session, создание питомца, профиль, care actions, cooldown, сон, прогулка, энергия игрока.
+- Обновление страницы должно брать состояние питомца из backend.
+- В `localStorage` для Pocket Pet должен оставаться guest id, а не полный pet state.
 
 ## Watchlist
 
-- Frontend пока использует client-side helpers для отображения remaining cooldown/away/player energy timers. Authoritative действие все равно подтверждает backend.
-- В in-memory API tests проверяется service/controller контракт без реального HTTP server и без PostgreSQL.
-- `npm install` после добавления Nest/Prisma зависимостей сообщает `21 vulnerabilities` (`2 low`, `9 moderate`, `10 high`). Автофикс не запускался, потому что он может менять версии и потребует отдельного review.
-
-## Open questions
-
-- Нужно ли переносить существующих localStorage-питомцев в backend при первом запуске после обновления?
-- Нужно ли хранить guest id бессрочно или вводить TTL/cleanup policy для гостевых сессий?
+- Docker CLI в текущей среде не найден, поэтому `npm run db:start` здесь не запускался. После установки Docker Desktop этот путь должен стать основным.
+- На машине был полностью заполнен диск `C:`, из-за этого часть sandbox/helper-инструментов может падать.
+- PGlite/socket-подход для этой проверки не используем: `prisma db push` проходил, но live-запись care actions давала protocol/adaptor errors. Для dev flow используется настоящая PostgreSQL.
+- Production routing для `/api` все еще требует отдельной инфраструктурной настройки.
+- Legacy localStorage-питомцы автоматически не мигрируются в backend; новый MVP flow хранит только guest id.

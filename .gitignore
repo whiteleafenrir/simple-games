@@ -3,6 +3,7 @@ dist/
 .angular/
 .vscode/
 .npm-cache/
+.local/
 .env
 npm-debug.log*
 yarn-error.log*

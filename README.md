@@ -51,39 +51,31 @@
 
 ## Старт
 
-PostgreSQL подключается через `DATABASE_URL`; пример лежит в `.env.example`.
-
-```bash
-npm install
-npm run prisma:generate
-npm run dev:api
-npm start
-```
-
-Pocket Pet теперь читает состояние через backend API. Для разработки запусти `npm run dev:api` и `npm start` в двух терминалах. Angular dev-server проксирует `/api` на `http://127.0.0.1:3000`.
-
-По умолчанию Angular dev-server слушает `0.0.0.0:4200`, поэтому приложение можно открыть с другого устройства в той же Wi-Fi сети.
-
-На компьютере открой:
-
-```text
-http://localhost:4200
-```
-
-На телефоне или другом устройстве в той же сети открой:
-
-```text
-http://<IPv4-адрес-компьютера>:4200
-```
-
-IPv4-адрес можно посмотреть командой:
+Для локальной разработки нужен Docker Desktop. PostgreSQL подключается через `DATABASE_URL`; пример лежит в `.env.example`.
 
 ```powershell
-ipconfig
+npm install
+npm run dev
 ```
 
-Если нужен только локальный запуск на компьютере:
+`npm run dev` создает `.env` из `.env.example`, если его нет, поднимает PostgreSQL через Docker Compose, применяет Prisma schema через `prisma db push`, собирает NestJS API, запускает backend на `http://localhost:3000` и Angular frontend на `http://localhost:4200`.
 
-```bash
-npm run start:local
+Полезные команды для базы:
+
+```powershell
+npm run db:start
+npm run db:push
+npm run db:studio
+npm run db:stop
+npm run db:reset
+```
+
+Если PowerShell блокирует `npm`, можно использовать `npm.cmd run ...` как Windows fallback.
+
+Pocket Pet теперь читает состояние через backend API. Angular dev-server проксирует `/api` на `http://127.0.0.1:3000`.
+
+Открой:
+
+```text
+http://localhost:4200/games/pocket-pet
 ```

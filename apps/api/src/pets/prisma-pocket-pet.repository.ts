@@ -172,57 +172,76 @@ export class PrismaPocketPetRepository implements PocketPetRepository {
         },
         data: petCoreData(pet)
       });
-      await tx.petStats.upsert({
+      const statsUpdate = await tx.petStats.updateMany({
         where: {
           petId: pet.id
         },
-        update: statsData(pet.stats),
-        create: {
-          petId: pet.id,
-          ...statsData(pet.stats)
-        }
-      });
-      await tx.playerEnergy.upsert({
-        where: {
-          petId: pet.id
-        },
-        update: playerEnergyData(pet.playerEnergy),
-        create: {
-          petId: pet.id,
-          ...playerEnergyData(pet.playerEnergy)
-        }
+        data: statsData(pet.stats)
       });
 
-      for (const actionId of PET_CARE_ACTION_IDS) {
-        await tx.petActionCooldown.upsert({
-          where: {
-            petId_actionId: {
-              petId: pet.id,
-              actionId
-            }
-          },
-          update: {
-            lastActionAt: dateOrNull(pet.lastActionAt[actionId])
-          },
-          create: {
+      if (statsUpdate.count === 0) {
+        await tx.petStats.create({
+          data: {
             petId: pet.id,
-            actionId,
-            lastActionAt: dateOrNull(pet.lastActionAt[actionId])
+            ...statsData(pet.stats)
           }
         });
       }
 
+      const playerEnergyUpdate = await tx.playerEnergy.updateMany({
+        where: {
+          petId: pet.id
+        },
+        data: playerEnergyData(pet.playerEnergy)
+      });
+
+      if (playerEnergyUpdate.count === 0) {
+        await tx.playerEnergy.create({
+          data: {
+            petId: pet.id,
+            ...playerEnergyData(pet.playerEnergy)
+          }
+        });
+      }
+
+      for (const actionId of PET_CARE_ACTION_IDS) {
+        const cooldownUpdate = await tx.petActionCooldown.updateMany({
+          where: {
+            petId: pet.id,
+            actionId
+          },
+          data: {
+            lastActionAt: dateOrNull(pet.lastActionAt[actionId])
+          }
+        });
+
+        if (cooldownUpdate.count === 0) {
+          await tx.petActionCooldown.create({
+            data: {
+              petId: pet.id,
+              actionId,
+              lastActionAt: dateOrNull(pet.lastActionAt[actionId])
+            }
+          });
+        }
+      }
+
       if (pet.farewell) {
-        await tx.petFarewellResult.upsert({
+        const farewellUpdate = await tx.petFarewellResult.updateMany({
           where: {
             petId: pet.id
           },
-          update: farewellData(pet),
-          create: {
-            petId: pet.id,
-            ...farewellData(pet)
-          }
+          data: farewellData(pet)
         });
+
+        if (farewellUpdate.count === 0) {
+          await tx.petFarewellResult.create({
+            data: {
+              petId: pet.id,
+              ...farewellData(pet)
+            }
+          });
+        }
       } else {
         await tx.petFarewellResult.deleteMany({
           where: {
@@ -231,11 +250,18 @@ export class PrismaPocketPetRepository implements PocketPetRepository {
         });
       }
 
-      if (pet.careHistory.length > 0) {
-        await tx.petCareAction.createMany({
-          data: pet.careHistory.map((entry: PetCareActionEntry): Record<string, unknown> => careHistoryData(pet.id, entry)),
-          skipDuplicates: true
+      for (const entry of pet.careHistory) {
+        const existingEntry = await tx.petCareAction.findUnique({
+          where: {
+            id: entry.id
+          }
         });
+
+        if (!existingEntry) {
+          await tx.petCareAction.create({
+            data: careHistoryData(pet.id, entry)
+          });
+        }
       }
     });
 
