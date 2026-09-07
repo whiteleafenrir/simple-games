@@ -4,6 +4,14 @@ export type PetStatus = 'pet' | 'grown' | 'left';
 export type PetMood = 'joyful' | 'neutral' | 'angry' | 'upset' | 'thoughtful' | 'irritated';
 export type PetPeriodOfLife = 'child' | 'teen' | 'adult';
 export type PetCareActionId = 'feed' | 'junkFood' | 'clean' | 'play' | 'walk' | 'toggleLight';
+export const PET_CARE_ACTION_IDS: readonly PetCareActionId[] = [
+  'feed',
+  'junkFood',
+  'clean',
+  'play',
+  'walk',
+  'toggleLight'
+] as const;
 export type PetActivityType = 'feeding' | 'treat' | 'cleaning' | 'play' | 'walk' | 'rest';
 export type PetPerceptionTagId = 'basic-care' | 'indulgent' | 'engaged-care' | 'rest-routine';
 export type PetStatId = 'satiety' | 'cleanliness' | 'happiness' | 'health' | 'energy';

@@ -12,7 +12,7 @@
       <p>{{ i18n.t('petPeriodOfLife') }}: {{ periodOfLifeLabel(pet.periodOfLife) }}</p>
       <p>{{ i18n.t('petLight') }}: {{ lightLabel(pet) }}</p>
       <p>{{ i18n.t('playerEnergy') }}: {{ playerEnergyValue(pet) }}/{{ playerEnergyMax(pet) }}</p>
-      @if (awayUntilLabel(pet); as awayUntil) {
+      @if (pet.awayUntil; as awayUntil) {
         <p>{{ i18n.t('petAwayUntil') }}: {{ awayUntil }}</p>
       }
       <p>{{ i18n.t('timeSince') }}: {{ petAgeLabel(pet) }}</p>
@@ -57,13 +57,12 @@
       @for (actionId of careActions; track actionId) {
         <button
           type="button"
-          [disabled]="isCareActionDisabled(pet, actionId)"
+          [disabled]="isCareActionDisabled(pet)"
           (click)="careForPet(pet, actionId)"
         >
           <strong>{{ careActionLabel(actionId, pet) }}</strong>
           <span>{{ careActionHint(actionId) }}</span>
-          <em>{{ careActionCost(actionId) }}</em>
-          <small>{{ careActionState(pet, actionId) }}</small>
+          <small>{{ careActionState(pet) }}</small>
         </button>
       }
     </div>

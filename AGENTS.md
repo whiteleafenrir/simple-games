@@ -9,7 +9,7 @@ Simple Games - браузерный игровой проект на Angular 21 
 - `GAME_DESIGN.md` - источник истины для продуктовых решений, roadmap, non-goals и acceptance criteria.
 - `README.md` - короткий обзор проекта, команды запуска и high-level roadmap.
 - `src/app/i18n/translations.ts` - текущие тексты интерфейса на русском и английском.
-- `src/app/pets/pet-engine.ts` и его тесты - текущие исполняемые правила игры.
+- `apps/api/src/pets/pet-engine.ts` - текущие исполняемые правила игры.
 
 ## Команды
 
@@ -17,7 +17,7 @@ Simple Games - браузерный игровой проект на Angular 21 
 - Запустить dev server в сети: `npm start`
 - Запустить dev server локально: `npm run start:local`
 - Собрать проект: `npm run build`
-- Запустить тесты: `npm.cmd test` в Windows PowerShell, если `npm test` блокируется execution policy; иначе `npm test`.
+- Тесты пока не входят в MVP-workflow; добавление и запуск покрытия выполняются отдельной задачей.
 
 ## Рабочие Правила
 
@@ -36,7 +36,7 @@ Simple Games - браузерный игровой проект на Angular 21 
 2. Определи тип задачи: продуктовый дизайн, implementation, bug fix или refactor.
 3. Если не хватает продуктовых решений, задай до 3 сфокусированных вопросов.
 4. Для новых систем обнови или создай короткую спецификацию до реализации.
-5. Для engine, storage, backend и balance changes предпочитай TDD: сначала добавь или обнови тесты, потом меняй поведение.
+5. Для engine, storage, backend и balance changes сначала сверяйся с продуктовой спецификацией; тестовое покрытие отложено до стабилизации MVP.
 6. Вноси небольшие, scoped-правки.
 7. Запусти самую узкую полезную проверку, затем более широкую, если поведение затрагивает границы модулей.
 8. В конце кратко перечисли измененные файлы, проверку и оставшиеся open questions.
@@ -67,14 +67,13 @@ Simple Games - браузерный игровой проект на Angular 21 
 
 ## Testing Expectations
 
-- Обновляй `*.spec.ts`, когда меняешь pet engine, storage migrations или правила.
-- Используй явные даты в тестах для time-based behavior.
-- Покрывай migration behavior, когда меняется форма persisted data.
-- Для UI-only copy или Markdown changes тесты обычно не нужны; явно скажи это в финальном ответе.
+- Тесты не являются частью текущего MVP acceptance scope.
+- Не добавляй и не расширяй `*.spec.ts` без явного запроса.
+- Отдельный этап тестового покрытия появится после фиксации UX и продуктовых правил.
 
 ## Backend Direction
 
-Планируемое backend-направление: NestJS + PostgreSQL + Prisma. MVP должен поддерживать guest mode без регистрации: backend хранит состояние по anonymous guest id, а localStorage хранит только guest id и optional cache. Backend должен стать source of truth для pet state, time, actions, cooldowns, sleep, walks и player resources.
+Backend-направление MVP: NestJS + PostgreSQL + Prisma. Backend хранит состояние по anonymous guest id, а браузер получает guest id через HttpOnly-cookie. Pocket Pet не использует localStorage; backend остается source of truth для pet state, time, actions, cooldowns, sleep, walks и player resources.
 
 ## Boundaries
 

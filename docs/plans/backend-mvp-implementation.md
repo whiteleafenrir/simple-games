@@ -2,43 +2,37 @@
 
 ## Тип задачи
 
-Implementation + backend foundation + frontend integration boundary.
+Backend foundation + frontend integration boundary.
 
-## Шаги
+## Решение MVP
 
-1. Зафиксировать spec и MVP-допущения.
-2. Добавить зависимости NestJS, Prisma, PostgreSQL client и backend scripts.
-3. Создать `apps/api`:
-   - Nest bootstrap;
-   - Prisma module/service;
-   - domain models;
-   - pet engine, перенесенный из frontend;
-   - repository abstraction с Prisma implementation;
-   - guest sessions и pets controllers/services.
-4. Описать `prisma/schema.prisma` для guest sessions, pets, stats, player energy, action history и farewell result.
-5. Добавить backend tests:
-   - engine parity для decay/action/farewell;
-   - service/controller flow через in-memory repository.
-6. Обновить Angular frontend:
-   - подключить `HttpClient`;
-   - добавить API client;
-   - заменить `PetStorageService` на API-backed state;
-   - оставить UX создания, профиля и care actions близким к текущему.
-7. Обновить frontend boundary tests для guest id/localStorage и API calls.
-8. Обновить README/GDD только если фактическое решение расходится с текущим описанием.
-9. Запустить узкие и широкие проверки: `npm test`, `npm run build`, при возможности backend typecheck/build.
+- Backend: NestJS + PostgreSQL + Prisma.
+- Гостевая сессия восстанавливается через HttpOnly-cookie.
+- Состояние питомца, время, действия, cooldown, сон, прогулки, энергия и farewell живут только в backend.
+- Frontend отображает DTO и отправляет команды API; gameplay engine на frontend отсутствует.
+- Pocket Pet не использует localStorage и не мигрирует старые локальные данные.
+- Тестовое покрытие отложено до стабилизации UX и продуктовых правил.
 
-## Acceptance для этого инкремента
+## Реализованные части
 
-- Backend app компилируется как NestJS приложение.
-- Prisma schema описывает нужные сущности и связи.
-- API поддерживает guest session, список питомцев, создание питомца, получение питомца и care action.
-- Backend применяет текущие правила pet-engine и возвращает updated pet snapshot.
-- Frontend больше не хранит authoritative pet state в localStorage.
-- Основной пользовательский путь остается прежним: открыть Pocket Pet, создать питомца, ухаживать, увидеть профиль и историю.
+1. Nest bootstrap, Prisma module/service и PostgreSQL configuration.
+2. Backend pet engine и domain models.
+3. Repository abstraction с in-memory и Prisma реализациями.
+4. Guest sessions и pets controllers/services.
+5. Prisma schema для guest sessions, pets, stats, player energy, action history и farewell.
+6. Angular API client и API-backed `PetStorageService`.
+7. HttpOnly-cookie для восстановления guest session.
 
-## Риски
+## Что осталось для локального MVP
 
-- В репозитории пока нет поднятой Postgres-инфраструктуры, поэтому обычные тесты не должны зависеть от живой БД.
-- Автоматическая миграция legacy localStorage-питомцев может потребовать отдельного UX и conflict policy.
-- Angular production build может потребовать настройки reverse proxy для `/api`.
+1. Установить Docker Desktop и проверить локальный flow через `npm run dev`.
+2. Поднять PostgreSQL, применить schema и вручную пройти сценарий создания, заботы, сна, прогулки, обновления страницы и завершения сессии.
+3. Создать и зафиксировать Prisma migrations перед первым сбросом/развертыванием базы.
+4. Убедиться, что старые Pocket Pet ключи localStorage больше нигде не читаются.
+
+## Будущие задачи
+
+- Тестовое покрытие frontend/backend/API.
+- Защита правила одного активного питомца от параллельных запросов.
+- Production hosting для API и PostgreSQL.
+- Реальные различия видов, аккаунты, мини-игры и Dragon DLC.

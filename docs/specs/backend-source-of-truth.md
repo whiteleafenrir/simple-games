@@ -2,24 +2,24 @@
 
 ## Текущее состояние
 
-Pocket Pet уже имеет исполняемые правила на frontend в `src/app/pets/pet-engine.ts`: decay статов, настроение, cooldown, прогулки, сон через свет, энергия игрока, история заботы и farewell result. До backend-инкремента `localStorage` хранит полный список питомцев и является фактическим источником истины.
+Pocket Pet использует NestJS API в `apps/api`, PostgreSQL через Prisma и backend engine в `apps/api/src/pets/pet-engine.ts`. Frontend не рассчитывает decay, cooldown, энергию, сон, прогулки или farewell.
 
 ## Решение
 
-Первый backend-инкремент добавляет отдельное NestJS API в `apps/api`, PostgreSQL через Prisma и guest mode без регистрации. Backend становится источником истины для состояния питомца, времени, действий заботы, player energy, cooldown, прогулок, сна и результата ухода.
+Backend является единственным источником истины для состояния питомца, времени, действий заботы, player energy, cooldown, прогулок, сна и результата ухода.
 
-Frontend хранит в `localStorage` только `guestId` по ключу `simple-games:pocket-pet:guest-id`. Список питомцев, создание питомца и care actions идут через API. Legacy localStorage-состояние питомцев не удаляется и не мигрируется автоматически в этом инкременте.
+Гостевая сессия восстанавливается через HttpOnly-cookie `simple_games_guest_id`. Frontend получает guest id из ответа API только в памяти текущей загрузки, чтобы строить URL запросов. Cookie не содержит состояние питомца.
+
+Pocket Pet не использует localStorage. Старые localStorage-данные не мигрируются и не имеют значения для нового MVP flow.
 
 ## MVP-допущения
 
 - Регистрации и профиля игрока на backend нет.
-- Guest id создается backend и может быть передан обратно клиентом для восстановления сессии.
 - У гостя может быть несколько завершенных питомцев, но только один активный питомец со статусом `pet`.
-- Виды питомцев в MVP механически нейтральны, даже если инфраструктура traits уже существует.
+- Виды питомцев в MVP механически нейтральны, даже если infrastructure traits существует.
 - Dragon остается disabled в frontend и не становится частью MVP.
-- Тесты backend API используют in-memory repository, чтобы не требовать поднятый PostgreSQL в обычном `npm test`.
-- Реальная база подключается через `DATABASE_URL` и Prisma schema; миграция SQL генерируется отдельной командой после настройки локальной/CI БД.
-- Установленная Prisma 7 держит connection URL в `prisma.config.ts`, а Nest runtime подключает PostgreSQL через `@prisma/adapter-pg`.
+- Реальная база подключается через `DATABASE_URL` и Prisma schema.
+- Тестовое покрытие отложено и не является acceptance gate MVP.
 
 ## API
 
@@ -27,7 +27,7 @@ Base path: `/api`.
 
 | Метод | Endpoint | Назначение |
 | --- | --- | --- |
-| `POST` | `/guest-sessions` | Создать гостевую сессию или подтвердить существующий `guestId`. |
+| `POST` | `/guest-sessions` | Создать гостевую сессию или восстановить сессию из HttpOnly-cookie. |
 | `GET` | `/guest-sessions/:guestId` | Получить гостевую сессию и обновить `lastSeenAt`. |
 | `GET` | `/guest-sessions/:guestId/pets` | Получить всех питомцев гостя с актуализированным состоянием. |
 | `POST` | `/guest-sessions/:guestId/pets` | Создать питомца, если нет активного. |
@@ -50,18 +50,18 @@ Base path: `/api`.
 
 Frontend может:
 
-- хранить `guestId`;
-- держать signal-cache последнего ответа API для UX;
-- показывать client-side countdown по `lastActionAt`, `awayUntil` и `playerEnergy`.
+- держать signal-cache последнего ответа API;
+- отображать DTO и тексты интерфейса;
+- отправлять care actions через API.
 
 Frontend не должен:
 
-- записывать authoritative pet state в `localStorage`;
+- читать или записывать Pocket Pet state в localStorage;
+- иметь копию pet engine;
 - применять care action локально вместо API;
 - принимать окончательное решение о decay, cooldown, завершении сессии или farewell.
 
 ## Open questions
 
-- Нужна ли автоматическая миграция старых localStorage-питомцев в backend после первого инкремента?
 - Нужен ли отдельный endpoint для удаления/архивации guest-сессии в dev/debug режиме?
-- Должен ли production frontend ходить на same-origin `/api` или на отдельный API origin через environment-конфигурацию?
+- Нужен ли production same-origin proxy, если backend появится за пределами локальной среды?

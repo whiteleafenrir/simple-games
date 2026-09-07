@@ -4,8 +4,6 @@ import { PetOption, SessionLength } from '../pocket-pet/pocket-pet.model';
 import { OwnedPet, PetCareActionId, PetCareActionResult } from './owned-pet.model';
 import { PetApiService } from './pet-api.service';
 
-const GUEST_ID_STORAGE_KEY = 'simple-games:pocket-pet:guest-id';
-
 @Injectable({
   providedIn: 'root'
 })
@@ -58,8 +56,7 @@ export class PetStorageService implements OnDestroy {
     }
   }
 
-  async careForPet(id: string, actionId: PetCareActionId, now: Date = new Date()): Promise<PetCareActionResult | null> {
-    void now;
+  async careForPet(id: string, actionId: PetCareActionId): Promise<PetCareActionResult | null> {
     const guestId = await this.ensureGuestId();
 
     if (!guestId) {
@@ -78,8 +75,7 @@ export class PetStorageService implements OnDestroy {
     }
   }
 
-  async resolvePets(now: Date = new Date()): Promise<void> {
-    void now;
+  async resolvePets(): Promise<void> {
     const guestId = await this.ensureGuestId();
 
     if (!guestId) {
@@ -112,8 +108,7 @@ export class PetStorageService implements OnDestroy {
     this.loading.set(true);
 
     try {
-      const session = await this.petApi.createOrGetGuestSession(this.readGuestId());
-      this.writeGuestId(session.id);
+      const session = await this.petApi.createOrGetGuestSession();
       this.guestId.set(session.id);
       await this.loadPets(session.id);
       this.syncError.set(null);
@@ -146,23 +141,6 @@ export class PetStorageService implements OnDestroy {
     } catch (error) {
       this.recordSyncError(error);
     }
-  }
-
-  private readGuestId(): string | null {
-    if (typeof localStorage === 'undefined') {
-      return null;
-    }
-
-    const guestId = localStorage.getItem(GUEST_ID_STORAGE_KEY)?.trim();
-    return guestId || null;
-  }
-
-  private writeGuestId(guestId: string): void {
-    if (typeof localStorage === 'undefined') {
-      return;
-    }
-
-    localStorage.setItem(GUEST_ID_STORAGE_KEY, guestId);
   }
 
   private recordSyncError(error: unknown): void {

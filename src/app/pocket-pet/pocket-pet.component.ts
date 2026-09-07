@@ -5,14 +5,7 @@ import { map } from 'rxjs';
 
 import { I18nService } from '../i18n/i18n.service';
 import {
-  PET_CARE_ACTIONS,
   PET_CARE_ACTION_IDS,
-  careActionCooldownRemainingMs,
-  careActionFailureReason,
-  petAwayRemainingMs,
-  playerEnergyRecoveryRemainingMs
-} from '../pets/pet-engine';
-import {
   OwnedPet,
   PetCareActionId,
   PetFarewellPhraseId,
@@ -60,7 +53,6 @@ export class PocketPetComponent implements OnDestroy {
     return id ? this.petStorage.petById(id) : this.petStorage.activePet();
   });
 
-  readonly now = signal<Date>(new Date());
   readonly statIds: readonly PetStatId[] = PET_STAT_IDS;
   readonly careActions: readonly PetCareActionId[] = PET_CARE_ACTION_IDS;
   readonly sessionLengths: readonly SessionLength[] = SESSION_LENGTHS;
@@ -80,13 +72,11 @@ export class PocketPetComponent implements OnDestroy {
   private readonly timerId: ReturnType<typeof setInterval> | null = null;
 
   constructor() {
-    void this.petStorage.resolvePets(this.now());
+    void this.petStorage.resolvePets();
 
     if (typeof setInterval !== 'undefined') {
       this.timerId = setInterval((): void => {
-        const now = new Date();
-        this.now.set(now);
-        void this.petStorage.resolvePets(now);
+        void this.petStorage.resolvePets();
       }, 30_000);
     }
   }
@@ -142,9 +132,7 @@ export class PocketPetComponent implements OnDestroy {
   }
 
   async careForPet(pet: OwnedPet, actionId: PetCareActionId): Promise<void> {
-    const now = new Date();
-    const result = await this.petStorage.careForPet(pet.id, actionId, now);
-    this.now.set(now);
+    const result = await this.petStorage.careForPet(pet.id, actionId);
 
     if (!result) {
       if (this.petStorage.syncError()) {
@@ -253,21 +241,11 @@ export class PocketPetComponent implements OnDestroy {
     return Math.min(100, Math.max(0, (this.playerEnergyValue(pet) / max) * 100));
   }
 
-  careActionCost(actionId: PetCareActionId): string {
-    const cost = PET_CARE_ACTIONS[actionId].playerEnergyCost;
-
-    if (cost <= 0) {
-      return this.i18n.t('careActionFree');
-    }
-
-    return `${this.i18n.t('careActionEnergyCost')}: ${cost}`;
+  isCareActionDisabled(pet: OwnedPet): boolean {
+    return this.petStorage.loading() || !!this.petStorage.syncError() || pet.status !== 'pet';
   }
 
-  isCareActionDisabled(pet: OwnedPet, actionId: PetCareActionId): boolean {
-    return this.petStorage.loading() || !!this.petStorage.syncError() || careActionFailureReason(pet, actionId, this.now()) !== null;
-  }
-
-  careActionState(pet: OwnedPet, actionId: PetCareActionId): string {
+  careActionState(pet: OwnedPet): string {
     if (this.petStorage.loading()) {
       return this.i18n.t('petLoading');
     }
@@ -276,26 +254,8 @@ export class PocketPetComponent implements OnDestroy {
       return this.i18n.t('petBackendUnavailable');
     }
 
-    const reason = careActionFailureReason(pet, actionId, this.now());
-
-    if (reason === 'inactive') {
+    if (pet.status !== 'pet') {
       return this.i18n.t('careActionInactive');
-    }
-
-    if (reason === 'away') {
-      return `${this.i18n.t('careActionAway')}: ${this.formatRemaining(petAwayRemainingMs(pet, this.now()))}`;
-    }
-
-    if (reason === 'sleeping') {
-      return this.i18n.t('careActionSleeping');
-    }
-
-    if (reason === 'cooldown') {
-      return `${this.i18n.t('careCooldown')}: ${this.formatRemaining(careActionCooldownRemainingMs(pet, actionId, this.now()))}`;
-    }
-
-    if (reason === 'player-energy') {
-      return `${this.i18n.t('careActionNoPlayerEnergy')}: ${this.formatRemaining(playerEnergyRecoveryRemainingMs(pet, actionId, this.now()))}`;
     }
 
     return this.i18n.t('careActionReady');
@@ -303,10 +263,6 @@ export class PocketPetComponent implements OnDestroy {
 
   lightLabel(pet: OwnedPet): string {
     return pet.isLightOn ? this.i18n.t('petLightOn') : this.i18n.t('petLightOff');
-  }
-
-  awayUntilLabel(pet: OwnedPet): string | null {
-    return petAwayRemainingMs(pet, this.now()) > 0 && pet.awayUntil ? this.formatDate(pet.awayUntil) : null;
   }
 
   petAgeLabel(pet: OwnedPet): string {
@@ -328,20 +284,4 @@ export class PocketPetComponent implements OnDestroy {
     }).format(new Date(value));
   }
 
-  private formatRemaining(ms: number): string {
-    const minutes = Math.max(1, Math.ceil(ms / 60000));
-
-    if (minutes >= 60) {
-      const hours = Math.floor(minutes / 60);
-      const restMinutes = minutes % 60;
-
-      if (restMinutes === 0) {
-        return `${hours} ${this.i18n.t('hourShort')}`;
-      }
-
-      return `${hours} ${this.i18n.t('hourShort')} ${restMinutes} ${this.i18n.t('minutesShort')}`;
-    }
-
-    return `${minutes} ${this.i18n.t('minutesShort')}`;
-  }
 }
