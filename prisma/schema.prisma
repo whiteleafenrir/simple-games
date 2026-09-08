@@ -7,10 +7,12 @@ datasource db {
 }
 
 model GuestSession {
-  id         String   @id @default(uuid())
-  createdAt  DateTime @default(now())
-  lastSeenAt DateTime @default(now())
-  pets       Pet[]
+  id             String   @id @default(uuid())
+  createdAt      DateTime @default(now())
+  lastSeenAt     DateTime @default(now())
+  tokenHash      String?  @unique
+  tokenExpiresAt DateTime?
+  pets           Pet[]
 }
 
 model Pet {

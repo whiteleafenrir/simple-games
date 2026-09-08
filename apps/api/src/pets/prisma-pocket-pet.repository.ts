@@ -28,6 +28,28 @@ import { PocketPetRepository } from './pocket-pet.repository';
 export class PrismaPocketPetRepository implements PocketPetRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  async createAuthenticatedGuestSession(tokenHash: string, tokenExpiresAt: Date, now: Date): Promise<GuestSession> {
+    const session = await this.prisma.guestSession.create({
+      data: { tokenHash, tokenExpiresAt, createdAt: now, lastSeenAt: now }
+    });
+    return toGuestSession(session);
+  }
+
+  async findGuestSessionByTokenHash(tokenHash: string, now: Date): Promise<GuestSession | null> {
+    const session = await this.prisma.guestSession.findUnique({
+      where: { tokenHash, tokenExpiresAt: { gt: now } }
+    });
+    return session ? toGuestSession(session) : null;
+  }
+
+  async renewGuestSessionToken(guestId: string, tokenHash: string, tokenExpiresAt: Date, now: Date): Promise<GuestSession | null> {
+    const session = await this.prisma.guestSession.updateMany({
+      where: { id: guestId, tokenHash, tokenExpiresAt: { gt: now } },
+      data: { tokenExpiresAt, lastSeenAt: now }
+    });
+    return session.count > 0 ? this.findGuestSessionByTokenHash(tokenHash, now) : null;
+  }
+
   async getOrCreateGuestSession(guestId: string | null, now: Date): Promise<GuestSession> {
     const client = this.prismaClient();
 
@@ -293,7 +315,7 @@ function petInclude(): Record<string, unknown> {
   };
 }
 
-function toGuestSession(record: Record<string, Date | string>): GuestSession {
+function toGuestSession(record: { id: string; createdAt: Date; lastSeenAt: Date }): GuestSession {
   return {
     id: String(record.id),
     createdAt: dateToIso(record.createdAt),

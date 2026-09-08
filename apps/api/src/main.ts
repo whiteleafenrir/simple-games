@@ -5,6 +5,7 @@ import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 import { AppModule } from './app.module';
+import { GUEST_SESSION_COOKIE } from './pets/guest-session-auth.service';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
@@ -16,6 +17,7 @@ async function bootstrap(): Promise<void> {
       .setTitle('Pocket Pet API')
       .setDescription('Локальный API. Начните с POST /api/guest-sessions: Execute вернёт id гостя. Подставьте его в guestId методов питомцев. Cookie используется автоматически в этом браузере. Игра и Swagger на localhost используют одну гостевую сессию. POST-запросы меняют данные; GET питомцев актуализирует состояние по времени.')
       .setVersion('0.1.0')
+      .addCookieAuth(GUEST_SESSION_COOKIE, { type: 'apiKey', in: 'cookie' }, 'guest-session')
       .build();
     SwaggerModule.setup('api/docs', app, SwaggerModule.createDocument(app, config), {
       jsonDocumentUrl: 'api/docs-json',

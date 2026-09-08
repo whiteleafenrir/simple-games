@@ -3,6 +3,9 @@ import { GuestSession, OwnedPet } from './pet-domain.types';
 export const POCKET_PET_REPOSITORY = Symbol('POCKET_PET_REPOSITORY');
 
 export interface PocketPetRepository {
+  createAuthenticatedGuestSession(tokenHash: string, tokenExpiresAt: Date, now: Date): Promise<GuestSession>;
+  findGuestSessionByTokenHash(tokenHash: string, now: Date): Promise<GuestSession | null>;
+  renewGuestSessionToken(guestId: string, tokenHash: string, tokenExpiresAt: Date, now: Date): Promise<GuestSession | null>;
   getOrCreateGuestSession(guestId: string | null, now: Date): Promise<GuestSession>;
   touchGuestSession(guestId: string, now: Date): Promise<GuestSession | null>;
   listPets(guestId: string): Promise<OwnedPet[]>;

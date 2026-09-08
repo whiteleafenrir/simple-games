@@ -2,8 +2,6 @@ import { Inject, Injectable, BadRequestException, ConflictException, NotFoundExc
 import { randomUUID } from 'node:crypto';
 
 import {
-  ApplyCareActionRequest,
-  CreatePetRequest,
   GuestSession,
   OwnedPet,
   PetCareActionId,
@@ -14,6 +12,7 @@ import {
 } from './pet-domain.types';
 import { applyPetCareAction, createInitialPetCareState, PET_CARE_ACTION_IDS, resolvePetState } from './pet-engine';
 import { POCKET_PET_REPOSITORY, PocketPetRepository } from './pocket-pet.repository';
+import { parseRequestBody } from './request-body';
 
 const CREATEABLE_PET_IDS: readonly PetId[] = ['cat', 'dog', 'parrot', 'dinosaur'] as const;
 const SESSION_LENGTH_MINUTES: Record<SessionLengthId, number> = {
@@ -56,7 +55,11 @@ export class PocketPetService {
     return resolvedPets;
   }
 
-  async createPet(guestId: string, request: CreatePetRequest, now: Date = new Date()): Promise<OwnedPet> {
+  async createPet(guestId: string, request: unknown, now: Date = new Date()): Promise<OwnedPet> {
+    const body = parseRequestBody(request, ['petId', 'sessionLengthId', 'name']);
+    const petId = parseCreateablePetId(body['petId']);
+    const sessionLengthId = parseSessionLengthId(body['sessionLengthId']);
+    const name = parsePetName(body['name']);
     await this.getGuestSession(guestId, now);
     const existingPets = await this.listPets(guestId, now);
 
@@ -64,9 +67,6 @@ export class PocketPetService {
       throw new ConflictException('Guest session already has an active pet.');
     }
 
-    const petId = parseCreateablePetId(request.petId);
-    const sessionLengthId = parseSessionLengthId(request.sessionLengthId);
-    const name = parsePetName(request.name);
     const endsAt = new Date(now.getTime() + SESSION_LENGTH_MINUTES[sessionLengthId] * 60_000);
     const pet: OwnedPet = {
       id: randomUUID(),
@@ -99,11 +99,12 @@ export class PocketPetService {
   async applyCareAction(
     guestId: string,
     petId: string,
-    request: ApplyCareActionRequest,
+    request: unknown,
     now: Date = new Date()
   ): Promise<PetCareActionResult> {
+    const body = parseRequestBody(request, ['actionId']);
+    const actionId = parseCareActionId(body['actionId']);
     await this.getGuestSession(guestId, now);
-    const actionId = parseCareActionId(request.actionId);
     const pet = await this.repository.getPet(guestId, petId);
 
     if (!pet) {

@@ -11,6 +11,28 @@ interface StoredPet {
 export class InMemoryPocketPetRepository implements PocketPetRepository {
   private readonly sessions = new Map<string, GuestSession>();
   private readonly pets = new Map<string, StoredPet>();
+  private readonly tokens = new Map<string, { guestId: string; expiresAt: number }>();
+
+  async createAuthenticatedGuestSession(tokenHash: string, tokenExpiresAt: Date, now: Date): Promise<GuestSession> {
+    const session = await this.getOrCreateGuestSession(null, now);
+    this.tokens.set(tokenHash, { guestId: session.id, expiresAt: tokenExpiresAt.getTime() });
+    return session;
+  }
+
+  async findGuestSessionByTokenHash(tokenHash: string, now: Date): Promise<GuestSession | null> {
+    const token = this.tokens.get(tokenHash);
+    const session = token && token.expiresAt > now.getTime() ? this.sessions.get(token.guestId) : null;
+    return session ? clone(session) : null;
+  }
+
+  async renewGuestSessionToken(guestId: string, tokenHash: string, tokenExpiresAt: Date, now: Date): Promise<GuestSession | null> {
+    const session = await this.findGuestSessionByTokenHash(tokenHash, now);
+    if (!session || session.id !== guestId) {
+      return null;
+    }
+    this.tokens.set(tokenHash, { guestId, expiresAt: tokenExpiresAt.getTime() });
+    return this.touchGuestSession(guestId, now);
+  }
 
   async getOrCreateGuestSession(guestId: string | null, now: Date): Promise<GuestSession> {
     if (guestId) {
