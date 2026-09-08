@@ -3,8 +3,8 @@
   "compilerOptions": {
     "outDir": "../../dist/api",
     "rootDir": "./src",
-    "module": "CommonJS",
-    "moduleResolution": "node",
+    "module": "Node16",
+    "moduleResolution": "Node16",
     "target": "ES2022",
     "types": [
       "node"

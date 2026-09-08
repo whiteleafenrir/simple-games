@@ -1,4 +1,4 @@
-import { Component, HostListener, signal } from '@angular/core';
+import { Component, HostListener, signal, ChangeDetectionStrategy } from '@angular/core';
 
 import { I18nService } from '../i18n/i18n.service';
 import { Language } from '../i18n/translations';
@@ -9,6 +9,7 @@ import { UserSettingsService } from './user-settings.service';
 @Component({
   selector: 'app-settings-menu',
   templateUrl: './settings-menu.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./settings-menu.component.css']
 })
 export class SettingsMenuComponent {

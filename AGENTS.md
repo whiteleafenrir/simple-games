@@ -2,7 +2,7 @@
 
 ## Контекст Проекта
 
-Simple Games - браузерный игровой проект на Angular 21 standalone components. Основное продуктовое направление - Pocket Pet: мягкая игра про ответственность за фэнтези-питомца в ограниченной жизненной сессии.
+Simple Games - браузерный игровой проект на Angular 22 standalone components. Основное продуктовое направление - Pocket Pet: мягкая игра про ответственность за фэнтези-питомца в ограниченной жизненной сессии.
 
 Перед изменением игрового поведения используй эти файлы как продуктовый контекст:
 
@@ -14,6 +14,10 @@ Simple Games - браузерный игровой проект на Angular 21 
 ## Команды
 
 - Установить зависимости: `npm install`
+- Полный локальный запуск (API + Angular + Studio): `npm run dev`
+- Инструкция backend и БД: `docs/backend-guide.md`; диагностика: `npm run dev:doctor`.
+- Только backend с подготовкой БД: `npm run dev:backend`.
+- Проверить обе сборки без тестов: `npm run check`.
 - Запустить dev server в сети: `npm start`
 - Запустить dev server локально: `npm run start:local`
 - Собрать проект: `npm run build`
@@ -72,6 +76,8 @@ Simple Games - браузерный игровой проект на Angular 21 
 - Отдельный этап тестового покрытия появится после фиксации UX и продуктовых правил.
 
 ## Backend Direction
+
+Для изменений API дополнительно прочитай `apps/api/AGENTS.md`, для frontend pet-domain — `src/app/pets/AGENTS.md`.
 
 Backend-направление MVP: NestJS + PostgreSQL + Prisma. Backend хранит состояние по anonymous guest id, а браузер получает guest id через HttpOnly-cookie. Pocket Pet не использует localStorage; backend остается source of truth для pet state, time, actions, cooldowns, sleep, walks и player resources.
 

@@ -1,5 +1,7 @@
 # Backend MVP Issues Report
 
+> Исторический отчёт. Актуальные находки и состояние локального запуска: [аудит от 2026-09-07](project-audit-2026-09-07.md). Docker больше не обязателен при существующем PostgreSQL.
+
 ## Проверено 2026-07-27
 
 - NestJS API, Prisma schema и Angular API-backed flow присутствуют.

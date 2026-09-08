@@ -35,31 +35,14 @@ Guest id восстанавливается через HttpOnly-cookie. Сост
 
 ## 3. Первый локальный запуск
 
-Нужен Docker Desktop с работающим Docker Engine.
+Актуальный пошаговый workflow, адреса, просмотр API, Studio и устранение ошибок находятся в [инструкции backend](backend-guide.md). На текущем Windows-компьютере PostgreSQL работает как служба на порту `5435`; Docker не требуется.
 
 ```powershell
 npm install
-npm run env:ensure
-npm run db:start
-npm run db:wait
-npm run db:push
 npm run dev
 ```
 
-После этого:
-
-- Angular доступен на `http://localhost:4200`;
-- API доступен на `http://localhost:3000/api`;
-- PostgreSQL доступен на `127.0.0.1:5432`;
-- Angular proxy отправляет `/api` в NestJS.
-
-Если база не нужна, её можно остановить:
-
-```powershell
-npm run db:stop
-```
-
-`npm run db:reset` удаляет Docker volume базы и все локальные данные. Для этого проекта старые данные сейчас не имеют значения, поэтому команду можно использовать при чистом старте. Не запускай её, если в базе уже есть нужные данные.
+Во втором терминале: `npm run dev:open`. Остановка приложений: Ctrl+C; база и данные сохраняются. Для новой машины с Docker используется `.env.example` и порт `5432`.
 
 ## 4. Что лежит в `.env`
 
@@ -96,8 +79,8 @@ npm run db:studio
 
 1. изменить `prisma/schema.prisma`;
 2. выполнить `npm run db:push`;
-3. при необходимости открыть `npm run db:studio`;
-4. перезапустить API, если менялись типы или код repository.
+3. при необходимости открыть Studio на `http://localhost:5555`;
+4. перезапустить общий `npm run dev`, если менялась schema. TypeScript-код API перезапускается автоматически.
 
 ### Позже, перед стабильной версией
 

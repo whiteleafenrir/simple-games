@@ -1,0 +1,7 @@
+{
+  "watch": ["apps/api/src", "apps/api/tsconfig.json", ".env"],
+  "ignore": ["**/*.spec.ts"],
+  "ext": "ts,json,env",
+  "delay": 500,
+  "exec": "npm run build:api && npm run start:api"
+}

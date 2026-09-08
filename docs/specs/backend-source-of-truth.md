@@ -25,6 +25,8 @@ Pocket Pet не использует localStorage. Старые localStorage-д�
 
 Base path: `/api`.
 
+Локальный запуск: [инструкция](../backend-guide.md), [спецификация workflow](local-development.md). Swagger доступен вне production по `/api/docs`, OpenAPI JSON — `/api/docs-json`. `GET /api/health` проверяет соединение с базой без изменения pet state. API по умолчанию слушает `127.0.0.1`, Angular использует same-origin proxy.
+
 | Метод | Endpoint | Назначение |
 | --- | --- | --- |
 | `POST` | `/guest-sessions` | Создать гостевую сессию или восстановить сессию из HttpOnly-cookie. |

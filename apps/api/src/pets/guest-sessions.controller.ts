@@ -1,4 +1,5 @@
 import { Body, Controller, Get, Headers, Param, Post, Res } from '@nestjs/common';
+import { ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { GuestSession } from './pet-domain.types';
 import { PocketPetService } from './pocket-pet.service';
@@ -14,11 +15,14 @@ interface GuestSessionResponse {
 const GUEST_SESSION_COOKIE = 'simple_games_guest_id';
 const GUEST_SESSION_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
 
+@ApiTags('Гостевая сессия')
 @Controller('guest-sessions')
 export class GuestSessionsController {
   constructor(private readonly pocketPetService: PocketPetService) {}
 
   @Post()
+  @ApiOperation({ summary: 'Начать или восстановить сессию', description: 'Отправьте {}. Cookie устанавливается автоматически; id из ответа нужен для guestId в остальных методах.' })
+  @ApiBody({ required: false, schema: { type: 'object', example: {} } })
   async createOrGetGuestSession(
     @Body() request: GuestSessionRequest | undefined,
     @Headers('cookie') cookieHeader: string | undefined,
@@ -33,6 +37,7 @@ export class GuestSessionsController {
   }
 
   @Get(':guestId')
+  @ApiOperation({ summary: 'Посмотреть сессию (обновляет lastSeenAt)' })
   getGuestSession(@Param('guestId') guestId: string): Promise<GuestSession> {
     return this.pocketPetService.getGuestSession(guestId);
   }

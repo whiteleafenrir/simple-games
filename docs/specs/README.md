@@ -9,5 +9,9 @@
 - `pet-lifecycle.md`
 - `daily-rhythm.md`
 - `pet-activities.md`
-- `backend-source-of-truth.md`
 - `dragon.md`
+
+Текущие спецификации:
+
+- [Backend source of truth](backend-source-of-truth.md)
+- [Локальная работа с API и базой](local-development.md)

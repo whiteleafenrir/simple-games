@@ -1,4 +1,4 @@
-import { Component, OnDestroy, computed, inject, signal } from '@angular/core';
+import { Component, OnDestroy, computed, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
@@ -37,6 +37,7 @@ import { PetOption, SessionLength } from './pocket-pet.model';
     RouterLink
   ],
   templateUrl: './pocket-pet.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./pocket-pet.component.css']
 })
 export class PocketPetComponent implements OnDestroy {

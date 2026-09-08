@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 import { I18nService } from '../i18n/i18n.service';
@@ -31,6 +31,7 @@ import { UserService } from '../users/user.service';
     RouterLink
   ],
   templateUrl: './profile.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./profile.component.css']
 })
 export class ProfileComponent {

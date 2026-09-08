@@ -14,20 +14,20 @@
 
 1. Task:
    - Files:
-   - Test first:
+   - Предварительная проверка (без новых тестов, если они не запрошены):
    - Implementation:
    - Verification:
 
 2. Task:
    - Files:
-   - Test first:
+   - Предварительная проверка (без новых тестов, если они не запрошены):
    - Implementation:
    - Verification:
 
 ## Validation
 
-- `npm.cmd test`
-- `npm run build`
+- Тесты: только если явно входят в задачу.
+- `npm run build:api` / `npm run build` по затронутым модулям; `npm run check` для обеих сборок.
 - Manual checks:
 
 ## Risks

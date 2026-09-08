@@ -168,7 +168,7 @@
     <p>{{ i18n.t('petSelectionHint') }}</p>
     @if (petStorage.activePet()) {
       <p class="error-message">{{ i18n.t('activePetExists') }}</p>
-      <a class="inline-profile-link" [routerLink]="['/profile/pets', petStorage.activePet()?.id]">{{ i18n.t('viewPet') }}</a>
+      <a class="inline-profile-link" [routerLink]="['/profile/pets', $safeNavigationMigration(petStorage.activePet()?.id)]">{{ i18n.t('viewPet') }}</a>
     }
     @if (petStorage.loading()) {
       <p class="success-message">{{ i18n.t('petLoading') }}</p>

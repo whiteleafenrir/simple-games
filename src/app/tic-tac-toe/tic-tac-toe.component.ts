@@ -1,4 +1,4 @@
-import { Component, computed, signal } from '@angular/core';
+import { Component, computed, signal, ChangeDetectionStrategy } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 import { I18nService } from '../i18n/i18n.service';
@@ -14,6 +14,7 @@ import { createBoard, createCells, createGridLines, findWinningLine } from './ti
     RouterLink
   ],
   templateUrl: './tic-tac-toe.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./tic-tac-toe.component.css']
 })
 export class TicTacToeComponent {

@@ -10,9 +10,8 @@
 
 ## Verification
 
-- [ ] Tests добавлены или обновлены для rule/storage/backend changes.
-- [ ] `npm.cmd test` или equivalent был запущен.
-- [ ] `npm run build` был запущен при широких изменениях кода.
+- [ ] Выполнена самая узкая полезная проверка; при изменениях границ API/frontend — `npm run check`.
+- [ ] Новые или изменённые тесты — только если они явно входят в задачу; в текущем MVP они не являются обязательным gate.
 - [ ] Manual UI checks выполнены при UX changes.
 
 ## Notes

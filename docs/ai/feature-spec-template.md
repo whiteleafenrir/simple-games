@@ -43,10 +43,10 @@
 - 
 - 
 
-## Tests
+## Проверка
 
-- Unit:
-- Integration:
+- Unit (только по отдельному запросу):
+- Integration (только по отдельному запросу):
 - UI/manual:
 
 ## Open Questions

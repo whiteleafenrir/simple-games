@@ -11,6 +11,8 @@
 - `feature-spec-template.md`: шаблон для подробных систем, которые выросли из GDD.
 - `implementation-plan-template.md`: шаблон для планов перед крупными implementation batches.
 - `.github/pull_request_template.md`: human review checklist.
+- `apps/api/AGENTS.md`: правила backend, Prisma и локальных проверок.
+- `docs/backend-guide.md`: актуальные команды запуска и диагностики.
 
 ## Когда Нужен Новый Документ
 
@@ -27,7 +29,8 @@
 - `docs/specs/pet-activities.md`
 - `docs/specs/daily-rhythm.md`
 - `docs/specs/dragon.md`
-- `docs/specs/backend-source-of-truth.md`
+
+Уже реализованные спецификации backend и локального workflow: `docs/specs/backend-source-of-truth.md`, `docs/specs/local-development.md`.
 
 ## Workflow
 
