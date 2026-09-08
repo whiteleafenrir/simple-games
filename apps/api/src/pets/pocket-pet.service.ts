@@ -11,7 +11,7 @@ import {
   SessionLengthId
 } from './pet-domain.types';
 import { applyPetCareAction, createInitialPetCareState, PET_CARE_ACTION_IDS, resolvePetState } from './pet-engine';
-import { POCKET_PET_REPOSITORY, PocketPetRepository } from './pocket-pet.repository';
+import { ActivePetConflictError, GuestSessionNotFoundError, POCKET_PET_REPOSITORY, PocketPetRepository, PocketPetTransaction } from './pocket-pet.repository';
 import { parseRequestBody } from './request-body';
 
 const CREATEABLE_PET_IDS: readonly PetId[] = ['cat', 'dog', 'parrot', 'dinosaur'] as const;
@@ -42,83 +42,105 @@ export class PocketPetService {
     return session;
   }
 
-  async listPets(guestId: string, now: Date = new Date()): Promise<OwnedPet[]> {
-    await this.getGuestSession(guestId, now);
+  listPets(guestId: string, now?: Date): Promise<OwnedPet[]> {
+    return this.withGuestTransaction(guestId, now, (tx, at) => this.resolvePets(tx, at));
+  }
 
-    const pets = await this.repository.listPets(guestId);
+  private async resolvePets(tx: PocketPetTransaction, now: Date): Promise<OwnedPet[]> {
+    const pets = await tx.listPets();
     const resolvedPets: OwnedPet[] = [];
 
     for (const pet of pets) {
-      resolvedPets.push(await this.resolveAndSave(guestId, pet, now));
+      resolvedPets.push(await tx.savePet(resolvePetState(pet, now)));
     }
 
     return resolvedPets;
   }
 
-  async createPet(guestId: string, request: unknown, now: Date = new Date()): Promise<OwnedPet> {
+  async createPet(guestId: string, request: unknown, now?: Date): Promise<OwnedPet> {
     const body = parseRequestBody(request, ['petId', 'sessionLengthId', 'name']);
     const petId = parseCreateablePetId(body['petId']);
     const sessionLengthId = parseSessionLengthId(body['sessionLengthId']);
     const name = parsePetName(body['name']);
-    await this.getGuestSession(guestId, now);
-    const existingPets = await this.listPets(guestId, now);
+    return this.withGuestTransaction(guestId, now, async (tx, at) => {
+      const existingPets = await this.resolvePets(tx, at);
 
-    if (existingPets.some((pet: OwnedPet): boolean => pet.status === 'pet')) {
-      throw new ConflictException('Guest session already has an active pet.');
-    }
+      if (existingPets.some((pet: OwnedPet): boolean => pet.status === 'pet')) {
+        throw new ActivePetConflictError();
+      }
 
-    const endsAt = new Date(now.getTime() + SESSION_LENGTH_MINUTES[sessionLengthId] * 60_000);
-    const pet: OwnedPet = {
-      id: randomUUID(),
-      name,
-      petId,
-      mode: petModeForPetId(petId),
-      status: 'pet',
-      mood: 'joyful',
-      periodOfLife: 'child',
-      ...createInitialPetCareState(now),
-      sessionLengthId,
-      createdAt: now.toISOString(),
-      endsAt: endsAt.toISOString()
-    };
+      const endsAt = new Date(at.getTime() + SESSION_LENGTH_MINUTES[sessionLengthId] * 60_000);
+      const pet: OwnedPet = {
+        id: randomUUID(),
+        name,
+        petId,
+        mode: petModeForPetId(petId),
+        status: 'pet',
+        mood: 'joyful',
+        periodOfLife: 'child',
+        ...createInitialPetCareState(at),
+        sessionLengthId,
+        createdAt: at.toISOString(),
+        endsAt: endsAt.toISOString()
+      };
 
-    return this.repository.createPet(guestId, pet);
+      return tx.createPet(pet);
+    });
   }
 
-  async getPet(guestId: string, petId: string, now: Date = new Date()): Promise<OwnedPet> {
-    await this.getGuestSession(guestId, now);
-    const pet = await this.repository.getPet(guestId, petId);
+  getPet(guestId: string, petId: string, now?: Date): Promise<OwnedPet> {
+    return this.withGuestTransaction(guestId, now, async (tx, at) => {
+      const pet = await tx.getPet(petId);
 
-    if (!pet) {
-      throw new NotFoundException('Pet not found.');
-    }
+      if (!pet) {
+        throw new NotFoundException('Pet not found.');
+      }
 
-    return this.resolveAndSave(guestId, pet, now);
+      return tx.savePet(resolvePetState(pet, at));
+    });
   }
 
   async applyCareAction(
     guestId: string,
     petId: string,
     request: unknown,
-    now: Date = new Date()
+    now?: Date
   ): Promise<PetCareActionResult> {
     const body = parseRequestBody(request, ['actionId']);
     const actionId = parseCareActionId(body['actionId']);
-    await this.getGuestSession(guestId, now);
-    const pet = await this.repository.getPet(guestId, petId);
+    return this.withGuestTransaction(guestId, now, async (tx, at) => {
+      const pet = await tx.getPet(petId);
 
-    if (!pet) {
-      throw new NotFoundException('Pet not found.');
-    }
+      if (!pet) {
+        throw new NotFoundException('Pet not found.');
+      }
 
-    const result = applyPetCareAction(pet, actionId, now);
-    await this.repository.savePet(guestId, result.pet);
-    return result;
+      const result = applyPetCareAction(pet, actionId, at);
+      await tx.savePet(result.pet);
+      return result;
+    });
   }
 
-  private async resolveAndSave(guestId: string, pet: OwnedPet, now: Date): Promise<OwnedPet> {
-    const resolvedPet = resolvePetState(pet, now);
-    return this.repository.savePet(guestId, resolvedPet);
+  private async withGuestTransaction<T>(
+    guestId: string,
+    now: Date | undefined,
+    operation: (tx: PocketPetTransaction, at: Date) => Promise<T>
+  ): Promise<T> {
+    try {
+      return await this.repository.withGuestTransaction(guestId, async (tx) => {
+        const at = now ?? new Date();
+        await tx.touchGuestSession(at);
+        return operation(tx, at);
+      });
+    } catch (error) {
+      if (error instanceof GuestSessionNotFoundError) {
+        throw new NotFoundException('Guest session not found.');
+      }
+      if (error instanceof ActivePetConflictError) {
+        throw new ConflictException('Guest session already has an active pet.');
+      }
+      throw error;
+    }
   }
 }
 

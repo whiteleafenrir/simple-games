@@ -550,7 +550,7 @@ function createCareActionEntry(
   awayUntilAfter: string | null
 ): PetCareActionEntry {
   return {
-    id: `${actionId}-${now.getTime()}-${pet.careHistory.length + 1}`,
+    id: `${pet.id}-${String(pet.careHistory.length + 1).padStart(12, '0')}-${actionId}-${now.getTime()}`,
     actionId,
     appliedAt: now.toISOString(),
     statsBefore,

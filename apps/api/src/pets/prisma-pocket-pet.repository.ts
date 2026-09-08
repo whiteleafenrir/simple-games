@@ -1,4 +1,6 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
+import { isDeepStrictEqual } from 'node:util';
 
 import { PrismaService } from '../prisma/prisma.service';
 import {
@@ -22,7 +24,7 @@ import {
   PET_CARE_ACTIONS,
   PET_CARE_ACTION_IDS
 } from './pet-engine';
-import { PocketPetRepository } from './pocket-pet.repository';
+import { ActivePetConflictError, GuestSessionNotFoundError, PocketPetRepository, PocketPetTransaction } from './pocket-pet.repository';
 
 @Injectable()
 export class PrismaPocketPetRepository implements PocketPetRepository {
@@ -103,216 +105,142 @@ export class PrismaPocketPetRepository implements PocketPetRepository {
     }));
   }
 
-  async listPets(guestId: string): Promise<OwnedPet[]> {
-    const records = await this.prismaClient().pet.findMany({
-      where: {
-        guestSessionId: guestId
-      },
-      include: petInclude(),
-      orderBy: {
-        createdAt: 'desc'
+  async withGuestTransaction<T>(guestId: string, operation: (transaction: PocketPetTransaction) => Promise<T>): Promise<T> {
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        const guests = await tx.$queryRaw<{ id: string }[]>
+          `SELECT "id" FROM "GuestSession" WHERE "id" = ${guestId} FOR UPDATE`;
+        if (guests.length === 0) {
+          throw new GuestSessionNotFoundError();
+        }
+        return operation(new PrismaPetTransaction(tx, guestId));
+      }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted, maxWait: 10_000, timeout: 15_000 });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        const target = error.meta?.['target'];
+        // PrismaPg can omit target when PostgreSQL's error messages are localized.
+        // The explicit index name stays stable inside the driver's original message.
+        const adapterError = error.meta?.['driverAdapterError'] as {
+          cause?: { originalCode?: string; originalMessage?: string }
+        } | undefined;
+        if (error.meta?.['modelName'] === 'Pet' && (
+          target === 'Pet_one_active_per_guest' ||
+          (Array.isArray(target) && target.length === 1 && target[0] === 'guestSessionId') ||
+          (adapterError?.cause?.originalCode === '23505' &&
+            adapterError.cause.originalMessage?.includes('Pet_one_active_per_guest'))
+        )) {
+          throw new ActivePetConflictError();
+        }
       }
-    });
-
-    return records.map((record: unknown): OwnedPet => toOwnedPet(record));
-  }
-
-  async getPet(guestId: string, petId: string): Promise<OwnedPet | null> {
-    const record = await this.prismaClient().pet.findFirst({
-      where: {
-        id: petId,
-        guestSessionId: guestId
-      },
-      include: petInclude()
-    });
-
-    return record ? toOwnedPet(record) : null;
-  }
-
-  async createPet(guestId: string, pet: OwnedPet): Promise<OwnedPet> {
-    const client = this.prismaClient();
-
-    await client.$transaction(async (tx: Record<string, any>): Promise<void> => {
-      await tx.pet.create({
-        data: {
-          id: pet.id,
-          guestSessionId: guestId,
-          ...petCoreData(pet)
-        }
-      });
-      await tx.petStats.create({
-        data: {
-          petId: pet.id,
-          ...statsData(pet.stats)
-        }
-      });
-      await tx.playerEnergy.create({
-        data: {
-          petId: pet.id,
-          ...playerEnergyData(pet.playerEnergy)
-        }
-      });
-
-      for (const actionId of PET_CARE_ACTION_IDS) {
-        await tx.petActionCooldown.create({
-          data: {
-            petId: pet.id,
-            actionId,
-            lastActionAt: dateOrNull(pet.lastActionAt[actionId])
-          }
-        });
-      }
-    });
-
-    const createdPet = await this.getPet(guestId, pet.id);
-
-    if (!createdPet) {
-      throw new Error(`Pet ${pet.id} was not persisted.`);
+      throw error;
     }
-
-    return createdPet;
   }
 
-  async savePet(guestId: string, pet: OwnedPet): Promise<OwnedPet> {
-    const client = this.prismaClient();
-
-    await client.$transaction(async (tx: Record<string, any>): Promise<void> => {
-      const existingPet = await tx.pet.findFirst({
-        where: {
-          id: pet.id,
-          guestSessionId: guestId
-        }
-      });
-
-      if (!existingPet) {
-        throw new Error(`Pet ${pet.id} does not belong to guest session ${guestId}.`);
-      }
-
-      await tx.pet.update({
-        where: {
-          id: pet.id
-        },
-        data: petCoreData(pet)
-      });
-      const statsUpdate = await tx.petStats.updateMany({
-        where: {
-          petId: pet.id
-        },
-        data: statsData(pet.stats)
-      });
-
-      if (statsUpdate.count === 0) {
-        await tx.petStats.create({
-          data: {
-            petId: pet.id,
-            ...statsData(pet.stats)
-          }
-        });
-      }
-
-      const playerEnergyUpdate = await tx.playerEnergy.updateMany({
-        where: {
-          petId: pet.id
-        },
-        data: playerEnergyData(pet.playerEnergy)
-      });
-
-      if (playerEnergyUpdate.count === 0) {
-        await tx.playerEnergy.create({
-          data: {
-            petId: pet.id,
-            ...playerEnergyData(pet.playerEnergy)
-          }
-        });
-      }
-
-      for (const actionId of PET_CARE_ACTION_IDS) {
-        const cooldownUpdate = await tx.petActionCooldown.updateMany({
-          where: {
-            petId: pet.id,
-            actionId
-          },
-          data: {
-            lastActionAt: dateOrNull(pet.lastActionAt[actionId])
-          }
-        });
-
-        if (cooldownUpdate.count === 0) {
-          await tx.petActionCooldown.create({
-            data: {
-              petId: pet.id,
-              actionId,
-              lastActionAt: dateOrNull(pet.lastActionAt[actionId])
-            }
-          });
-        }
-      }
-
-      if (pet.farewell) {
-        const farewellUpdate = await tx.petFarewellResult.updateMany({
-          where: {
-            petId: pet.id
-          },
-          data: farewellData(pet)
-        });
-
-        if (farewellUpdate.count === 0) {
-          await tx.petFarewellResult.create({
-            data: {
-              petId: pet.id,
-              ...farewellData(pet)
-            }
-          });
-        }
-      } else {
-        await tx.petFarewellResult.deleteMany({
-          where: {
-            petId: pet.id
-          }
-        });
-      }
-
-      for (const entry of pet.careHistory) {
-        const existingEntry = await tx.petCareAction.findUnique({
-          where: {
-            id: entry.id
-          }
-        });
-
-        if (!existingEntry) {
-          await tx.petCareAction.create({
-            data: careHistoryData(pet.id, entry)
-          });
-        }
-      }
-    });
-
-    const savedPet = await this.getPet(guestId, pet.id);
-
-    if (!savedPet) {
-      throw new Error(`Pet ${pet.id} was not persisted.`);
-    }
-
-    return savedPet;
-  }
-
-  private prismaClient(): Record<string, any> {
-    return this.prisma as unknown as Record<string, any>;
+  private prismaClient(): PrismaService {
+    return this.prisma;
   }
 }
 
-function petInclude(): Record<string, unknown> {
+// Only constructed after locking the guest; every read and write uses the same transaction.
+class PrismaPetTransaction implements PocketPetTransaction {
+  constructor(private readonly tx: Prisma.TransactionClient, private readonly guestId: string) {}
+
+  async touchGuestSession(now: Date): Promise<void> {
+    await this.tx.guestSession.update({ where: { id: this.guestId }, data: { lastSeenAt: now } });
+  }
+
+  async listPets(): Promise<OwnedPet[]> {
+    const pets = await this.tx.pet.findMany({
+      where: { guestSessionId: this.guestId }, include: petInclude(), orderBy: { createdAt: 'desc' }
+    });
+    return pets.map(toOwnedPet);
+  }
+
+  async getPet(petId: string): Promise<OwnedPet | null> {
+    const pet = await this.tx.pet.findFirst({
+      where: { id: petId, guestSessionId: this.guestId }, include: petInclude()
+    });
+    return pet ? toOwnedPet(pet) : null;
+  }
+
+  async createPet(pet: OwnedPet): Promise<OwnedPet> {
+    await this.tx.pet.create({
+      data: { id: pet.id, guestSessionId: this.guestId, ...petCoreData(pet) }
+    });
+    await this.tx.petStats.create({ data: { petId: pet.id, ...statsData(pet.stats) } });
+    await this.tx.playerEnergy.create({ data: { petId: pet.id, ...playerEnergyData(pet.playerEnergy) } });
+    await this.tx.petActionCooldown.createMany({
+      data: PET_CARE_ACTION_IDS.map((actionId) => ({
+        petId: pet.id, actionId, lastActionAt: dateOrNull(pet.lastActionAt[actionId])
+      }))
+    });
+    if (pet.farewell) {
+      await this.tx.petFarewellResult.create({ data: { petId: pet.id, ...farewellData(pet) } });
+    }
+    await this.saveHistory(pet);
+    return this.requirePet(pet.id);
+  }
+
+  async savePet(pet: OwnedPet): Promise<OwnedPet> {
+    await this.requirePet(pet.id);
+    await this.tx.pet.update({ where: { id: pet.id, guestSessionId: this.guestId }, data: petCoreData(pet) });
+    await this.tx.petStats.upsert({
+      where: { petId: pet.id }, update: statsData(pet.stats), create: { petId: pet.id, ...statsData(pet.stats) }
+    });
+    await this.tx.playerEnergy.upsert({
+      where: { petId: pet.id }, update: playerEnergyData(pet.playerEnergy),
+      create: { petId: pet.id, ...playerEnergyData(pet.playerEnergy) }
+    });
+    for (const actionId of PET_CARE_ACTION_IDS) {
+      const lastActionAt = dateOrNull(pet.lastActionAt[actionId]);
+      await this.tx.petActionCooldown.upsert({
+        where: { petId_actionId: { petId: pet.id, actionId } },
+        update: { lastActionAt }, create: { petId: pet.id, actionId, lastActionAt }
+      });
+    }
+    if (pet.farewell) {
+      await this.tx.petFarewellResult.upsert({
+        where: { petId: pet.id }, update: farewellData(pet), create: { petId: pet.id, ...farewellData(pet) }
+      });
+    } else {
+      await this.tx.petFarewellResult.deleteMany({ where: { petId: pet.id } });
+    }
+    await this.saveHistory(pet);
+    return this.requirePet(pet.id);
+  }
+
+  private async saveHistory(pet: OwnedPet): Promise<void> {
+    for (const entry of pet.careHistory) {
+      const existing = await this.tx.petCareAction.findUnique({ where: { id: entry.id } });
+      if (existing) {
+        if (existing.petId !== pet.id || !isDeepStrictEqual(normalizeCareHistory([existing])[0], entry)) {
+          throw new Error('Care history event conflicts with its persisted owner or content.');
+        }
+      } else {
+        await this.tx.petCareAction.create({ data: careHistoryData(pet.id, entry) });
+      }
+    }
+  }
+
+  private async requirePet(petId: string): Promise<OwnedPet> {
+    const pet = await this.getPet(petId);
+    if (!pet) {
+      throw new Error('Pet does not belong to the transaction guest or was not persisted.');
+    }
+    return pet;
+  }
+}
+
+function petInclude() {
   return {
     stats: true,
     playerEnergy: true,
     actionCooldowns: true,
     careHistory: {
-      orderBy: {
-        appliedAt: 'asc'
-      }
+      orderBy: [{ appliedAt: 'asc' }, { id: 'asc' }]
     },
     farewell: true
-  };
+  } satisfies Prisma.PetInclude;
 }
 
 function toGuestSession(record: { id: string; createdAt: Date; lastSeenAt: Date }): GuestSession {
@@ -413,7 +341,7 @@ function normalizeCareHistory(value: unknown): PetCareActionEntry[] {
   });
 }
 
-function petCoreData(pet: OwnedPet): Record<string, unknown> {
+function petCoreData(pet: OwnedPet) {
   return {
     name: pet.name,
     petId: pet.petId,
@@ -430,7 +358,7 @@ function petCoreData(pet: OwnedPet): Record<string, unknown> {
   };
 }
 
-function statsData(stats: PetStats): Record<string, number> {
+function statsData(stats: PetStats) {
   return {
     satiety: stats.satiety,
     cleanliness: stats.cleanliness,
@@ -440,7 +368,7 @@ function statsData(stats: PetStats): Record<string, number> {
   };
 }
 
-function playerEnergyData(playerEnergy: PlayerEnergyState): Record<string, unknown> {
+function playerEnergyData(playerEnergy: PlayerEnergyState) {
   return {
     current: playerEnergy.current,
     max: playerEnergy.max,
@@ -448,7 +376,7 @@ function playerEnergyData(playerEnergy: PlayerEnergyState): Record<string, unkno
   };
 }
 
-function farewellData(pet: OwnedPet): Record<string, unknown> {
+function farewellData(pet: OwnedPet) {
   if (!pet.farewell) {
     throw new Error(`Pet ${pet.id} does not have a farewell result.`);
   }
@@ -458,11 +386,11 @@ function farewellData(pet: OwnedPet): Record<string, unknown> {
     farewellAt: new Date(pet.farewell.farewellAt),
     phraseId: pet.farewell.phraseId,
     finalCareScore: pet.farewell.finalCareScore,
-    finalStats: pet.farewell.finalStats
+    finalStats: { ...pet.farewell.finalStats }
   };
 }
 
-function careHistoryData(petId: string, entry: PetCareActionEntry): Record<string, unknown> {
+function careHistoryData(petId: string, entry: PetCareActionEntry): Prisma.PetCareActionUncheckedCreateInput {
   const action = PET_CARE_ACTIONS[entry.actionId];
 
   return {
@@ -471,8 +399,8 @@ function careHistoryData(petId: string, entry: PetCareActionEntry): Record<strin
     actionId: entry.actionId,
     activityType: action.activityType,
     appliedAt: new Date(entry.appliedAt),
-    statsBefore: entry.statsBefore,
-    statsAfter: entry.statsAfter,
+    statsBefore: { ...entry.statsBefore },
+    statsAfter: { ...entry.statsAfter },
     careScoreBefore: entry.careScoreBefore,
     careScoreAfter: entry.careScoreAfter,
     moodBefore: entry.moodBefore,
