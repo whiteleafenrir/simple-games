@@ -1,7 +1,7 @@
 <section class="profile-page">
   <div class="profile-copy">
     <a class="back-link" routerLink="/">{{ i18n.t('backHome') }}</a>
-    <p class="eyebrow">{{ userService.currentUser().displayName }}</p>
+    <p class="eyebrow">{{ i18n.t('guestMode') }}</p>
     <h1>{{ i18n.t('profileTitle') }}</h1>
     <p>{{ i18n.t('profileIntro') }}</p>
   </div>
@@ -48,15 +48,7 @@
               </div>
             </div>
 
-            <div class="pet-stats-mini">
-              @for (statId of statIds; track statId) {
-                <div>
-                  <span>{{ statLabel(statId) }}</span>
-                  <strong>{{ statValue(ownedPet, statId) }}</strong>
-                  <b aria-hidden="true"><i [style.width.%]="statValue(ownedPet, statId)"></i></b>
-                </div>
-              }
-            </div>
+            <app-pet-stats [stats]="ownedPet.stats" [compact]="true"></app-pet-stats>
 
             @if (ownedPet.farewell; as farewell) {
               <div class="farewell-summary">
@@ -94,16 +86,16 @@
               @if (ownedPet.awayUntil; as awayUntil) {
                 <div>
                   <dt>{{ i18n.t('petAwayUntil') }}</dt>
-                  <dd>{{ formatDate(awayUntil) }}</dd>
+                  <dd>{{ awayUntil | petDate:i18n.language() }}</dd>
                 </div>
               }
               <div>
                 <dt>{{ i18n.t('sessionEnds') }}</dt>
-                <dd>{{ formatDate(ownedPet.endsAt) }}</dd>
+                <dd>{{ ownedPet.endsAt | petDate:i18n.language() }}</dd>
               </div>
               <div>
                 <dt>{{ i18n.t('createdAt') }}</dt>
-                <dd>{{ formatDate(ownedPet.createdAt) }}</dd>
+                <dd>{{ ownedPet.createdAt | petDate:i18n.language() }}</dd>
               </div>
               <div>
                 <dt>{{ i18n.t('petCareHistoryCount') }}</dt>

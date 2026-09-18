@@ -15,4 +15,6 @@
 
 - [Backend source of truth](backend-source-of-truth.md)
 - [T4: устойчивость данных и клиента](data-client-resilience.md)
+- [T5: миграции, общий контракт и CI](shared-environment.md)
+- [T6: настройки и полировка интерфейса](ux-polish.md)
 - [Локальная работа с API и базой](local-development.md)

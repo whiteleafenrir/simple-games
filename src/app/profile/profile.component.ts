@@ -2,45 +2,43 @@ import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 import { I18nService } from '../i18n/i18n.service';
+import { PetStatsComponent } from '../pets/pet-stats.component';
+import { PetDatePipe } from '../pets/pet-date.pipe';
 import {
   OwnedPet,
   PetFarewellPhraseId,
   PetFarewellReason,
   PetMood,
   PetPeriodOfLife,
-  PetStatId,
   PetStatus
 } from '../pets/owned-pet.model';
 import {
-  PET_STAT_IDS,
   petFarewellPhraseKey,
   petFarewellReasonKey,
   petMoodKey,
   petOption,
   petPeriodOfLifeKey,
-  petStatKey,
   petStatusKey,
   sessionLength
 } from '../pets/pet-display.utils';
 import { PetStorageService } from '../pets/pet-storage.service';
-import { UserService } from '../users/user.service';
 
 @Component({
   selector: 'app-profile',
   imports: [
-    RouterLink
+    RouterLink,
+    PetStatsComponent,
+    PetDatePipe
   ],
   templateUrl: './profile.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
   styleUrls: ['./profile.component.css']
 })
 export class ProfileComponent {
-  readonly statIds: readonly PetStatId[] = PET_STAT_IDS;
 
   constructor(
     public readonly i18n: I18nService,
-    public readonly pets: PetStorageService,
-    public readonly userService: UserService
+    public readonly pets: PetStorageService
   ) {}
 
   readonly petOption = petOption;
@@ -58,14 +56,6 @@ export class ProfileComponent {
     return this.i18n.t(petPeriodOfLifeKey(periodOfLife));
   }
 
-  statLabel(statId: PetStatId): string {
-    return this.i18n.t(petStatKey(statId));
-  }
-
-  statValue(pet: OwnedPet, statId: PetStatId): number {
-    return Math.round(pet.stats[statId]);
-  }
-
   lightLabel(pet: OwnedPet): string {
     return pet.isLightOn ? this.i18n.t('petLightOn') : this.i18n.t('petLightOff');
   }
@@ -78,11 +68,5 @@ export class ProfileComponent {
     return this.i18n.t(petFarewellPhraseKey(phraseId));
   }
 
-  formatDate(value: string): string {
-    return new Intl.DateTimeFormat(this.i18n.language(), {
-      dateStyle: 'medium',
-      timeStyle: 'short'
-    }).format(new Date(value));
-  }
 
 }

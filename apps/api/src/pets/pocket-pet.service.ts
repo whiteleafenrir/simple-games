@@ -2,6 +2,8 @@ import { Inject, Injectable, BadRequestException, ConflictException, NotFoundExc
 import { randomUUID } from 'node:crypto';
 
 import {
+  ApplyCareActionRequest,
+  CreatePetRequest,
   GuestSession,
   OwnedPet,
   PetCareActionId,
@@ -61,9 +63,11 @@ export class PocketPetService {
 
   async createPet(guestId: string, request: unknown, now?: Date): Promise<OwnedPet> {
     const body = parseRequestBody(request, ['petId', 'sessionLengthId', 'name']);
-    const petId = parseCreateablePetId(body['petId']);
-    const sessionLengthId = parseSessionLengthId(body['sessionLengthId']);
-    const name = parsePetName(body['name']);
+    const { petId, sessionLengthId, name } = {
+      petId: parseCreateablePetId(body['petId']),
+      sessionLengthId: parseSessionLengthId(body['sessionLengthId']),
+      name: parsePetName(body['name'])
+    } satisfies CreatePetRequest;
     return this.withGuestTransaction(guestId, now, async (tx, at) => {
       const existingPets = await this.resolvePets(tx, at);
 
@@ -110,7 +114,7 @@ export class PocketPetService {
     now?: Date
   ): Promise<PetCareActionResult> {
     const body = parseRequestBody(request, ['actionId']);
-    const actionId = parseCareActionId(body['actionId']);
+    const { actionId } = { actionId: parseCareActionId(body['actionId']) } satisfies ApplyCareActionRequest;
     return this.withGuestTransaction(guestId, now, async (tx, at) => {
       const pet = await tx.getPet(petId);
 

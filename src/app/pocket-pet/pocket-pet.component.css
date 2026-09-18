@@ -154,65 +154,16 @@ h1 {
   background: linear-gradient(90deg, var(--win), var(--success));
 }
 
-.stats-grid,
 .care-actions {
   display: grid;
   gap: 12px;
-}
-
-.stats-grid {
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-}
-
-.care-actions {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
-.stat-card,
 .care-actions button {
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--surface);
-}
-
-.stat-card {
-  display: grid;
-  gap: 12px;
-  padding: 14px;
-}
-
-.stat-card div:first-child {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.stat-card span {
-  color: var(--muted-text);
-  font-weight: 800;
-}
-
-.stat-card strong {
-  color: var(--text);
-  font-size: 1.4rem;
-}
-
-.stat-bar {
-  height: 10px;
-  border-radius: 999px;
-  background: var(--secondary);
-  overflow: hidden;
-}
-
-.stat-bar span {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: linear-gradient(90deg, var(--success), var(--primary));
-}
-
-.care-actions button {
   display: grid;
   gap: 7px;
   min-height: 132px;
@@ -629,7 +580,6 @@ h1 {
 @media (max-width: 860px) {
   .session-grid,
   .pet-grid,
-  .stats-grid,
   .care-actions {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -676,7 +626,6 @@ h1 {
 
   .session-grid,
   .pet-grid,
-  .stats-grid,
   .care-actions {
     grid-template-columns: 1fr;
   }

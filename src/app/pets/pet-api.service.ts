@@ -1,18 +1,13 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom, Observable, timeout } from 'rxjs';
+import type { ApplyCareActionRequest, CreatePetRequest, GuestSession } from '@simple-games/pet-contract';
 
 import { PetOption, SessionLength } from '../pocket-pet/pocket-pet.model';
 import { OwnedPet, PetCareActionId, PetCareActionResult, PetHistoryPage } from './owned-pet.model';
 
 const API_BASE_URL = '/api';
 const REQUEST_OPTIONS = { withCredentials: true } as const;
-
-export interface GuestSessionDto {
-  id: string;
-  createdAt: string;
-  lastSeenAt: string;
-}
 
 @Injectable({
   providedIn: 'root'
@@ -24,8 +19,8 @@ export class PetApiService {
     return firstValueFrom(request.pipe(timeout(20_000)));
   }
 
-  createOrGetGuestSession(): Promise<GuestSessionDto> {
-    return this.request(this.http.post<GuestSessionDto>(`${API_BASE_URL}/guest-sessions`, {}, REQUEST_OPTIONS));
+  createOrGetGuestSession(): Promise<GuestSession> {
+    return this.request(this.http.post<GuestSession>(`${API_BASE_URL}/guest-sessions`, {}, REQUEST_OPTIONS));
   }
 
   getPets(guestId: string): Promise<OwnedPet[]> {
@@ -40,7 +35,7 @@ export class PetApiService {
       name,
       petId: pet.id,
       sessionLengthId: sessionLength.id
-    }, REQUEST_OPTIONS));
+    } satisfies CreatePetRequest, REQUEST_OPTIONS));
   }
 
   getPet(guestId: string, petId: string): Promise<OwnedPet> {
@@ -53,7 +48,7 @@ export class PetApiService {
   applyCareAction(guestId: string, petId: string, actionId: PetCareActionId): Promise<PetCareActionResult> {
     return this.request(this.http.post<PetCareActionResult>(
       `${API_BASE_URL}/guest-sessions/${encodeURIComponent(guestId)}/pets/${encodeURIComponent(petId)}/actions`,
-      { actionId },
+      { actionId } satisfies ApplyCareActionRequest,
       REQUEST_OPTIONS
     ));
   }

@@ -1,0 +1,13 @@
+<div class="stats-grid" [class.compact]="compact()">
+  @for (stat of values(); track stat.id) {
+    <div class="stat-card">
+      <div class="stat-heading">
+        <span>{{ i18n.t(stat.label) }}</span>
+        <strong>{{ stat.value }}</strong>
+      </div>
+      <div class="stat-bar" aria-hidden="true">
+        <span [style.width.%]="stat.value"></span>
+      </div>
+    </div>
+  }
+</div>

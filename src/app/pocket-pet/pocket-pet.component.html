@@ -22,10 +22,10 @@
       <p>{{ i18n.t('petLight') }}: {{ lightLabel(pet) }}</p>
       <p>{{ i18n.t('playerEnergy') }}: {{ playerEnergyValue(pet) }}/{{ playerEnergyMax(pet) }}</p>
       @if (pet.awayUntil; as awayUntil) {
-        <p>{{ i18n.t('petAwayUntil') }}: {{ awayUntil }}</p>
+        <p>{{ i18n.t('petAwayUntil') }}: {{ awayUntil | petDate:i18n.language() }}</p>
       }
       <p>{{ i18n.t('timeSince') }}: {{ petAgeLabel(pet) }}</p>
-      <p>{{ i18n.t('sessionEnds') }}: {{ formatDate(pet.endsAt) }}</p>
+      <p>{{ i18n.t('sessionEnds') }}: {{ pet.endsAt | petDate:i18n.language() }}</p>
       @if (pet.farewell; as farewell) {
         <p>{{ i18n.t('petFarewellReason') }}: {{ farewellReasonLabel(farewell.reason) }}</p>
         <p>{{ i18n.t('petFinalCareScore') }}: {{ farewell.finalCareScore }}</p>
@@ -48,19 +48,7 @@
       <b aria-hidden="true"><i [style.width.%]="playerEnergyPercent(pet)"></i></b>
     </div>
 
-    <div class="stats-grid">
-      @for (statId of statIds; track statId) {
-        <article class="stat-card">
-          <div>
-            <span>{{ statLabel(statId) }}</span>
-            <strong>{{ statValue(pet, statId) }}</strong>
-          </div>
-          <div class="stat-bar" aria-hidden="true">
-            <span [style.width.%]="statValue(pet, statId)"></span>
-          </div>
-        </article>
-      }
-    </div>
+    <app-pet-stats [stats]="pet.stats"></app-pet-stats>
 
     <div class="care-actions">
       @for (actionId of careActions; track actionId) {
@@ -76,8 +64,8 @@
       }
     </div>
 
-    @if (careMessage()) {
-      <p class="care-message">{{ careMessage() }}</p>
+    @if (careMessage(); as message) {
+      <p class="care-message" role="status">{{ i18n.t(message) }}</p>
     }
   </section>
 </section>
@@ -183,11 +171,11 @@
       <p class="success-message">{{ i18n.t('petLoading') }}</p>
     }
 
-    @if (createdPetMessage()) {
-      <p class="success-message">{{ createdPetMessage() }}</p>
+    @if (createdPetMessage(); as message) {
+      <p class="success-message" role="status">{{ i18n.t(message) }}</p>
     }
-    @if (errorMessage()) {
-      <p class="error-message">{{ errorMessage() }}</p>
+    @if (errorMessage(); as error) {
+      <p class="error-message" role="alert">{{ i18n.t(error) }}</p>
     }
     <div class="summary-actions">
       <button type="button" [disabled]="!canCreatePet()" (click)="createPet()">{{ i18n.t(petStorage.commandPending() ? 'petActionPending' : 'createPet') }}</button>

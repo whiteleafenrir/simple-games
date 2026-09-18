@@ -12,7 +12,7 @@
     "start:api": "node dist/api/main.js",
     "dev": "npm run dev:setup && node scripts/dev.mjs",
     "dev:full": "npm run dev",
-    "dev:setup": "npm run db:start && npm run db:push",
+    "dev:setup": "npm run db:start && npm run db:deploy && npm run prisma:generate",
     "dev:api": "nodemon",
     "env:ensure": "node scripts/ensure-env.mjs",
     "db:start": "npm run env:ensure && node scripts/database.mjs start",
@@ -24,7 +24,7 @@
     "build": "ng build",
     "build:api": "tsc -p apps/api/tsconfig.json",
     "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev && prisma generate",
+    "prisma:migrate": "prisma migrate dev",
     "test": "vitest run",
     "dev:backend": "npm run dev:setup && npm run dev:api",
     "dev:studio": "prisma studio --port 5555 --browser none",
@@ -33,7 +33,12 @@
     "api:open": "node scripts/dev-open.mjs api",
     "db:status": "node scripts/database.mjs status",
     "db:logs": "node scripts/database.mjs logs",
-    "check": "npm run prisma:generate && npm run build:api && npm run build"
+    "check": "npm run prisma:generate && npm run build:api && npm run build",
+    "db:deploy": "prisma migrate deploy",
+    "db:baseline": "node scripts/baseline-database.mjs",
+    "db:migrations:status": "prisma migrate status",
+    "db:check": "prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code",
+    "postprisma:migrate": "prisma generate"
   },
   "dependencies": {
     "@angular/common": "22.1.5",
@@ -52,7 +57,8 @@
     "reflect-metadata": "^0.2.2",
     "rxjs": "~7.8.2",
     "tslib": "^2.8.1",
-    "zone.js": "~0.16.0"
+    "zone.js": "~0.16.0",
+    "@simple-games/pet-contract": "0.1.0"
   },
   "devDependencies": {
     "@angular/build": "22.1.7",
@@ -65,5 +71,8 @@
     "prisma": "^7.8.0",
     "typescript": "~6.0.3",
     "vitest": "^4.1.8"
-  }
+  },
+  "workspaces": [
+    "packages/*"
+  ]
 }

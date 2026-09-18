@@ -1,23 +1,18 @@
 import { Injectable, effect, signal } from '@angular/core';
 
-import { UserService } from '../users/user.service';
 import { Theme, UserSettings } from './user-settings.model';
 import { Language } from '../i18n/translations';
-
-const DEFAULT_SETTINGS: UserSettings = {
-  theme: 'light',
-  language: 'ru'
-};
+import { readUserSettings, writeUserSettings } from './user-settings.storage';
 
 @Injectable({
   providedIn: 'root'
 })
 export class UserSettingsService {
-  readonly theme = signal<Theme>(DEFAULT_SETTINGS.theme);
-  readonly language = signal<Language>(DEFAULT_SETTINGS.language);
+  readonly theme = signal<Theme>('light');
+  readonly language = signal<Language>('ru');
 
-  constructor(private readonly userService: UserService) {
-    const savedSettings: UserSettings = this.readSettings();
+  constructor() {
+    const savedSettings = readUserSettings();
     this.theme.set(savedSettings.theme);
     this.language.set(savedSettings.language);
 
@@ -27,8 +22,8 @@ export class UserSettingsService {
         language: this.language()
       };
 
-      this.applyTheme(settings.theme);
-      this.writeSettings(settings);
+      this.applySettings(settings);
+      writeUserSettings(settings);
     });
   }
 
@@ -40,46 +35,13 @@ export class UserSettingsService {
     this.language.set(language);
   }
 
-  private storageKey(): string {
-    return `simple-games:${this.userService.currentUser().id}:settings`;
-  }
-
-  private readSettings(): UserSettings {
-    if (typeof localStorage === 'undefined') {
-      return DEFAULT_SETTINGS;
-    }
-
-    const rawSettings: string | null = localStorage.getItem(this.storageKey());
-
-    if (!rawSettings) {
-      return DEFAULT_SETTINGS;
-    }
-
-    try {
-      const parsedSettings = JSON.parse(rawSettings) as Partial<UserSettings>;
-      return {
-        theme: parsedSettings.theme === 'dark' ? 'dark' : 'light',
-        language: parsedSettings.language === 'en' ? 'en' : 'ru'
-      };
-    } catch {
-      return DEFAULT_SETTINGS;
-    }
-  }
-
-  private writeSettings(settings: UserSettings): void {
-    if (typeof localStorage === 'undefined') {
-      return;
-    }
-
-    localStorage.setItem(this.storageKey(), JSON.stringify(settings));
-  }
-
-  private applyTheme(theme: Theme): void {
+  private applySettings(settings: UserSettings): void {
     if (typeof document === 'undefined') {
       return;
     }
 
-    document.documentElement.dataset['theme'] = theme;
-    document.documentElement.style.colorScheme = theme;
+    document.documentElement.dataset['theme'] = settings.theme;
+    document.documentElement.style.colorScheme = settings.theme;
+    document.documentElement.lang = settings.language;
   }
 }

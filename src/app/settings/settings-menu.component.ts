@@ -2,7 +2,6 @@ import { Component, HostListener, signal, ChangeDetectionStrategy } from '@angul
 
 import { I18nService } from '../i18n/i18n.service';
 import { Language } from '../i18n/translations';
-import { UserService } from '../users/user.service';
 import { Theme } from './user-settings.model';
 import { UserSettingsService } from './user-settings.service';
 
@@ -17,8 +16,7 @@ export class SettingsMenuComponent {
 
   constructor(
     public readonly i18n: I18nService,
-    public readonly settings: UserSettingsService,
-    public readonly userService: UserService
+    public readonly settings: UserSettingsService
   ) {}
 
   toggle(): void {

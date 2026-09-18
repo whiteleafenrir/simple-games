@@ -1,0 +1,11 @@
+{
+  "name": "@simple-games/pet-contract",
+  "version": "0.1.0",
+  "private": true,
+  "types": "./index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts"
+    }
+  }
+}

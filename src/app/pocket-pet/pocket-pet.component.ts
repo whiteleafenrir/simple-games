@@ -4,6 +4,9 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
 
 import { I18nService } from '../i18n/i18n.service';
+import { TranslationKey } from '../i18n/translations';
+import { PetStatsComponent } from '../pets/pet-stats.component';
+import { PetDatePipe } from '../pets/pet-date.pipe';
 import {
   PET_CARE_ACTION_IDS,
   OwnedPet,
@@ -12,11 +15,9 @@ import {
   PetFarewellReason,
   PetMood,
   PetPeriodOfLife,
-  PetStatId,
   PetStatus
 } from '../pets/owned-pet.model';
 import {
-  PET_STAT_IDS,
   petCareActionHintKey,
   petCareActionKey,
   petFarewellPhraseKey,
@@ -24,7 +25,6 @@ import {
   petMoodKey,
   petOption,
   petPeriodOfLifeKey,
-  petStatKey,
   petStatusKey
 } from '../pets/pet-display.utils';
 import { PetStorageService } from '../pets/pet-storage.service';
@@ -34,7 +34,9 @@ import { PetOption, SessionLength } from './pocket-pet.model';
 @Component({
   selector: 'app-pocket-pet',
   imports: [
-    RouterLink
+    RouterLink,
+    PetStatsComponent,
+    PetDatePipe
   ],
   templateUrl: './pocket-pet.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
@@ -54,16 +56,15 @@ export class PocketPetComponent {
     return id ? this.petStorage.petById(id) : this.petStorage.activePet();
   });
 
-  readonly statIds: readonly PetStatId[] = PET_STAT_IDS;
   readonly careActions: readonly PetCareActionId[] = PET_CARE_ACTION_IDS;
   readonly sessionLengths: readonly SessionLength[] = SESSION_LENGTHS;
   readonly petOptions: readonly PetOption[] = PET_OPTIONS;
   readonly selectedSession = signal<SessionLength>(SESSION_LENGTHS[1]);
   readonly selectedPet = signal<PetOption>(PET_OPTIONS[0]);
   readonly petName = signal<string>('');
-  readonly createdPetMessage = signal<string | null>(null);
-  readonly errorMessage = signal<string | null>(null);
-  readonly careMessage = signal<string | null>(null);
+  readonly createdPetMessage = signal<TranslationKey | null>(null);
+  readonly errorMessage = signal<TranslationKey | null>(null);
+  readonly careMessage = signal<TranslationKey | null>(null);
   readonly canCreatePet = computed((): boolean =>
     this.petName().trim().length > 0 &&
     !this.petStorage.activePet() &&
@@ -97,7 +98,7 @@ export class PocketPetComponent {
     const name = this.petName().trim();
 
     if (!name) {
-      this.errorMessage.set(this.i18n.t('petNameRequired'));
+      this.errorMessage.set('petNameRequired');
       return;
     }
 
@@ -106,7 +107,7 @@ export class PocketPetComponent {
     if (!ownedPet) return;
 
     this.petName.set('');
-    this.createdPetMessage.set(this.i18n.t('petCreated'));
+    this.createdPetMessage.set('petCreated');
     this.errorMessage.set(null);
   }
 
@@ -117,31 +118,31 @@ export class PocketPetComponent {
     if (!result) return;
 
     if (result.applied) {
-      this.careMessage.set(this.i18n.t('careActionApplied'));
+      this.careMessage.set('careActionApplied');
       return;
     }
 
     if (result.reason === 'cooldown') {
-      this.careMessage.set(this.i18n.t('careActionCoolingDown'));
+      this.careMessage.set('careActionCoolingDown');
       return;
     }
 
     if (result.reason === 'away') {
-      this.careMessage.set(this.i18n.t('careActionAway'));
+      this.careMessage.set('careActionAway');
       return;
     }
 
     if (result.reason === 'sleeping') {
-      this.careMessage.set(this.i18n.t('careActionSleeping'));
+      this.careMessage.set('careActionSleeping');
       return;
     }
 
     if (result.reason === 'player-energy') {
-      this.careMessage.set(this.i18n.t('careActionNoPlayerEnergy'));
+      this.careMessage.set('careActionNoPlayerEnergy');
       return;
     }
 
-    this.careMessage.set(this.i18n.t('careActionInactive'));
+    this.careMessage.set('careActionInactive');
   }
 
   sessionDurationLabel(sessionLength: SessionLength): string {
@@ -170,10 +171,6 @@ export class PocketPetComponent {
     return this.i18n.t(petPeriodOfLifeKey(periodOfLife));
   }
 
-  statLabel(statId: PetStatId): string {
-    return this.i18n.t(petStatKey(statId));
-  }
-
   careActionLabel(actionId: PetCareActionId, pet: OwnedPet | null = null): string {
     if (actionId === 'toggleLight' && pet) {
       return pet.isLightOn ? this.i18n.t('turnLightOff') : this.i18n.t('turnLightOn');
@@ -192,10 +189,6 @@ export class PocketPetComponent {
 
   farewellPhraseLabel(phraseId: PetFarewellPhraseId): string {
     return this.i18n.t(petFarewellPhraseKey(phraseId));
-  }
-
-  statValue(pet: OwnedPet, statId: PetStatId): number {
-    return Math.round(pet.stats[statId]);
   }
 
   playerEnergyValue(pet: OwnedPet): number {
@@ -252,11 +245,5 @@ export class PocketPetComponent {
     return `${minutes} ${this.i18n.t('minutesShort')}`;
   }
 
-  formatDate(value: string): string {
-    return new Intl.DateTimeFormat(this.i18n.language(), {
-      dateStyle: 'medium',
-      timeStyle: 'short'
-    }).format(new Date(value));
-  }
 
 }

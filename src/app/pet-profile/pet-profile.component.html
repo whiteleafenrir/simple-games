@@ -26,21 +26,9 @@
     </section>
 
     <section class="details-panel">
-      <div class="pet-stats-mini">
-        @for (statId of statIds; track statId) {
-          <div>
-            <span>{{ statLabel(statId) }}</span>
-            <strong>{{ statValue(ownedPet, statId) }}</strong>
-            <b aria-hidden="true"><i [style.width.%]="statValue(ownedPet, statId)"></i></b>
-          </div>
-        }
-      </div>
+      <app-pet-stats [stats]="ownedPet.stats"></app-pet-stats>
 
       <dl>
-        <div>
-          <dt>{{ i18n.t('petIdLabel') }}</dt>
-          <dd>{{ ownedPet.id }}</dd>
-        </div>
         <div>
           <dt>{{ i18n.t('animalType') }}</dt>
           <dd>{{ i18n.t(petOption(ownedPet).titleKey) }}</dd>
@@ -64,7 +52,7 @@
         @if (ownedPet.awayUntil; as awayUntil) {
           <div>
             <dt>{{ i18n.t('petAwayUntil') }}</dt>
-            <dd>{{ formatDate(awayUntil) }}</dd>
+            <dd>{{ awayUntil | petDate:i18n.language() }}</dd>
           </div>
         }
         <div>
@@ -73,11 +61,11 @@
         </div>
         <div>
           <dt>{{ i18n.t('sessionEnds') }}</dt>
-          <dd>{{ formatDate(ownedPet.endsAt) }}</dd>
+          <dd>{{ ownedPet.endsAt | petDate:i18n.language() }}</dd>
         </div>
         <div>
           <dt>{{ i18n.t('createdAt') }}</dt>
-          <dd>{{ formatDate(ownedPet.createdAt) }}</dd>
+          <dd>{{ ownedPet.createdAt | petDate:i18n.language() }}</dd>
         </div>
         <div>
           <dt>{{ i18n.t('petCareHistoryCount') }}</dt>
@@ -95,15 +83,7 @@
 
         <p class="farewell-phrase">{{ farewellPhraseLabel(farewell.phraseId) }}</p>
 
-        <div class="pet-stats-mini">
-          @for (statId of statIds; track statId) {
-            <div>
-              <span>{{ statLabel(statId) }}</span>
-              <strong>{{ finalStatValue(farewell, statId) }}</strong>
-              <b aria-hidden="true"><i [style.width.%]="finalStatValue(farewell, statId)"></i></b>
-            </div>
-          }
-        </div>
+        <app-pet-stats [stats]="farewell.finalStats"></app-pet-stats>
 
         <dl>
           <div>
@@ -112,7 +92,7 @@
           </div>
           <div>
             <dt>{{ i18n.t('petFarewellAt') }}</dt>
-            <dd>{{ formatDate(farewell.farewellAt) }}</dd>
+            <dd>{{ farewell.farewellAt | petDate:i18n.language() }}</dd>
           </div>
           <div>
             <dt>{{ i18n.t('petFinalCareScore') }}</dt>
@@ -145,7 +125,7 @@
             <li>
               <div class="history-topline">
                 <strong>{{ careActionLabel(entry.actionId) }}</strong>
-                <time [attr.datetime]="entry.appliedAt">{{ formatDate(entry.appliedAt) }}</time>
+                <time [attr.datetime]="entry.appliedAt">{{ entry.appliedAt | petDate:i18n.language() }}</time>
               </div>
               <div class="history-stats">
                 @for (statId of statIds; track statId) {
@@ -156,8 +136,8 @@
                 @if (lightChangeLabel(entry); as lightChange) {
                   <span>{{ lightChange }}</span>
                 }
-                @if (awayChangeLabel(entry); as awayChange) {
-                  <span>{{ awayChange }}</span>
+                @if (entry.awayUntilAfter && entry.awayUntilBefore !== entry.awayUntilAfter) {
+                  <span>{{ i18n.t('petAwayUntil') }}: {{ entry.awayUntilAfter | petDate:i18n.language() }}</span>
                 }
               </div>
               <small>

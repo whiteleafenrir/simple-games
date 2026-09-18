@@ -6,13 +6,14 @@ import { map } from 'rxjs';
 import { TranslationKey } from '../i18n/translations';
 import { petErrorKey } from '../pets/pet-error.utils';
 import { I18nService } from '../i18n/i18n.service';
+import { PetStatsComponent } from '../pets/pet-stats.component';
+import { PetDatePipe } from '../pets/pet-date.pipe';
 import {
   OwnedPet,
   PetCareActionEntry,
   PetCareActionId,
   PetFarewellPhraseId,
   PetFarewellReason,
-  PetFarewellResult,
   PetMood,
   PetPeriodOfLife,
   PetStatId,
@@ -35,7 +36,9 @@ import { PetStorageService } from '../pets/pet-storage.service';
 @Component({
   selector: 'app-pet-profile',
   imports: [
-    RouterLink
+    RouterLink,
+    PetStatsComponent,
+    PetDatePipe
   ],
   templateUrl: './pet-profile.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
@@ -112,16 +115,8 @@ export class PetProfileComponent {
     return this.i18n.t(petStatKey(statId));
   }
 
-  statValue(pet: OwnedPet, statId: PetStatId): number {
-    return Math.round(pet.stats[statId]);
-  }
-
   lightLabel(pet: OwnedPet): string {
     return pet.isLightOn ? this.i18n.t('petLightOn') : this.i18n.t('petLightOff');
-  }
-
-  finalStatValue(farewell: PetFarewellResult, statId: PetStatId): number {
-    return Math.round(farewell.finalStats[statId]);
   }
 
   farewellReasonLabel(reason: PetFarewellReason): string {
@@ -154,20 +149,6 @@ export class PetProfileComponent {
     return `${this.i18n.t('petLight')}: ${before} -> ${after}`;
   }
 
-  awayChangeLabel(entry: PetCareActionEntry): string | null {
-    if (!entry.awayUntilAfter || entry.awayUntilBefore === entry.awayUntilAfter) {
-      return null;
-    }
-
-    return `${this.i18n.t('petAwayUntil')}: ${this.formatDate(entry.awayUntilAfter)}`;
-  }
-
-  formatDate(value: string): string {
-    return new Intl.DateTimeFormat(this.i18n.language(), {
-      dateStyle: 'medium',
-      timeStyle: 'short'
-    }).format(new Date(value));
-  }
 
   private formatSigned(value: number): string {
     const rounded = Math.round(value * 10) / 10;

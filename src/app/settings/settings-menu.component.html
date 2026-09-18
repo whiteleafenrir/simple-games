@@ -25,23 +25,9 @@
 
   @if (isOpen()) {
     <section class="settings-popover" [attr.aria-label]="i18n.t('settings')">
-      <div class="user-card">
-        <span>{{ i18n.t('user') }}</span>
-        <strong>{{ userService.currentUser().displayName }}</strong>
-        <dl>
-          <div>
-            <dt>ID</dt>
-            <dd>{{ userService.currentUser().id }}</dd>
-          </div>
-          <div>
-            <dt>{{ i18n.t('login') }}</dt>
-            <dd>{{ userService.currentUser().login }}</dd>
-          </div>
-          <div>
-            <dt>{{ i18n.t('role') }}</dt>
-            <dd>{{ i18n.t('playerRole') }}</dd>
-          </div>
-        </dl>
+      <div class="guest-note">
+        <strong>{{ i18n.t('guestMode') }}</strong>
+        <p>{{ i18n.t('guestModeHint') }}</p>
       </div>
 
       <div class="control-group">

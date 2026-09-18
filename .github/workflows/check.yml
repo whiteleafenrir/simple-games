@@ -1,0 +1,54 @@
+name: Build and migrations
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: check-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: simple_games
+          POSTGRES_PASSWORD: ci_only
+          POSTGRES_DB: simple_games_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U simple_games -d simple_games_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://simple_games:ci_only@127.0.0.1:5432/simple_games_ci?schema=public
+      CI: true
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Use the pinned npm version
+        run: npm install --global "$(node -p 'require("./package.json").packageManager')"
+      - run: npm ci
+      - run: npx prisma validate
+      - name: Apply migrations to an empty database
+        run: npm run db:deploy
+      - name: Check repeated deployment
+        run: npm run db:deploy
+      - name: Check migration status and schema drift
+        run: |
+          npm run db:migrations:status
+          npm run db:check
+      - run: npm run check
