@@ -1,4 +1,4 @@
-import { GuestSession, OwnedPet } from './pet-domain.types';
+import { GuestSession, OwnedPet, PetCareActionEntry, PetHistoryCursor } from './pet-domain.types';
 
 export const POCKET_PET_REPOSITORY = Symbol('POCKET_PET_REPOSITORY');
 
@@ -10,7 +10,8 @@ export interface PocketPetTransaction {
   listPets(): Promise<OwnedPet[]>;
   getPet(petId: string): Promise<OwnedPet | null>;
   createPet(pet: OwnedPet): Promise<OwnedPet>;
-  savePet(pet: OwnedPet): Promise<OwnedPet>;
+  savePet(pet: OwnedPet, entry?: PetCareActionEntry | null): Promise<OwnedPet>;
+  listHistory(petId: string, cursor: PetHistoryCursor | null, limit: number): Promise<PetCareActionEntry[]>;
 }
 
 export interface PocketPetRepository {

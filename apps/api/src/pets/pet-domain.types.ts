@@ -75,7 +75,7 @@ export interface OwnedPet {
   lastActionAt: PetLastActionAt;
   isLightOn: boolean;
   awayUntil: string | null;
-  careHistory: PetCareActionEntry[];
+  careHistoryCount: number;
   farewell: PetFarewellResult | null;
 }
 
@@ -83,10 +83,21 @@ export type PetCareActionFailureReason = 'cooldown' | 'inactive' | 'away' | 'sle
 
 export interface PetCareActionResult {
   pet: OwnedPet;
+  historyEntry: PetCareActionEntry | null;
   actionId: PetCareActionId;
   applied: boolean;
   reason: PetCareActionFailureReason | null;
   nextAvailableAt: string | null;
+}
+
+export interface PetHistoryCursor {
+  appliedAt: string;
+  id: string;
+}
+
+export interface PetHistoryPage {
+  items: PetCareActionEntry[];
+  nextCursor: string | null;
 }
 
 export interface CreatePetRequest {

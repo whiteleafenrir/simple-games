@@ -22,6 +22,11 @@ const HOUR_MS = 60 * 60 * 1000;
 const MINUTE_MS = 60 * 1000;
 const DEFAULT_PLAYER_ENERGY_MAX = 100;
 const PLAYER_ENERGY_RECOVERY_PER_HOUR = 12;
+// Only for decisions at exact boundaries; persisted values keep their full precision.
+const STAT_COMPARISON_EPSILON = 1e-9;
+
+type StressStatId = Exclude<keyof PetStats, 'health'>;
+const STRESS_STAT_IDS: readonly StressStatId[] = ['satiety', 'cleanliness', 'happiness', 'energy'];
 
 type PetStatDelta = Partial<Record<keyof PetStats, number>>;
 
@@ -158,7 +163,7 @@ export function createInitialPetCareState(
   now: Date = new Date()
 ): Pick<
   OwnedPet,
-  'stats' | 'lastResolvedAt' | 'playerEnergy' | 'lastActionAt' | 'isLightOn' | 'awayUntil' | 'careHistory' | 'farewell'
+  'stats' | 'lastResolvedAt' | 'playerEnergy' | 'lastActionAt' | 'isLightOn' | 'awayUntil' | 'careHistoryCount' | 'farewell'
 > {
   return {
     stats: { ...DEFAULT_PET_STATS },
@@ -167,12 +172,14 @@ export function createInitialPetCareState(
     lastActionAt: createEmptyLastActionAt(),
     isLightOn: true,
     awayUntil: null,
-    careHistory: [],
+    careHistoryCount: 0,
     farewell: null
   };
 }
 
 export function resolvePetState(pet: OwnedPet, now: Date = new Date()): OwnedPet {
+  // Old MVP pets may still have a species-derived difficulty in storage.
+  const mode = pet.petId === 'dragon' ? pet.mode : 'easy';
   const nowMs = now.getTime();
   const createdAtMs = safeTime(pet.createdAt, nowMs);
   const endsAtMs = Math.max(createdAtMs, safeTime(pet.endsAt, nowMs));
@@ -184,6 +191,7 @@ export function resolvePetState(pet: OwnedPet, now: Date = new Date()): OwnedPet
     const stats = normalizeStats(pet.stats);
     return {
       ...pet,
+      mode,
       mood: petMood(stats),
       periodOfLife,
       stats,
@@ -197,13 +205,14 @@ export function resolvePetState(pet: OwnedPet, now: Date = new Date()): OwnedPet
   const resolveUntilMs = Math.min(nowMs, endsAtMs);
   const elapsedHours = Math.max(0, resolveUntilMs - Math.min(lastResolvedMs, resolveUntilMs)) / HOUR_MS;
   const stats = elapsedHours > 0
-    ? decayStats(pet.stats, elapsedHours, pet.mode, pet.isLightOn, petSpeciesTraits(pet.petId))
+    ? decayStats(pet.stats, elapsedHours, mode, pet.isLightOn, petSpeciesTraits(pet.petId))
     : normalizeStats(pet.stats);
   const status = petStatus(stats, nowMs, endsAtMs);
   const farewell = status === 'pet' ? null : createFarewellResult(status, stats, new Date(endsAtMs));
 
   return {
     ...pet,
+    mode,
     status,
     mood: petMood(stats),
     periodOfLife,
@@ -211,7 +220,7 @@ export function resolvePetState(pet: OwnedPet, now: Date = new Date()): OwnedPet
     playerEnergy,
     awayUntil,
     farewell,
-    lastResolvedAt: now.toISOString()
+    lastResolvedAt: new Date(Math.max(lastResolvedMs, resolveUntilMs)).toISOString()
   };
 }
 
@@ -227,6 +236,7 @@ export function applyPetCareAction(
   if (blockedReason) {
     return {
       pet: resolvedPet,
+      historyEntry: null,
       actionId,
       applied: false,
       reason: blockedReason,
@@ -260,25 +270,16 @@ export function applyPetCareAction(
       ...resolvedPet.lastActionAt,
       [actionId]: now.toISOString()
     },
-    careHistory: [
-      ...resolvedPet.careHistory,
-      createCareActionEntry(
-        resolvedPet,
-        actionId,
-        now,
-        statsBefore,
-        statsAfter,
-        isLightOnBefore,
-        isLightOnAfter,
-        awayUntilBefore,
-        awayUntilAfter
-      )
-    ]
+    careHistoryCount: resolvedPet.careHistoryCount + 1
   };
   const nextPet = resolvePetState(changedPet, now);
 
   return {
     pet: nextPet,
+    historyEntry: createCareActionEntry(
+      resolvedPet, actionId, now, statsBefore, statsAfter,
+      isLightOnBefore, isLightOnAfter, awayUntilBefore, awayUntilAfter
+    ),
     actionId,
     applied: true,
     reason: null,
@@ -362,7 +363,7 @@ export function resolvePlayerEnergy(
   return {
     ...normalizedEnergy,
     current: normalizeEnergyValue(recoveredEnergy, normalizedEnergy.current, normalizedEnergy.max),
-    lastRecoveredAt: now.toISOString()
+    lastRecoveredAt: new Date(Math.max(lastRecoveredMs, now.getTime())).toISOString()
   };
 }
 
@@ -390,28 +391,28 @@ export function petMood(stats: PetStats): PetMood {
   );
 
   if (
-    normalizedStats.satiety >= 75 &&
-    normalizedStats.cleanliness >= 75 &&
-    normalizedStats.happiness >= 75 &&
-    normalizedStats.health >= 75 &&
-    normalizedStats.energy >= 75
+    reachesThreshold(normalizedStats.satiety, 75) &&
+    reachesThreshold(normalizedStats.cleanliness, 75) &&
+    reachesThreshold(normalizedStats.happiness, 75) &&
+    reachesThreshold(normalizedStats.health, 75) &&
+    reachesThreshold(normalizedStats.energy, 75)
   ) {
     return 'joyful';
   }
 
-  if (normalizedStats.satiety < 25) {
+  if (!reachesThreshold(normalizedStats.satiety, 25)) {
     return 'angry';
   }
 
-  if (normalizedStats.cleanliness < 25) {
+  if (!reachesThreshold(normalizedStats.cleanliness, 25)) {
     return 'irritated';
   }
 
-  if (normalizedStats.happiness < 25 || normalizedStats.health < 25) {
+  if (!reachesThreshold(normalizedStats.happiness, 25) || !reachesThreshold(normalizedStats.health, 25)) {
     return 'upset';
   }
 
-  if (minimum < 45) {
+  if (!reachesThreshold(minimum, 45)) {
     return 'thoughtful';
   }
 
@@ -472,30 +473,63 @@ function decayStats(
 ): PetStats {
   const multiplier = modeDecayMultiplier(mode);
   const normalizedStats = normalizeStats(stats);
-  const happinessDecay = (isLightOn ? 1.5 : 0.6) * speciesTraits.decayMultipliers.happiness;
-  const energyDelta = isLightOn
-    ? -1.25 * multiplier * elapsedHours * speciesTraits.decayMultipliers.energy
-    : 6 * elapsedHours * speciesTraits.restRecoveryMultiplier;
+  const rates: Record<StressStatId, number> = {
+    satiety: -3 * multiplier * speciesTraits.decayMultipliers.satiety,
+    cleanliness: -2 * multiplier * speciesTraits.decayMultipliers.cleanliness,
+    happiness: -(isLightOn ? 1.5 : 0.6) * multiplier * speciesTraits.decayMultipliers.happiness,
+    energy: isLightOn
+      ? -1.25 * multiplier * speciesTraits.decayMultipliers.energy
+      : 6 * speciesTraits.restRecoveryMultiplier
+  };
 
   return normalizeStats({
-    satiety: normalizedStats.satiety - 3 * multiplier * elapsedHours * speciesTraits.decayMultipliers.satiety,
-    cleanliness: normalizedStats.cleanliness - 2 * multiplier * elapsedHours * speciesTraits.decayMultipliers.cleanliness,
-    happiness: normalizedStats.happiness - happinessDecay * multiplier * elapsedHours,
+    satiety: normalizedStats.satiety + rates.satiety * elapsedHours,
+    cleanliness: normalizedStats.cleanliness + rates.cleanliness * elapsedHours,
+    happiness: normalizedStats.happiness + rates.happiness * elapsedHours,
     health: normalizedStats.health - healthDecay(
       normalizedStats,
+      rates,
       elapsedHours,
-      multiplier,
-      speciesTraits.decayMultipliers.health
+      multiplier * speciesTraits.decayMultipliers.health
     ),
-    energy: normalizedStats.energy + energyDelta
+    energy: normalizedStats.energy + rates.energy * elapsedHours
   });
 }
 
-function healthDecay(stats: PetStats, elapsedHours: number, multiplier: number, speciesMultiplier: number): number {
-  const minimum = Math.min(stats.satiety, stats.cleanliness, stats.happiness, stats.energy);
-  const stress = minimum < 25 ? 2 : minimum < 45 ? 1 : 0;
+function healthDecay(
+  stats: PetStats,
+  rates: Record<StressStatId, number>,
+  elapsedHours: number,
+  multiplier: number
+): number {
+  const boundaries = [0, elapsedHours];
 
-  return (0.4 + stress) * multiplier * elapsedHours * speciesMultiplier;
+  // Stress is constant between threshold crossings, even when sleep raises energy.
+  // At most eight crossings: the cost does not grow with offline duration.
+  for (const statId of STRESS_STAT_IDS) {
+    if (rates[statId] === 0) {
+      continue;
+    }
+    for (const threshold of [25, 45]) {
+      const crossing = (threshold - stats[statId]) / rates[statId];
+      if (crossing > 0 && crossing < elapsedHours) {
+        boundaries.push(crossing);
+      }
+    }
+  }
+  boundaries.sort((left, right) => left - right);
+
+  let decay = 0;
+  for (let index = 1; index < boundaries.length; index += 1) {
+    const start = boundaries[index - 1]!;
+    const end = boundaries[index]!;
+    const midpoint = (start + end) / 2;
+    const minimum = Math.min(...STRESS_STAT_IDS.map((statId) => stats[statId] + rates[statId] * midpoint));
+    const stress = minimum < 25 ? 2 : minimum < 45 ? 1 : 0;
+    decay += (0.4 + stress) * (end - start);
+  }
+
+  return decay * multiplier;
 }
 
 function applyStatChanges(
@@ -550,7 +584,7 @@ function createCareActionEntry(
   awayUntilAfter: string | null
 ): PetCareActionEntry {
   return {
-    id: `${pet.id}-${String(pet.careHistory.length + 1).padStart(12, '0')}-${actionId}-${now.getTime()}`,
+    id: `${pet.id}-${String(pet.careHistoryCount + 1).padStart(12, '0')}-${actionId}-${now.getTime()}`,
     actionId,
     appliedAt: now.toISOString(),
     statsBefore,
@@ -598,7 +632,7 @@ function hasPlayerEnergy(pet: OwnedPet, actionId: PetCareActionId, now: Date): b
     return true;
   }
 
-  return resolvePlayerEnergy(pet.playerEnergy, now).current >= cost;
+  return reachesThreshold(resolvePlayerEnergy(pet.playerEnergy, now).current, cost);
 }
 
 function spendPlayerEnergy(playerEnergy: OwnedPet['playerEnergy'], cost: number, now: Date) {
@@ -625,7 +659,7 @@ function playerEnergyReadyAt(pet: OwnedPet, actionId: PetCareActionId, now: Date
   const resolvedEnergy = resolvePlayerEnergy(pet.playerEnergy, now);
   const missingEnergy = cost - resolvedEnergy.current;
 
-  if (missingEnergy <= 0) {
+  if (reachesThreshold(resolvedEnergy.current, cost)) {
     return now;
   }
 
@@ -633,7 +667,9 @@ function playerEnergyReadyAt(pet: OwnedPet, actionId: PetCareActionId, now: Date
     return null;
   }
 
-  return new Date(now.getTime() + Math.ceil((missingEnergy / PLAYER_ENERGY_RECOVERY_PER_HOUR) * HOUR_MS));
+  // Subtract the same decision tolerance before ceil to avoid a spurious extra millisecond.
+  const remainingMs = Math.ceil(((missingEnergy - STAT_COMPARISON_EPSILON) / PLAYER_ENERGY_RECOVERY_PER_HOUR) * HOUR_MS);
+  return new Date(now.getTime() + remainingMs);
 }
 
 function careActionNextAvailableAt(pet: OwnedPet, actionId: PetCareActionId): Date | null {
@@ -683,15 +719,15 @@ function normalizeEnergyLimit(value: number | undefined): number {
     return DEFAULT_PLAYER_ENERGY_MAX;
   }
 
-  return roundEnergy(value);
+  return value;
 }
 
 function normalizeEnergyValue(value: number | undefined, fallback: number, max: number): number {
   if (typeof value !== 'number' || Number.isNaN(value)) {
-    return Math.min(max, roundEnergy(fallback));
+    return Math.max(0, Math.min(max, fallback));
   }
 
-  return Math.min(max, roundEnergy(value));
+  return Math.max(0, Math.min(max, value));
 }
 
 function normalizeDate(value: string | undefined, fallback: string): string {
@@ -704,18 +740,22 @@ function normalizeDate(value: string | undefined, fallback: string): string {
 
 function normalizeStat(value: number | undefined, fallback: number): number {
   if (typeof value !== 'number' || Number.isNaN(value)) {
-    return roundStat(fallback);
+    return clampStat(fallback);
   }
 
-  return roundStat(value);
+  return clampStat(value);
 }
 
 function roundStat(value: number): number {
-  return Math.round(Math.max(0, Math.min(100, value)) * 10) / 10;
+  return Math.round((clampStat(value) + STAT_COMPARISON_EPSILON) * 10) / 10;
 }
 
-function roundEnergy(value: number): number {
-  return Math.round(Math.max(0, value) * 10) / 10;
+function clampStat(value: number): number {
+  return Math.max(0, Math.min(100, value));
+}
+
+function reachesThreshold(value: number, threshold: number): boolean {
+  return value + STAT_COMPARISON_EPSILON >= threshold;
 }
 
 function safeTime(value: string, fallback: number): number {

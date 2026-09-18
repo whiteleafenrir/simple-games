@@ -32,6 +32,7 @@ model Pet {
   lastResolvedAt  DateTime
   isLightOn       Boolean             @default(true)
   awayUntil       DateTime?
+  careHistoryCount Int               @default(0)
   stats           PetStats?
   playerEnergy    PlayerEnergy?
   actionCooldowns PetActionCooldown[]
@@ -92,7 +93,7 @@ model PetCareAction {
   playerEnergyCost Int
   perceptionTags   String[]
 
-  @@index([petId, appliedAt])
+  @@index([petId, appliedAt, id])
 }
 
 model PetFarewellResult {

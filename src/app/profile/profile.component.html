@@ -6,6 +6,12 @@
     <p>{{ i18n.t('profileIntro') }}</p>
   </div>
 
+  @if (pets.syncError(); as error) {
+    <div class="pet-feedback" role="alert">
+      <span>{{ i18n.t(error) }}</span>
+      <button type="button" [disabled]="pets.refreshing()" (click)="pets.resolvePets()">{{ i18n.t('petRetry') }}</button>
+    </div>
+  }
   <section class="pets-panel">
     <div class="panel-heading">
       <span>{{ i18n.t('ownedPets') }}</span>
@@ -16,11 +22,7 @@
       <div class="empty-state">
         <strong>{{ i18n.t('petLoading') }}</strong>
       </div>
-    } @else if (pets.syncError()) {
-      <div class="empty-state">
-        <strong>{{ i18n.t('petBackendUnavailable') }}</strong>
-      </div>
-    } @else if (pets.pets().length === 0) {
+    } @else if (pets.pets().length === 0 && !pets.syncError()) {
       <div class="empty-state">
         <strong>{{ i18n.t('noPetsTitle') }}</strong>
         <p>{{ i18n.t('noPetsText') }}</p>
@@ -105,7 +107,7 @@
               </div>
               <div>
                 <dt>{{ i18n.t('petCareHistoryCount') }}</dt>
-                <dd>{{ ownedPet.careHistory.length }}</dd>
+                <dd>{{ ownedPet.careHistoryCount }}</dd>
               </div>
             </dl>
 

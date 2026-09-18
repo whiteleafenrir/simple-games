@@ -1,159 +1,127 @@
-import { Injectable, OnDestroy, computed, signal } from '@angular/core';
-
+import { DOCUMENT } from '@angular/common';
+import { Injectable, OnDestroy, computed, inject, signal } from '@angular/core';
+import { TranslationKey } from '../i18n/translations';
 import { PetOption, SessionLength } from '../pocket-pet/pocket-pet.model';
-import { OwnedPet, PetCareActionId, PetCareActionResult } from './owned-pet.model';
+import { OwnedPet, PetCareActionId, PetCareActionResult, PetHistoryPage } from './owned-pet.model';
 import { PetApiService } from './pet-api.service';
+import { petErrorKey } from './pet-error.utils';
 
-@Injectable({
-  providedIn: 'root'
-})
+@Injectable({ providedIn: 'root' })
 export class PetStorageService implements OnDestroy {
   readonly pets = signal<OwnedPet[]>([]);
-  readonly activePet = computed((): OwnedPet | null => this.findActivePet(this.pets()));
+  readonly activePet = computed(() => this.pets().find(pet => pet.status === 'pet') ?? null);
   readonly guestId = signal<string | null>(null);
-  readonly loading = signal<boolean>(true);
-  readonly syncError = signal<string | null>(null);
+  readonly loading = signal(true);
+  readonly refreshing = signal(false);
+  readonly commandPending = signal(false);
+  readonly syncError = signal<TranslationKey | null>(null);
+  readonly commandError = signal<TranslationKey | null>(null);
 
-  private readonly timerId: ReturnType<typeof setInterval> | null = null;
-  private initialization: Promise<void> | null = null;
+  private readonly document = inject(DOCUMENT);
+  private readonly timerId: ReturnType<typeof setInterval>;
+  private queue: Promise<void> = Promise.resolve();
+  private refreshPromise: Promise<void> | null = null;
+  private destroyed = false;
+  private readonly onVisibilityChange = (): void => {
+    if (!this.document.hidden) void this.resolvePets();
+  };
 
   constructor(private readonly petApi: PetApiService) {
-    void this.startInitialization();
-
-    if (typeof setInterval !== 'undefined') {
-      this.timerId = setInterval((): void => {
-        void this.resolvePets();
-      }, 60_000);
-    }
+    void this.resolvePets();
+    this.timerId = setInterval(() => {
+      if (!this.document.hidden && !this.commandPending()) void this.resolvePets();
+    }, 30_000);
+    this.document.addEventListener('visibilitychange', this.onVisibilityChange);
   }
 
   ngOnDestroy(): void {
-    if (this.timerId) {
-      clearInterval(this.timerId);
-    }
+    this.destroyed = true;
+    clearInterval(this.timerId);
+    this.document.removeEventListener('visibilitychange', this.onVisibilityChange);
   }
 
-  ready(): Promise<void> {
-    return this.initialization ?? Promise.resolve();
+  ready(): Promise<void> { return this.refreshPromise ?? Promise.resolve(); }
+
+  resolvePets(): Promise<void> {
+    if (this.destroyed) return Promise.resolve();
+    if (this.refreshPromise) return this.refreshPromise;
+    this.refreshing.set(true);
+    const request = this.enqueue(async () => {
+      try {
+        const guestId = await this.ensureGuestId();
+        const pets = await this.petApi.getPets(guestId);
+        if (!this.destroyed) { this.pets.set(pets); this.syncError.set(null); }
+      } catch (error) {
+        if (!this.destroyed) this.syncError.set(petErrorKey(error));
+      } finally {
+        if (!this.destroyed) { this.loading.set(false); this.refreshing.set(false); }
+      }
+    });
+    this.refreshPromise = request;
+    void request.finally(() => { if (this.refreshPromise === request) this.refreshPromise = null; });
+    return request;
   }
 
   async addPet(pet: PetOption, sessionLength: SessionLength, name: string): Promise<OwnedPet | null> {
-    const guestId = await this.ensureGuestId();
-
-    if (!guestId || this.activePet()) {
-      return null;
-    }
-
-    try {
+    return this.command(async guestId => {
       const ownedPet = await this.petApi.createPet(guestId, pet, sessionLength, name.trim());
-      this.pets.update((pets: OwnedPet[]): OwnedPet[] => [ownedPet, ...pets]);
-      this.syncError.set(null);
+      if (!this.destroyed) this.pets.update(pets => [ownedPet, ...pets.filter(item => item.id !== ownedPet.id)]);
       return ownedPet;
-    } catch (error) {
-      this.recordSyncError(error);
-      await this.resolvePets();
-      return null;
-    }
-  }
-
-  async careForPet(id: string, actionId: PetCareActionId): Promise<PetCareActionResult | null> {
-    const guestId = await this.ensureGuestId();
-
-    if (!guestId) {
-      return null;
-    }
-
-    try {
-      const result = await this.petApi.applyCareAction(guestId, id, actionId);
-      this.replacePet(result.pet);
-      this.syncError.set(null);
-      return result;
-    } catch (error) {
-      this.recordSyncError(error);
-      await this.resolvePets();
-      return null;
-    }
-  }
-
-  async resolvePets(): Promise<void> {
-    const guestId = await this.ensureGuestId();
-
-    if (!guestId) {
-      return;
-    }
-
-    await this.loadPets(guestId);
-  }
-
-  petById(id: string | null): OwnedPet | null {
-    if (!id) {
-      return null;
-    }
-
-    return this.pets().find((pet: OwnedPet): boolean => pet.id === id) ?? null;
-  }
-
-  private async startInitialization(): Promise<void> {
-    const initialization = this.initialize();
-    this.initialization = initialization;
-
-    await initialization.finally((): void => {
-      if (this.initialization === initialization) {
-        this.initialization = null;
-      }
     });
   }
 
-  private async initialize(): Promise<void> {
-    this.loading.set(true);
+  async careForPet(id: string, actionId: PetCareActionId): Promise<PetCareActionResult | null> {
+    return this.command(async guestId => {
+      const result = await this.petApi.applyCareAction(guestId, id, actionId);
+      if (!this.destroyed) this.pets.update(pets => pets.map(pet => pet.id === result.pet.id ? result.pet : pet));
+      return result;
+    });
+  }
 
+  async getHistory(petId: string, cursor: string | null): Promise<PetHistoryPage> {
+    await this.ready();
+    const guestId = this.guestId();
+    if (!guestId) throw new Error('Guest session unavailable.');
+    return this.petApi.getHistory(guestId, petId, cursor);
+  }
+
+  petById(id: string | null): OwnedPet | null {
+    return this.pets().find(pet => pet.id === id) ?? null;
+  }
+
+  private async command<T>(operation: (guestId: string) => Promise<T>): Promise<T | null> {
+    if (this.commandPending() || this.destroyed) return null;
+    // Set before the first await, so double clicks cannot enqueue another command.
+    this.commandPending.set(true);
     try {
-      const session = await this.petApi.createOrGetGuestSession();
-      this.guestId.set(session.id);
-      await this.loadPets(session.id);
-      this.syncError.set(null);
-    } catch (error) {
-      this.recordSyncError(error);
+      return await this.enqueue(async () => {
+        try {
+          const result = await operation(await this.ensureGuestId());
+          if (!this.destroyed) this.commandError.set(null);
+          return result;
+        } catch (error) {
+          if (!this.destroyed) this.commandError.set(petErrorKey(error));
+          // Reconcile a possible committed command after a lost response; keep its error visible.
+          void this.resolvePets();
+          return null;
+        }
+      });
     } finally {
-      this.loading.set(false);
+      if (!this.destroyed) this.commandPending.set(false);
     }
   }
 
-  private async ensureGuestId(): Promise<string | null> {
-    if (this.initialization) {
-      await this.initialization;
-    }
-
-    const currentGuestId = this.guestId();
-
-    if (currentGuestId) {
-      return currentGuestId;
-    }
-
-    await this.startInitialization();
-    return this.guestId();
+  private async ensureGuestId(): Promise<string> {
+    const current = this.guestId();
+    if (current) return current;
+    const session = await this.petApi.createOrGetGuestSession();
+    if (!this.destroyed) this.guestId.set(session.id);
+    return session.id;
   }
 
-  private async loadPets(guestId: string): Promise<void> {
-    try {
-      this.pets.set(await this.petApi.getPets(guestId));
-      this.syncError.set(null);
-    } catch (error) {
-      this.recordSyncError(error);
-    }
-  }
-
-  private recordSyncError(error: unknown): void {
-    this.syncError.set(error instanceof Error ? error.message : 'sync-failed');
-  }
-
-  private findActivePet(pets: OwnedPet[]): OwnedPet | null {
-    return pets.find((pet: OwnedPet): boolean => pet.status === 'pet') ?? null;
-  }
-
-  private replacePet(updatedPet: OwnedPet): void {
-    this.pets.update((pets: OwnedPet[]): OwnedPet[] =>
-      pets.map((pet: OwnedPet): OwnedPet => pet.id === updatedPet.id ? updatedPet : pet)
-    );
+  private enqueue<T>(operation: () => Promise<T>): Promise<T> {
+    const result = this.queue.then(operation);
+    this.queue = result.then(() => undefined, () => undefined);
+    return result;
   }
 }

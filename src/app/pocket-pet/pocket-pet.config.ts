@@ -53,8 +53,8 @@ export const PET_OPTIONS: readonly PetOption[] = [
     id: 'dinosaur',
     titleKey: 'petDinosaur',
     descriptionKey: 'petDinosaurDescription',
-    modeKey: 'petModeMedium',
-    mode: 'medium',
+    modeKey: 'petModeEasy',
+    mode: 'easy',
     disabled: false,
     accent: 'green'
   },

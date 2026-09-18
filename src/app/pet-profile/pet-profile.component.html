@@ -1,6 +1,12 @@
 <section class="pet-profile-page">
   <a class="back-link" routerLink="/profile">{{ i18n.t('petProfile') }}</a>
 
+  @if (pets.syncError(); as error) {
+    <div class="pet-feedback" role="alert">
+      <span>{{ i18n.t(error) }}</span>
+      <button type="button" [disabled]="pets.refreshing()" (click)="pets.resolvePets()">{{ i18n.t('petRetry') }}</button>
+    </div>
+  }
   @if (pet(); as ownedPet) {
     <section class="pet-hero">
       <span
@@ -75,7 +81,7 @@
         </div>
         <div>
           <dt>{{ i18n.t('petCareHistoryCount') }}</dt>
-          <dd>{{ ownedPet.careHistory.length }}</dd>
+          <dd>{{ ownedPet.careHistoryCount }}</dd>
         </div>
       </dl>
     </section>
@@ -116,17 +122,26 @@
       </section>
     }
 
-    <section class="history-panel">
+    <section class="history-panel" [attr.aria-busy]="historyLoading()">
       <div class="panel-heading">
         <span>{{ i18n.t('petCareHistoryTitle') }}</span>
-        <strong>{{ ownedPet.careHistory.length }}</strong>
+        <strong>{{ ownedPet.careHistoryCount }}</strong>
       </div>
 
-      @if (ownedPet.careHistory.length === 0) {
+      @if (historyLoading()) {
+        <p role="status">{{ i18n.t('petHistoryLoading') }}</p>
+      }
+      @if (historyError(); as error) {
+        <div class="pet-feedback" role="alert">
+          <span>{{ i18n.t(error) }}</span>
+          <button type="button" (click)="loadHistory()">{{ i18n.t('petRetry') }}</button>
+        </div>
+      }
+      @if (ownedPet.careHistoryCount === 0 && !historyLoading() && !historyError()) {
         <p class="history-empty">{{ i18n.t('petCareHistoryEmpty') }}</p>
       } @else {
         <ol class="history-list">
-          @for (entry of careHistory(ownedPet); track entry.id) {
+          @for (entry of historyEntries(); track entry.id) {
             <li>
               <div class="history-topline">
                 <strong>{{ careActionLabel(entry.actionId) }}</strong>
@@ -153,17 +168,16 @@
             </li>
           }
         </ol>
+        @if (historyCursor() && !historyError()) {
+          <button class="history-more" type="button" [disabled]="historyLoading()" (click)="loadHistory()">{{ i18n.t('petHistoryMore') }}</button>
+        }
       }
     </section>
   } @else if (pets.loading()) {
     <section class="details-panel empty-state">
       <strong>{{ i18n.t('petLoading') }}</strong>
     </section>
-  } @else if (pets.syncError()) {
-    <section class="details-panel empty-state">
-      <strong>{{ i18n.t('petBackendUnavailable') }}</strong>
-    </section>
-  } @else {
+  } @else if (!pets.syncError()) {
     <section class="details-panel empty-state">
       <strong>{{ i18n.t('petNotFoundTitle') }}</strong>
       <p>{{ i18n.t('petNotFoundText') }}</p>

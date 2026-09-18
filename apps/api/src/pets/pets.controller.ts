@@ -1,9 +1,9 @@
-import { Body, Controller, Get, Header, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
-import { ApiBadRequestResponse, ApiBody, ApiCookieAuth, ApiForbiddenResponse, ApiOperation, ApiParam, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
+import { Body, Controller, Get, Header, Param, ParseUUIDPipe, Post, Query, UseGuards } from '@nestjs/common';
+import { ApiBadRequestResponse, ApiBody, ApiCookieAuth, ApiForbiddenResponse, ApiOperation, ApiParam, ApiQuery, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
 import { PET_CARE_ACTION_IDS } from './pet-engine';
 
 import { GuestSessionGuard } from './guest-session.guard';
-import { OwnedPet, PetCareActionResult } from './pet-domain.types';
+import { OwnedPet, PetCareActionResult, PetHistoryPage } from './pet-domain.types';
 import { PocketPetService } from './pocket-pet.service';
 
 @ApiTags('Питомцы')
@@ -19,7 +19,7 @@ export class PetsController {
 
   @Get()
   @Header('Cache-Control', 'no-store')
-  @ApiOperation({ summary: 'Посмотреть питомцев гостя', description: 'Актуализирует и сохраняет состояние с учётом прошедшего времени.' })
+  @ApiOperation({ summary: 'Посмотреть питомцев гостя', description: 'Текущие snapshots с careHistoryCount, без массива истории. Сохраняет изменения активного питомца с учётом прошедшего времени.' })
   listPets(@Param('guestId') guestId: string): Promise<OwnedPet[]> {
     return this.pocketPetService.listPets(guestId);
   }
@@ -53,10 +53,23 @@ export class PetsController {
     return this.pocketPetService.getPet(guestId, petId);
   }
 
+  @Get(':petId/history')
+  @Header('Cache-Control', 'no-store')
+  @ApiParam({ name: 'petId', schema: { type: 'string', format: 'uuid' } })
+  @ApiQuery({ name: 'cursor', required: false, type: String, description: 'nextCursor предыдущей страницы; первая страница без параметра.' })
+  @ApiOperation({ summary: 'История заботы', description: 'Ответ { items, nextCursor }: до 50 событий, новые первыми, порядок appliedAt/id. История не изменяет состояние питомца. Чужой питомец — 404, неверный курсор — 400.' })
+  getHistory(
+    @Param('guestId') guestId: string,
+    @Param('petId', new ParseUUIDPipe({ version: '4' })) petId: string,
+    @Query('cursor') cursor: unknown
+  ): Promise<PetHistoryPage> {
+    return this.pocketPetService.getHistory(guestId, petId, cursor);
+  }
+
   @Post(':petId/actions')
   @Header('Cache-Control', 'no-store')
   @ApiParam({ name: 'petId', schema: { type: 'string', format: 'uuid' }, description: 'UUID v4 созданного питомца.' })
-  @ApiOperation({ summary: 'Выполнить действие заботы', description: 'applied=true — действие выполнено. applied=false и reason — игровое ограничение, например cooldown или sleeping.' })
+  @ApiOperation({ summary: 'Выполнить действие заботы', description: 'applied=true — действие выполнено, historyEntry содержит новое событие. applied=false и reason — игровое ограничение, historyEntry=null. pet — snapshot с careHistoryCount, без массива истории.' })
   @ApiBody({ schema: {
     type: 'object', additionalProperties: false, required: ['actionId'],
     properties: { actionId: { type: 'string', enum: [...PET_CARE_ACTION_IDS], example: 'feed' } }

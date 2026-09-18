@@ -14,4 +14,5 @@
 Текущие спецификации:
 
 - [Backend source of truth](backend-source-of-truth.md)
+- [T4: устойчивость данных и клиента](data-client-resilience.md)
 - [Локальная работа с API и базой](local-development.md)

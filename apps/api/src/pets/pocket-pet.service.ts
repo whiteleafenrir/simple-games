@@ -6,13 +6,14 @@ import {
   OwnedPet,
   PetCareActionId,
   PetCareActionResult,
+  PetHistoryPage,
   PetId,
-  PetMode,
   SessionLengthId
 } from './pet-domain.types';
 import { applyPetCareAction, createInitialPetCareState, PET_CARE_ACTION_IDS, resolvePetState } from './pet-engine';
 import { ActivePetConflictError, GuestSessionNotFoundError, POCKET_PET_REPOSITORY, PocketPetRepository, PocketPetTransaction } from './pocket-pet.repository';
 import { parseRequestBody } from './request-body';
+import { HISTORY_PAGE_SIZE, historyPage, parseHistoryCursor } from './pet-history';
 
 const CREATEABLE_PET_IDS: readonly PetId[] = ['cat', 'dog', 'parrot', 'dinosaur'] as const;
 const SESSION_LENGTH_MINUTES: Record<SessionLengthId, number> = {
@@ -51,7 +52,8 @@ export class PocketPetService {
     const resolvedPets: OwnedPet[] = [];
 
     for (const pet of pets) {
-      resolvedPets.push(await tx.savePet(resolvePetState(pet, now)));
+      const resolved = resolvePetState(pet, now);
+      resolvedPets.push(pet.status === 'pet' ? await tx.savePet(resolved) : resolved);
     }
 
     return resolvedPets;
@@ -74,7 +76,7 @@ export class PocketPetService {
         id: randomUUID(),
         name,
         petId,
-        mode: petModeForPetId(petId),
+        mode: 'easy',
         status: 'pet',
         mood: 'joyful',
         periodOfLife: 'child',
@@ -96,7 +98,8 @@ export class PocketPetService {
         throw new NotFoundException('Pet not found.');
       }
 
-      return tx.savePet(resolvePetState(pet, at));
+      const resolved = resolvePetState(pet, at);
+      return pet.status === 'pet' ? tx.savePet(resolved) : resolved;
     });
   }
 
@@ -116,8 +119,16 @@ export class PocketPetService {
       }
 
       const result = applyPetCareAction(pet, actionId, at);
-      await tx.savePet(result.pet);
+      if (pet.status === 'pet') await tx.savePet(result.pet, result.historyEntry);
       return result;
+    });
+  }
+
+  getHistory(guestId: string, petId: string, cursorValue?: unknown): Promise<PetHistoryPage> {
+    const cursor = parseHistoryCursor(cursorValue);
+    return this.withGuestTransaction(guestId, undefined, async (tx) => {
+      if (!await tx.getPet(petId)) throw new NotFoundException('Pet not found.');
+      return historyPage(await tx.listHistory(petId, cursor, HISTORY_PAGE_SIZE + 1));
     });
   }
 
@@ -193,16 +204,4 @@ function parseCareActionId(value: unknown): PetCareActionId {
   }
 
   throw new BadRequestException('Care action is invalid.');
-}
-
-function petModeForPetId(petId: PetId): PetMode {
-  if (petId === 'dinosaur') {
-    return 'medium';
-  }
-
-  if (petId === 'dragon') {
-    return 'insane';
-  }
-
-  return 'easy';
 }

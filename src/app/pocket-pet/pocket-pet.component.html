@@ -1,3 +1,12 @@
+@if (petStorage.syncError(); as error) {
+  <div class="pet-feedback" role="alert">
+    <span>{{ i18n.t(error) }}</span>
+    <button type="button" [disabled]="petStorage.refreshing()" (click)="petStorage.resolvePets()">{{ i18n.t('petRetry') }}</button>
+  </div>
+}
+@if (petStorage.commandError(); as error) {
+  <p class="pet-feedback" role="alert">{{ i18n.t(error) }}</p>
+}
 @if (viewedPet(); as pet) {
 <section class="pet-session">
   <a class="back-link" routerLink="/">{{ i18n.t('backHome') }}</a>
@@ -173,9 +182,7 @@
     @if (petStorage.loading()) {
       <p class="success-message">{{ i18n.t('petLoading') }}</p>
     }
-    @if (petStorage.syncError()) {
-      <p class="error-message">{{ i18n.t('petBackendUnavailable') }}</p>
-    }
+
     @if (createdPetMessage()) {
       <p class="success-message">{{ createdPetMessage() }}</p>
     }
@@ -183,7 +190,7 @@
       <p class="error-message">{{ errorMessage() }}</p>
     }
     <div class="summary-actions">
-      <button type="button" [disabled]="!canCreatePet()" (click)="createPet()">{{ i18n.t('createPet') }}</button>
+      <button type="button" [disabled]="!canCreatePet()" (click)="createPet()">{{ i18n.t(petStorage.commandPending() ? 'petActionPending' : 'createPet') }}</button>
       <a routerLink="/profile">{{ i18n.t('goToProfile') }}</a>
     </div>
   </aside>

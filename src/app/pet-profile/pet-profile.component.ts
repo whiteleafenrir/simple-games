@@ -1,8 +1,10 @@
-import { Component, computed, inject, ChangeDetectionStrategy } from '@angular/core';
+import { Component, computed, effect, inject, signal, untracked, ChangeDetectionStrategy } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
 
+import { TranslationKey } from '../i18n/translations';
+import { petErrorKey } from '../pets/pet-error.utils';
 import { I18nService } from '../i18n/i18n.service';
 import {
   OwnedPet,
@@ -51,6 +53,46 @@ export class PetProfileComponent {
   readonly pet = computed((): OwnedPet | null => this.pets.petById(this.petId()));
   readonly statIds: readonly PetStatId[] = PET_STAT_IDS;
 
+  readonly historyEntries = signal<PetCareActionEntry[]>([]);
+  readonly historyLoading = signal(false);
+  readonly historyError = signal<TranslationKey | null>(null);
+  readonly historyCursor = signal<string | null>(null);
+  private historyRequest = 0;
+  private readonly historyVersion = computed(() => {
+    const pet = this.pet();
+    return pet ? pet.id + ':' + pet.careHistoryCount : null;
+  });
+
+  constructor() {
+    effect(onCleanup => {
+      this.historyVersion();
+      onCleanup(() => { this.historyRequest++; });
+      untracked(() => {
+        this.historyEntries.set([]); this.historyCursor.set(null); this.historyError.set(null); this.historyLoading.set(false);
+        if (this.pet()) void this.loadHistory();
+      });
+    });
+  }
+
+  async loadHistory(): Promise<void> {
+    const pet = this.pet();
+    if (!pet || this.historyLoading()) return;
+    const request = ++this.historyRequest;
+    const cursor = this.historyCursor();
+    this.historyLoading.set(true);
+    this.historyError.set(null);
+    try {
+      const page = await this.pets.getHistory(pet.id, cursor);
+      if (request !== this.historyRequest) return;
+      this.historyEntries.update(entries => [...new Map([...entries, ...page.items].map(entry => [entry.id, entry])).values()]);
+      this.historyCursor.set(page.nextCursor);
+    } catch (error) {
+      if (request === this.historyRequest) this.historyError.set(petErrorKey(error));
+    } finally {
+      if (request === this.historyRequest) this.historyLoading.set(false);
+    }
+  }
+
   readonly petOption = petOption;
   readonly sessionLength = sessionLength;
 
@@ -92,10 +134,6 @@ export class PetProfileComponent {
 
   careActionLabel(actionId: PetCareActionId): string {
     return this.i18n.t(petCareActionKey(actionId));
-  }
-
-  careHistory(pet: OwnedPet): readonly PetCareActionEntry[] {
-    return [...pet.careHistory].reverse();
   }
 
   statDelta(entry: PetCareActionEntry, statId: PetStatId): string {

@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { isDeepStrictEqual } from 'node:util';
 
-import { GuestSession, OwnedPet } from './pet-domain.types';
+import { GuestSession, OwnedPet, PetCareActionEntry, PetHistoryCursor } from './pet-domain.types';
 import { ActivePetConflictError, GuestSessionNotFoundError, PocketPetRepository, PocketPetTransaction } from './pocket-pet.repository';
 
 interface StoredPet {
@@ -9,7 +9,10 @@ interface StoredPet {
   pet: OwnedPet;
 }
 
+interface StoredEvent { petId: string; entry: PetCareActionEntry; }
+
 export class InMemoryPocketPetRepository implements PocketPetRepository {
+  private readonly events = new Map<string, StoredEvent>();
   private readonly sessions = new Map<string, GuestSession>();
   private readonly pets = new Map<string, StoredPet>();
   private readonly guestQueues = new Map<string, Promise<void>>();
@@ -88,19 +91,13 @@ export class InMemoryPocketPetRepository implements PocketPetRepository {
       }
       const pets = new Map([...this.pets.values()]
         .filter((stored) => stored.guestId === guestId).map((stored) => [stored.pet.id, clone(stored.pet)]));
-      const tx = new MemoryPetTransaction(clone(session), pets);
+      const tx = new MemoryPetTransaction(clone(session), pets, new Map(this.events));
       const result = await operation(tx);
-      const events = new Map([...this.pets.values()].flatMap(({ pet }) =>
-        pet.careHistory.map((entry) => [entry.id, { petId: pet.id, entry }] as const)));
-      for (const pet of pets.values()) {
-        for (const entry of pet.careHistory) {
-          const existing = events.get(entry.id);
-          if (existing && (existing.petId !== pet.id || !isDeepStrictEqual(existing.entry, entry))) {
-            throw new Error('Care history event conflicts with its persisted owner or content.');
-          }
-          events.set(entry.id, { petId: pet.id, entry });
-        }
+      for (const [id, event] of tx.addedEvents) {
+        const existing = this.events.get(id);
+        if (existing && !isDeepStrictEqual(existing, event)) throw new Error('Care history event conflicts with its persisted owner or content.');
       }
+      for (const [id, event] of tx.addedEvents) this.events.set(id, clone(event));
       this.sessions.set(guestId, tx.session);
       for (const pet of pets.values()) {
         this.pets.set(pet.id, { guestId, pet: clone(pet) });
@@ -114,7 +111,8 @@ export class InMemoryPocketPetRepository implements PocketPetRepository {
 }
 
 class MemoryPetTransaction implements PocketPetTransaction {
-  constructor(public session: GuestSession, private readonly pets: Map<string, OwnedPet>) {}
+  readonly addedEvents = new Map<string, StoredEvent>();
+  constructor(public session: GuestSession, private readonly pets: Map<string, OwnedPet>, private readonly events: Map<string, StoredEvent>) {}
 
   async touchGuestSession(now: Date): Promise<void> {
     this.session = { ...this.session, lastSeenAt: now.toISOString() };
@@ -122,7 +120,7 @@ class MemoryPetTransaction implements PocketPetTransaction {
 
   async listPets(): Promise<OwnedPet[]> {
     return [...this.pets.values()].map(clone)
-      .sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt));
+      .sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt) || right.id.localeCompare(left.id));
   }
 
   async getPet(petId: string): Promise<OwnedPet | null> {
@@ -130,35 +128,43 @@ class MemoryPetTransaction implements PocketPetTransaction {
     return pet ? clone(pet) : null;
   }
 
+  async listHistory(petId: string, cursor: PetHistoryCursor | null, limit: number): Promise<PetCareActionEntry[]> {
+    if (!this.pets.has(petId)) return [];
+    return [...this.events.values()].filter(event => event.petId === petId).map(event => event.entry)
+      .filter(entry => !cursor || entry.appliedAt < cursor.appliedAt || (entry.appliedAt === cursor.appliedAt && entry.id < cursor.id))
+      .sort((left, right) => Date.parse(right.appliedAt) - Date.parse(left.appliedAt) || (right.id < left.id ? -1 : right.id > left.id ? 1 : 0))
+      .slice(0, limit).map(clone);
+  }
+
   async createPet(pet: OwnedPet): Promise<OwnedPet> {
-    if (this.pets.has(pet.id)) throw new Error('Pet already exists.');
+    if (this.pets.has(pet.id) || pet.careHistoryCount !== 0) throw new Error('Invalid new pet.');
     return this.store(pet);
   }
 
-  async savePet(pet: OwnedPet): Promise<OwnedPet> {
-    if (!this.pets.has(pet.id)) throw new Error('Pet does not belong to the transaction guest.');
+  async savePet(pet: OwnedPet, entry: PetCareActionEntry | null = null): Promise<OwnedPet> {
+    const previous = this.pets.get(pet.id);
+    if (!previous) throw new Error('Pet does not belong to the transaction guest.');
+    let added = 0;
+    if (entry) {
+      const event = { petId: pet.id, entry };
+      const existing = this.events.get(entry.id);
+      if (existing && !isDeepStrictEqual(existing, event)) throw new Error('Care history event conflicts with its persisted owner or content.');
+      if (!existing) {
+        this.events.set(entry.id, clone(event)); this.addedEvents.set(entry.id, clone(event)); added = 1;
+      }
+    }
+    if (pet.careHistoryCount !== previous.careHistoryCount + added) throw new Error('Care history count does not match appended events.');
+    if (previous.farewell && !isDeepStrictEqual(previous.farewell, pet.farewell)) throw new Error('A persisted farewell is immutable.');
     return this.store(pet);
   }
 
   private store(pet: OwnedPet): OwnedPet {
-    if (pet.status === 'pet' && [...this.pets.values()].some((other) => other.id !== pet.id && other.status === 'pet')) {
-      throw new ActivePetConflictError();
-    }
-    const stored = clone(pet);
-    const events = new Map<string, OwnedPet['careHistory'][number]>();
-    for (const entry of stored.careHistory) {
-      const existing = events.get(entry.id);
-      if (existing && !isDeepStrictEqual(existing, entry)) {
-        throw new Error('Care history event conflicts with its persisted owner or content.');
-      }
-      events.set(entry.id, entry);
-    }
-    stored.careHistory = [...events.values()];
-    this.pets.set(pet.id, stored);
-    return clone(stored);
+    if (pet.status === 'pet' && [...this.pets.values()].some(other => other.id !== pet.id && other.status === 'pet')) throw new ActivePetConflictError();
+    this.pets.set(pet.id, clone(pet));
+    return clone(pet);
   }
 }
 
 function clone<T>(value: T): T {
-  return JSON.parse(JSON.stringify(value)) as T;
+  return structuredClone(value);
 }

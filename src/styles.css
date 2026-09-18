@@ -92,3 +92,26 @@ a {
 button {
   cursor: pointer;
 }
+
+.pet-feedback {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  margin: 1rem 0;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  color: var(--text);
+  background: var(--surface);
+}
+.pet-feedback button,
+.history-more {
+  padding: 0.6rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--secondary);
+  color: var(--secondary-text);
+}
+.pet-feedback button:disabled,
+.history-more:disabled { cursor: wait; opacity: 0.6; }

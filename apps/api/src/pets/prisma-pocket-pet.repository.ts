@@ -1,30 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { isDeepStrictEqual } from 'node:util';
-
 import { PrismaService } from '../prisma/prisma.service';
-import {
-  GuestSession,
-  OwnedPet,
-  PetCareActionEntry,
-  PetCareActionId,
-  PetId,
-  PetMode,
-  PetMood,
-  PetPeriodOfLife,
-  PetStatus,
-  PetStats,
-  PlayerEnergyState,
-  SessionLengthId
-} from './pet-domain.types';
-import {
-  createEmptyLastActionAt,
-  createInitialPlayerEnergy,
-  normalizeStats,
-  PET_CARE_ACTIONS,
-  PET_CARE_ACTION_IDS
-} from './pet-engine';
+import { GuestSession, OwnedPet, PetCareActionEntry, PetHistoryCursor, PetStats, PlayerEnergyState } from './pet-domain.types';
+import { PET_CARE_ACTIONS, PET_CARE_ACTION_IDS } from './pet-engine';
 import { ActivePetConflictError, GuestSessionNotFoundError, PocketPetRepository, PocketPetTransaction } from './pocket-pet.repository';
+import { PET_SNAPSHOT_INCLUDE, toGuestSession, toOwnedPet, toCareHistoryEntry } from './pet-record.mapper';
 
 @Injectable()
 export class PrismaPocketPetRepository implements PocketPetRepository {
@@ -141,8 +122,10 @@ export class PrismaPocketPetRepository implements PocketPetRepository {
   }
 }
 
-// Only constructed after locking the guest; every read and write uses the same transaction.
+
+// Only constructed after locking the guest; all reads and writes share the transaction.
 class PrismaPetTransaction implements PocketPetTransaction {
+  private readonly snapshots = new Map<string, OwnedPet>();
   constructor(private readonly tx: Prisma.TransactionClient, private readonly guestId: string) {}
 
   async touchGuestSession(now: Date): Promise<void> {
@@ -150,199 +133,101 @@ class PrismaPetTransaction implements PocketPetTransaction {
   }
 
   async listPets(): Promise<OwnedPet[]> {
-    const pets = await this.tx.pet.findMany({
-      where: { guestSessionId: this.guestId }, include: petInclude(), orderBy: { createdAt: 'desc' }
+    const records = await this.tx.pet.findMany({
+      where: { guestSessionId: this.guestId }, include: PET_SNAPSHOT_INCLUDE,
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }]
     });
-    return pets.map(toOwnedPet);
+    return records.map(record => this.remember(toOwnedPet(record)));
   }
 
   async getPet(petId: string): Promise<OwnedPet | null> {
-    const pet = await this.tx.pet.findFirst({
-      where: { id: petId, guestSessionId: this.guestId }, include: petInclude()
+    const record = await this.tx.pet.findFirst({
+      where: { id: petId, guestSessionId: this.guestId }, include: PET_SNAPSHOT_INCLUDE
     });
-    return pet ? toOwnedPet(pet) : null;
+    return record ? this.remember(toOwnedPet(record)) : null;
+  }
+
+  async listHistory(petId: string, cursor: PetHistoryCursor | null, limit: number): Promise<PetCareActionEntry[]> {
+    const records = await this.tx.petCareAction.findMany({
+      where: {
+        petId, pet: { guestSessionId: this.guestId },
+        ...(cursor ? { OR: [
+          { appliedAt: { lt: new Date(cursor.appliedAt) } },
+          { appliedAt: new Date(cursor.appliedAt), id: { lt: cursor.id } }
+        ] } : {})
+      },
+      orderBy: [{ appliedAt: 'desc' }, { id: 'desc' }], take: limit
+    });
+    return records.map(toCareHistoryEntry);
   }
 
   async createPet(pet: OwnedPet): Promise<OwnedPet> {
-    await this.tx.pet.create({
-      data: { id: pet.id, guestSessionId: this.guestId, ...petCoreData(pet) }
+    if (pet.careHistoryCount !== 0) throw new Error('A new pet cannot have history.');
+    const record = await this.tx.pet.create({
+      data: {
+        id: pet.id, guestSessionId: this.guestId, ...petCoreData(pet),
+        stats: { create: statsData(pet.stats) },
+        playerEnergy: { create: playerEnergyData(pet.playerEnergy) },
+        actionCooldowns: { create: PET_CARE_ACTION_IDS.map(actionId => ({
+          actionId, lastActionAt: dateOrNull(pet.lastActionAt[actionId])
+        })) },
+        ...(pet.farewell ? { farewell: { create: farewellData(pet) } } : {})
+      }, include: PET_SNAPSHOT_INCLUDE
     });
-    await this.tx.petStats.create({ data: { petId: pet.id, ...statsData(pet.stats) } });
-    await this.tx.playerEnergy.create({ data: { petId: pet.id, ...playerEnergyData(pet.playerEnergy) } });
-    await this.tx.petActionCooldown.createMany({
-      data: PET_CARE_ACTION_IDS.map((actionId) => ({
-        petId: pet.id, actionId, lastActionAt: dateOrNull(pet.lastActionAt[actionId])
-      }))
-    });
-    if (pet.farewell) {
-      await this.tx.petFarewellResult.create({ data: { petId: pet.id, ...farewellData(pet) } });
-    }
-    await this.saveHistory(pet);
-    return this.requirePet(pet.id);
+    return this.remember(toOwnedPet(record));
   }
 
-  async savePet(pet: OwnedPet): Promise<OwnedPet> {
-    await this.requirePet(pet.id);
-    await this.tx.pet.update({ where: { id: pet.id, guestSessionId: this.guestId }, data: petCoreData(pet) });
-    await this.tx.petStats.upsert({
-      where: { petId: pet.id }, update: statsData(pet.stats), create: { petId: pet.id, ...statsData(pet.stats) }
-    });
-    await this.tx.playerEnergy.upsert({
-      where: { petId: pet.id }, update: playerEnergyData(pet.playerEnergy),
-      create: { petId: pet.id, ...playerEnergyData(pet.playerEnergy) }
-    });
-    for (const actionId of PET_CARE_ACTION_IDS) {
-      const lastActionAt = dateOrNull(pet.lastActionAt[actionId]);
-      await this.tx.petActionCooldown.upsert({
-        where: { petId_actionId: { petId: pet.id, actionId } },
-        update: { lastActionAt }, create: { petId: pet.id, actionId, lastActionAt }
-      });
-    }
-    if (pet.farewell) {
-      await this.tx.petFarewellResult.upsert({
-        where: { petId: pet.id }, update: farewellData(pet), create: { petId: pet.id, ...farewellData(pet) }
-      });
-    } else {
-      await this.tx.petFarewellResult.deleteMany({ where: { petId: pet.id } });
-    }
-    await this.saveHistory(pet);
-    return this.requirePet(pet.id);
-  }
-
-  private async saveHistory(pet: OwnedPet): Promise<void> {
-    for (const entry of pet.careHistory) {
+  async savePet(pet: OwnedPet, entry: PetCareActionEntry | null = null): Promise<OwnedPet> {
+    const previous = this.snapshots.get(pet.id) ?? await this.getPet(pet.id);
+    if (!previous) throw new Error('Pet does not belong to the transaction guest.');
+    let added = 0;
+    if (entry) {
       const existing = await this.tx.petCareAction.findUnique({ where: { id: entry.id } });
       if (existing) {
-        if (existing.petId !== pet.id || !isDeepStrictEqual(normalizeCareHistory([existing])[0], entry)) {
+        if (existing.petId !== pet.id || !isDeepStrictEqual(toCareHistoryEntry(existing), entry)) {
           throw new Error('Care history event conflicts with its persisted owner or content.');
         }
       } else {
         await this.tx.petCareAction.create({ data: careHistoryData(pet.id, entry) });
+        added = 1;
       }
     }
+    if (pet.careHistoryCount !== previous.careHistoryCount + added) {
+      throw new Error('Care history count does not match appended events.');
+    }
+    if (!isDeepStrictEqual(petCoreData(previous), petCoreData(pet))) {
+      await this.tx.pet.update({ where: { id: pet.id, guestSessionId: this.guestId }, data: petCoreData(pet) });
+    }
+    if (!isDeepStrictEqual(previous.stats, pet.stats)) {
+      await this.tx.petStats.update({ where: { petId: pet.id }, data: statsData(pet.stats) });
+    }
+    if (!isDeepStrictEqual(previous.playerEnergy, pet.playerEnergy)) {
+      await this.tx.playerEnergy.update({ where: { petId: pet.id }, data: playerEnergyData(pet.playerEnergy) });
+    }
+    for (const actionId of PET_CARE_ACTION_IDS) {
+      if (previous.lastActionAt[actionId] !== pet.lastActionAt[actionId]) {
+        await this.tx.petActionCooldown.update({
+          where: { petId_actionId: { petId: pet.id, actionId } },
+          data: { lastActionAt: dateOrNull(pet.lastActionAt[actionId]) }
+        });
+      }
+    }
+    if (!isDeepStrictEqual(previous.farewell, pet.farewell)) {
+      if (previous.farewell) throw new Error('A persisted farewell is immutable.');
+      if (pet.farewell) await this.tx.petFarewellResult.create({ data: { petId: pet.id, ...farewellData(pet) } });
+    }
+    return this.remember(pet);
   }
 
-  private async requirePet(petId: string): Promise<OwnedPet> {
-    const pet = await this.getPet(petId);
-    if (!pet) {
-      throw new Error('Pet does not belong to the transaction guest or was not persisted.');
-    }
+  private remember(pet: OwnedPet): OwnedPet {
+    this.snapshots.set(pet.id, structuredClone(pet));
     return pet;
   }
 }
 
-function petInclude() {
-  return {
-    stats: true,
-    playerEnergy: true,
-    actionCooldowns: true,
-    careHistory: {
-      orderBy: [{ appliedAt: 'asc' }, { id: 'asc' }]
-    },
-    farewell: true
-  } satisfies Prisma.PetInclude;
-}
-
-function toGuestSession(record: { id: string; createdAt: Date; lastSeenAt: Date }): GuestSession {
-  return {
-    id: String(record.id),
-    createdAt: dateToIso(record.createdAt),
-    lastSeenAt: dateToIso(record.lastSeenAt)
-  };
-}
-
-function toOwnedPet(record: unknown): OwnedPet {
-  const petRecord = record as Record<string, any>;
-
-  return {
-    id: String(petRecord.id),
-    name: String(petRecord.name),
-    petId: normalizePetId(petRecord.petId),
-    mode: normalizePetMode(petRecord.mode),
-    status: normalizeStatus(petRecord.status),
-    mood: normalizeMood(petRecord.mood),
-    periodOfLife: normalizePeriodOfLife(petRecord.periodOfLife),
-    stats: normalizeStats(petRecord.stats as Partial<PetStats> | undefined),
-    sessionLengthId: normalizeSessionLengthId(petRecord.sessionLengthId),
-    createdAt: dateToIso(petRecord.createdAt),
-    endsAt: dateToIso(petRecord.endsAt),
-    lastResolvedAt: dateToIso(petRecord.lastResolvedAt),
-    playerEnergy: normalizePlayerEnergy(petRecord.playerEnergy, petRecord.createdAt),
-    lastActionAt: normalizeLastActionAt(petRecord.actionCooldowns),
-    isLightOn: petRecord.isLightOn !== false,
-    awayUntil: nullableDateToIso(petRecord.awayUntil),
-    careHistory: normalizeCareHistory(petRecord.careHistory),
-    farewell: petRecord.farewell ? {
-      reason: petRecord.farewell.reason,
-      farewellAt: dateToIso(petRecord.farewell.farewellAt),
-      phraseId: petRecord.farewell.phraseId,
-      finalCareScore: Number(petRecord.farewell.finalCareScore),
-      finalStats: normalizeStats(petRecord.farewell.finalStats as Partial<PetStats>)
-    } : null
-  };
-}
-
-function normalizePlayerEnergy(value: unknown, createdAt: unknown): PlayerEnergyState {
-  const energyRecord = value as Record<string, unknown> | null;
-
-  if (!energyRecord) {
-    return createInitialPlayerEnergy(new Date(dateToIso(createdAt)));
-  }
-
-  return {
-    current: Number(energyRecord.current),
-    max: Number(energyRecord.max),
-    lastRecoveredAt: dateToIso(energyRecord.lastRecoveredAt)
-  };
-}
-
-function normalizeLastActionAt(value: unknown): Record<PetCareActionId, string | null> {
-  const lastActionAt = createEmptyLastActionAt();
-
-  if (!Array.isArray(value)) {
-    return lastActionAt;
-  }
-
-  for (const cooldown of value) {
-    const cooldownRecord = cooldown as Record<string, unknown>;
-    const actionId = cooldownRecord.actionId;
-
-    if (isCareActionId(actionId)) {
-      lastActionAt[actionId] = nullableDateToIso(cooldownRecord.lastActionAt);
-    }
-  }
-
-  return lastActionAt;
-}
-
-function normalizeCareHistory(value: unknown): PetCareActionEntry[] {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-
-  return value.map((entry: unknown): PetCareActionEntry => {
-    const entryRecord = entry as Record<string, any>;
-
-    return {
-      id: String(entryRecord.id),
-      actionId: isCareActionId(entryRecord.actionId) ? entryRecord.actionId : 'feed',
-      appliedAt: dateToIso(entryRecord.appliedAt),
-      statsBefore: normalizeStats(entryRecord.statsBefore as Partial<PetStats>),
-      statsAfter: normalizeStats(entryRecord.statsAfter as Partial<PetStats>),
-      careScoreBefore: Number(entryRecord.careScoreBefore),
-      careScoreAfter: Number(entryRecord.careScoreAfter),
-      moodBefore: normalizeMood(entryRecord.moodBefore),
-      moodAfter: normalizeMood(entryRecord.moodAfter),
-      isLightOnBefore: entryRecord.isLightOnBefore !== false,
-      isLightOnAfter: entryRecord.isLightOnAfter !== false,
-      awayUntilBefore: nullableDateToIso(entryRecord.awayUntilBefore),
-      awayUntilAfter: nullableDateToIso(entryRecord.awayUntilAfter)
-    };
-  });
-}
-
 function petCoreData(pet: OwnedPet) {
   return {
+    careHistoryCount: pet.careHistoryCount,
     name: pet.name,
     petId: pet.petId,
     mode: pet.mode,
@@ -421,76 +306,4 @@ function dateOrNull(value: string | null): Date | null {
 
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? null : date;
-}
-
-function nullableDateToIso(value: unknown): string | null {
-  if (!value) {
-    return null;
-  }
-
-  const date = new Date(value as string | Date);
-  return Number.isNaN(date.getTime()) ? null : date.toISOString();
-}
-
-function dateToIso(value: unknown): string {
-  const date = new Date(value as string | Date);
-  return Number.isNaN(date.getTime()) ? new Date(0).toISOString() : date.toISOString();
-}
-
-function normalizePetId(value: unknown): PetId {
-  if (value === 'dog' || value === 'parrot' || value === 'dinosaur' || value === 'dragon') {
-    return value;
-  }
-
-  return 'cat';
-}
-
-function normalizePetMode(value: unknown): PetMode {
-  if (value === 'medium' || value === 'insane') {
-    return value;
-  }
-
-  return 'easy';
-}
-
-function normalizeStatus(value: unknown): PetStatus {
-  if (value === 'grown' || value === 'left') {
-    return value;
-  }
-
-  return 'pet';
-}
-
-function normalizeMood(value: unknown): PetMood {
-  if (
-    value === 'neutral' ||
-    value === 'angry' ||
-    value === 'upset' ||
-    value === 'thoughtful' ||
-    value === 'irritated'
-  ) {
-    return value;
-  }
-
-  return 'joyful';
-}
-
-function normalizePeriodOfLife(value: unknown): PetPeriodOfLife {
-  if (value === 'child' || value === 'adult') {
-    return value;
-  }
-
-  return 'teen';
-}
-
-function normalizeSessionLengthId(value: unknown): SessionLengthId {
-  if (value === 'short' || value === 'long') {
-    return value;
-  }
-
-  return 'standard';
-}
-
-function isCareActionId(value: unknown): value is PetCareActionId {
-  return PET_CARE_ACTION_IDS.includes(value as PetCareActionId);
 }
