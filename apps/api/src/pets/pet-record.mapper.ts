@@ -76,6 +76,7 @@ export function toOwnedPet(record: PetRecord): OwnedPet {
     periodOfLife: enumValue<OwnedPet['periodOfLife']>(record.periodOfLife, ['child', 'teen', 'adult'], `${field}.periodOfLife`),
     sessionLengthId: enumValue<OwnedPet['sessionLengthId']>(record.sessionLengthId, ['short', 'standard', 'long'], `${field}.sessionLengthId`),
     stats: statsValue(record.stats, `${field}.stats`),
+    trust: numberValue(record.trust, `${field}.trust`),
     createdAt: iso(record.createdAt, `${field}.createdAt`),
     endsAt: iso(record.endsAt, `${field}.endsAt`),
     lastResolvedAt: iso(record.lastResolvedAt, `${field}.lastResolvedAt`),

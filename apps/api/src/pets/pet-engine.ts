@@ -17,6 +17,7 @@ import {
   PetStatus
 } from './pet-domain.types';
 import { PetSpeciesTraits, petSpeciesTraits } from './pet-species-traits';
+import { PET_TRUST } from './pet-trust';
 
 const HOUR_MS = 60 * 60 * 1000;
 const MINUTE_MS = 60 * 1000;
@@ -163,10 +164,11 @@ export function createInitialPetCareState(
   now: Date = new Date()
 ): Pick<
   OwnedPet,
-  'stats' | 'lastResolvedAt' | 'playerEnergy' | 'lastActionAt' | 'isLightOn' | 'awayUntil' | 'careHistoryCount' | 'farewell'
+  'stats' | 'trust' | 'lastResolvedAt' | 'playerEnergy' | 'lastActionAt' | 'isLightOn' | 'awayUntil' | 'careHistoryCount' | 'farewell'
 > {
   return {
     stats: { ...DEFAULT_PET_STATS },
+    trust: PET_TRUST.initial,
     lastResolvedAt: now.toISOString(),
     playerEnergy: createInitialPlayerEnergy(now),
     lastActionAt: createEmptyLastActionAt(),

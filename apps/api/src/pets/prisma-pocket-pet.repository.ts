@@ -228,6 +228,7 @@ class PrismaPetTransaction implements PocketPetTransaction {
 function petCoreData(pet: OwnedPet) {
   return {
     careHistoryCount: pet.careHistoryCount,
+    trust: pet.trust,
     name: pet.name,
     petId: pet.petId,
     mode: pet.mode,

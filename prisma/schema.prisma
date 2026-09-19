@@ -33,6 +33,7 @@ model Pet {
   isLightOn       Boolean             @default(true)
   awayUntil       DateTime?
   careHistoryCount Int               @default(0)
+  trust           Float              @default(50)
   stats           PetStats?
   playerEnergy    PlayerEnergy?
   actionCooldowns PetActionCooldown[]

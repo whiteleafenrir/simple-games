@@ -19,14 +19,14 @@ export class PetsController {
 
   @Get()
   @Header('Cache-Control', 'no-store')
-  @ApiOperation({ summary: 'Посмотреть питомцев гостя', description: 'Текущие snapshots с careHistoryCount, без массива истории. Сохраняет изменения активного питомца с учётом прошедшего времени.' })
+  @ApiOperation({ summary: 'Посмотреть питомцев гостя', description: 'Текущие snapshots с careHistoryCount и отдельным trust (0–100), без массива истории. Сохраняет изменения активного питомца с учётом прошедшего времени.' })
   listPets(@Param('guestId') guestId: string): Promise<OwnedPet[]> {
     return this.pocketPetService.listPets(guestId);
   }
 
   @Post()
   @Header('Cache-Control', 'no-store')
-  @ApiOperation({ summary: 'Создать питомца', description: 'У гостя может быть только один активный питомец. short — 1 день, standard — 3 дня, long — 7 дней.' })
+  @ApiOperation({ summary: 'Создать питомца', description: 'У гостя может быть только один активный питомец. short — 1 день, standard — 3 дня, long — 7 дней. Доверие trust задаётся сервером: начальное значение 50.' })
   @ApiBody({ schema: {
     type: 'object', additionalProperties: false, required: ['name', 'petId', 'sessionLengthId'],
     properties: {
@@ -45,7 +45,7 @@ export class PetsController {
   @Get(':petId')
   @Header('Cache-Control', 'no-store')
   @ApiParam({ name: 'petId', schema: { type: 'string', format: 'uuid' }, description: 'UUID v4 созданного питомца.' })
-  @ApiOperation({ summary: 'Посмотреть питомца по id', description: 'Актуализирует и сохраняет состояние по серверному времени. petId в URL — UUID созданного питомца, а не название вида.' })
+  @ApiOperation({ summary: 'Посмотреть питомца по id', description: 'Актуализирует и сохраняет состояние по серверному времени. Snapshot включает отдельное доверие trust (0–100), не входящее в care score. petId в URL — UUID созданного питомца, а не название вида.' })
   getPet(
     @Param('guestId') guestId: string,
     @Param('petId', new ParseUUIDPipe({ version: '4' })) petId: string

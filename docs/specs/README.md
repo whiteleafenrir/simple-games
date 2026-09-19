@@ -13,6 +13,7 @@
 
 Текущие спецификации:
 
+- [Вопросы как активность питомца](question-activity.md) — основа Q1 реализована, Q2–Q3 запланированы; стартовый баланс требует игрового прогона, формат дракона относится к DLC.
 - [Backend source of truth](backend-source-of-truth.md)
 - [T4: устойчивость данных и клиента](data-client-resilience.md)
 - [T5: миграции, общий контракт и CI](shared-environment.md)

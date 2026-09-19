@@ -68,6 +68,8 @@ export interface OwnedPet {
   mood: PetMood;
   periodOfLife: PetPeriodOfLife;
   stats: PetStats;
+  /** Отдельное доверие 0..100; не входит в care score. */
+  trust: number;
   sessionLengthId: SessionLengthId;
   createdAt: string;
   endsAt: string;
