@@ -6,6 +6,7 @@ import { GuestSession, OwnedPet, PetCareActionEntry, PetHistoryCursor, PetStats,
 import { PET_CARE_ACTIONS, PET_CARE_ACTION_IDS } from './pet-engine';
 import { ActivePetConflictError, GuestSessionNotFoundError, PocketPetRepository, PocketPetTransaction } from './pocket-pet.repository';
 import { PET_SNAPSHOT_INCLUDE, toGuestSession, toOwnedPet, toCareHistoryEntry } from './pet-record.mapper';
+import { StoredQuestionAttempt, toStoredQuestion } from './pet-question-attempt';
 
 @Injectable()
 export class PrismaPocketPetRepository implements PocketPetRepository {
@@ -222,6 +223,57 @@ class PrismaPetTransaction implements PocketPetTransaction {
   private remember(pet: OwnedPet): OwnedPet {
     this.snapshots.set(pet.id, structuredClone(pet));
     return pet;
+  }
+
+  async latestQuestion(petId: string): Promise<StoredQuestionAttempt | null> {
+    const record = await this.tx.petQuestionAttempt.findFirst({
+      where: { petId, pet: { guestSessionId: this.guestId } }, orderBy: [{ issuedAt: 'desc' }, { id: 'desc' }]
+    });
+    return record ? toStoredQuestion(record) : null;
+  }
+
+  async getQuestion(petId: string, attemptId: string): Promise<StoredQuestionAttempt | null> {
+    const record = await this.tx.petQuestionAttempt.findFirst({ where: { id: attemptId, petId, pet: { guestSessionId: this.guestId } } });
+    return record ? toStoredQuestion(record) : null;
+  }
+
+  async askedQuestionIds(petId: string): Promise<string[]> {
+    const records = await this.tx.petQuestionAttempt.findMany({
+      where: { petId, pet: { guestSessionId: this.guestId } }, select: { questionId: true }, distinct: ['questionId']
+    });
+    return records.map(record => record.questionId);
+  }
+
+  async saveQuestion(attempt: StoredQuestionAttempt): Promise<void> {
+    if (!this.snapshots.has(attempt.petId) && !await this.getPet(attempt.petId)) throw new Error('Question pet does not belong to guest.');
+    const previous = await this.getQuestion(attempt.petId, attempt.id);
+    if (previous?.completedAt) {
+      if (!isDeepStrictEqual(previous, attempt)) throw new Error('A completed question is immutable.');
+      return;
+    }
+    const { definition, issuedAt, completedAt, ...fields } = attempt;
+    const data = {
+      ...fields, issuedAt: new Date(issuedAt), completedAt: completedAt ? new Date(completedAt) : null,
+      definition: { ...definition, content: { ru: { ...definition.content.ru }, en: { ...definition.content.en } } }
+    } satisfies Prisma.PetQuestionAttemptUncheckedCreateInput;
+    if (previous) {
+      await this.tx.petQuestionAttempt.update({ where: { id: attempt.id, petId: attempt.petId, completedAt: null }, data });
+    } else {
+      await this.tx.petQuestionAttempt.create({ data });
+    }
+  }
+
+  async questionHistory(petId: string, cursor: PetHistoryCursor | null, limit: number): Promise<StoredQuestionAttempt[]> {
+    const records = await this.tx.petQuestionAttempt.findMany({
+      where: {
+        petId, pet: { guestSessionId: this.guestId }, completedAt: { not: null },
+        ...(cursor ? { OR: [
+          { completedAt: { lt: new Date(cursor.appliedAt) } },
+          { completedAt: new Date(cursor.appliedAt), id: { lt: cursor.id } }
+        ] } : {})
+      }, orderBy: [{ completedAt: 'desc' }, { id: 'desc' }], take: limit
+    });
+    return records.map(toStoredQuestion);
   }
 }
 

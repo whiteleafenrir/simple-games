@@ -3,6 +3,7 @@ import { isDeepStrictEqual } from 'node:util';
 
 import { GuestSession, OwnedPet, PetCareActionEntry, PetHistoryCursor } from './pet-domain.types';
 import { ActivePetConflictError, GuestSessionNotFoundError, PocketPetRepository, PocketPetTransaction } from './pocket-pet.repository';
+import { StoredQuestionAttempt } from './pet-question-attempt';
 
 interface StoredPet {
   guestId: string;
@@ -13,6 +14,7 @@ interface StoredEvent { petId: string; entry: PetCareActionEntry; }
 
 export class InMemoryPocketPetRepository implements PocketPetRepository {
   private readonly events = new Map<string, StoredEvent>();
+  private readonly questions = new Map<string, StoredQuestionAttempt>();
   private readonly sessions = new Map<string, GuestSession>();
   private readonly pets = new Map<string, StoredPet>();
   private readonly guestQueues = new Map<string, Promise<void>>();
@@ -91,13 +93,15 @@ export class InMemoryPocketPetRepository implements PocketPetRepository {
       }
       const pets = new Map([...this.pets.values()]
         .filter((stored) => stored.guestId === guestId).map((stored) => [stored.pet.id, clone(stored.pet)]));
-      const tx = new MemoryPetTransaction(clone(session), pets, new Map(this.events));
+      const questions = new Map([...this.questions].filter(([, attempt]) => pets.has(attempt.petId)).map(([id, attempt]) => [id, clone(attempt)]));
+      const tx = new MemoryPetTransaction(clone(session), pets, new Map(this.events), questions);
       const result = await operation(tx);
       for (const [id, event] of tx.addedEvents) {
         const existing = this.events.get(id);
         if (existing && !isDeepStrictEqual(existing, event)) throw new Error('Care history event conflicts with its persisted owner or content.');
       }
       for (const [id, event] of tx.addedEvents) this.events.set(id, clone(event));
+      for (const [id, attempt] of questions) this.questions.set(id, clone(attempt));
       this.sessions.set(guestId, tx.session);
       for (const pet of pets.values()) {
         this.pets.set(pet.id, { guestId, pet: clone(pet) });
@@ -112,7 +116,7 @@ export class InMemoryPocketPetRepository implements PocketPetRepository {
 
 class MemoryPetTransaction implements PocketPetTransaction {
   readonly addedEvents = new Map<string, StoredEvent>();
-  constructor(public session: GuestSession, private readonly pets: Map<string, OwnedPet>, private readonly events: Map<string, StoredEvent>) {}
+  constructor(public session: GuestSession, private readonly pets: Map<string, OwnedPet>, private readonly events: Map<string, StoredEvent>, private readonly questions: Map<string, StoredQuestionAttempt>) {}
 
   async touchGuestSession(now: Date): Promise<void> {
     this.session = { ...this.session, lastSeenAt: now.toISOString() };
@@ -162,6 +166,39 @@ class MemoryPetTransaction implements PocketPetTransaction {
     if (pet.status === 'pet' && [...this.pets.values()].some(other => other.id !== pet.id && other.status === 'pet')) throw new ActivePetConflictError();
     this.pets.set(pet.id, clone(pet));
     return clone(pet);
+  }
+
+  async latestQuestion(petId: string): Promise<StoredQuestionAttempt | null> {
+    const attempts = [...this.questions.values()].filter(attempt => attempt.petId === petId && this.pets.has(petId))
+      .sort((a, b) => b.issuedAt.localeCompare(a.issuedAt) || b.id.localeCompare(a.id));
+    return attempts[0] ? clone(attempts[0]) : null;
+  }
+
+  async getQuestion(petId: string, attemptId: string): Promise<StoredQuestionAttempt | null> {
+    const attempt = this.questions.get(attemptId);
+    return attempt?.petId === petId && this.pets.has(petId) ? clone(attempt) : null;
+  }
+
+  async askedQuestionIds(petId: string): Promise<string[]> {
+    return [...new Set([...this.questions.values()].filter(attempt => attempt.petId === petId && this.pets.has(petId)).map(attempt => attempt.questionId))];
+  }
+
+  async saveQuestion(attempt: StoredQuestionAttempt): Promise<void> {
+    if (!this.pets.has(attempt.petId)) throw new Error('Question pet does not belong to guest.');
+    const previous = this.questions.get(attempt.id);
+    if (previous && (previous.petId !== attempt.petId || (previous.completedAt && !isDeepStrictEqual(previous, attempt)))) {
+      throw new Error('A completed question is immutable.');
+    }
+    if (!attempt.completedAt && [...this.questions.values()].some(other => other.petId === attempt.petId && other.id !== attempt.id && !other.completedAt)) {
+      throw new Error('Only one pending question is allowed.');
+    }
+    this.questions.set(attempt.id, clone(attempt));
+  }
+
+  async questionHistory(petId: string, cursor: PetHistoryCursor | null, limit: number): Promise<StoredQuestionAttempt[]> {
+    return [...this.questions.values()].filter(attempt => attempt.petId === petId && this.pets.has(petId) && attempt.completedAt)
+      .filter(attempt => !cursor || attempt.completedAt! < cursor.appliedAt || (attempt.completedAt === cursor.appliedAt && attempt.id < cursor.id))
+      .sort((a, b) => b.completedAt!.localeCompare(a.completedAt!) || b.id.localeCompare(a.id)).slice(0, limit).map(clone);
   }
 }
 

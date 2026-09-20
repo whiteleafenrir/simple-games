@@ -1,4 +1,5 @@
 import { GuestSession, OwnedPet, PetCareActionEntry, PetHistoryCursor } from './pet-domain.types';
+import { StoredQuestionAttempt } from './pet-question-attempt';
 
 export const POCKET_PET_REPOSITORY = Symbol('POCKET_PET_REPOSITORY');
 
@@ -12,6 +13,11 @@ export interface PocketPetTransaction {
   createPet(pet: OwnedPet): Promise<OwnedPet>;
   savePet(pet: OwnedPet, entry?: PetCareActionEntry | null): Promise<OwnedPet>;
   listHistory(petId: string, cursor: PetHistoryCursor | null, limit: number): Promise<PetCareActionEntry[]>;
+  latestQuestion(petId: string): Promise<StoredQuestionAttempt | null>;
+  getQuestion(petId: string, attemptId: string): Promise<StoredQuestionAttempt | null>;
+  askedQuestionIds(petId: string): Promise<string[]>;
+  saveQuestion(attempt: StoredQuestionAttempt): Promise<void>;
+  questionHistory(petId: string, cursor: PetHistoryCursor | null, limit: number): Promise<StoredQuestionAttempt[]>;
 }
 
 export interface PocketPetRepository {

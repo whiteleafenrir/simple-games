@@ -36,10 +36,15 @@ Base path: `/api`.
 | `GET` | `/guest-sessions/:guestId/pets/:petId` | Получить одного питомца с актуализированным состоянием. |
 | `GET` | `/guest-sessions/:guestId/pets/:petId/history?cursor=...` | Получить страницу истории: 50 событий от новых к старым и `nextCursor`. |
 | `POST` | `/guest-sessions/:guestId/pets/:petId/actions` | Применить care action и вернуть authoritative result. |
+| `POST` | `/guest-sessions/:guestId/pets/:petId/questions` | Открыть сохранённый или новый вопрос RU/EN по возрасту. |
+| `POST` | `/guest-sessions/:guestId/pets/:petId/questions/:attemptId/answer` | Сохранить ответ/отказ и применить эффект ровно один раз. |
+| `GET` | `/guest-sessions/:guestId/pets/:petId/questions/history?cursor=...` | История вопросов по 20 исходов, новые первыми. |
 
 Snapshot питомца содержит `careHistoryCount`, без массива истории. Результат действия содержит snapshot и одно `historyEntry` либо `null` при игровом отказе. История загружается отдельно при открытии профиля питомца.
 
 **Q1, 2026-09-19:** snapshot также содержит отдельное поле `trust` (0..100, старт 50). Оно хранится в `Pet`, не входит в `PetStats`/care score и не меняется от текущего ухода или времени. Клиент не задаёт доверие в запросах. Миграция `20260919000000_pet_trust` применяется через `db:deploy`; детали — [спецификация вопросов](question-activity.md#стартовые-допущения-q1).
+
+**Q2, 2026-09-19:** вопросы меняют радость и доверие в общей транзакции гостя. Попытки и результаты хранятся в `PetQuestionAttempt`, отдельно от истории ухода. Миграция `20260919010000_question_attempts` применена локально без изменения прежних данных; [контракт Q2](question-activity.md#реализация-q2-2026-09-19).
 
 ### T1: граница API (решение 2026-09-08)
 

@@ -39,6 +39,7 @@ model Pet {
   actionCooldowns PetActionCooldown[]
   careHistory     PetCareAction[]
   farewell        PetFarewellResult?
+  questionAttempts PetQuestionAttempt[]
 
   @@index([guestSessionId])
   @@index([guestSessionId, status])
@@ -105,4 +106,25 @@ model PetFarewellResult {
   phraseId       String
   finalCareScore Float
   finalStats     Json
+}
+
+model PetQuestionAttempt {
+  id                String   @id
+  petId             String
+  pet               Pet      @relation(fields: [petId], references: [id], onDelete: Cascade)
+  questionId        String
+  definition        Json
+  optionOrder       String[]
+  language          String
+  issuedAt          DateTime
+  completedAt       DateTime?
+  outcome           String?
+  selectedOptionId  String?
+  activityCompleted Boolean?
+  happinessChange   Float?
+  trustChange       Float?
+
+  @@index([petId, issuedAt, id])
+  @@index([petId, completedAt, id])
+  @@unique([petId], map: "PetQuestionAttempt_one_pending", where: { completedAt: null })
 }

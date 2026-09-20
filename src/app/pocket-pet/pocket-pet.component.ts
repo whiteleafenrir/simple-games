@@ -6,6 +6,7 @@ import { map } from 'rxjs';
 import { I18nService } from '../i18n/i18n.service';
 import { TranslationKey } from '../i18n/translations';
 import { PetStatsComponent } from '../pets/pet-stats.component';
+import { PetQuestionsComponent } from '../pets/pet-questions.component';
 import { PetDatePipe } from '../pets/pet-date.pipe';
 import {
   PET_CARE_ACTION_IDS,
@@ -36,6 +37,7 @@ import { PetOption, SessionLength } from './pocket-pet.model';
   imports: [
     RouterLink,
     PetStatsComponent,
+    PetQuestionsComponent,
     PetDatePipe
   ],
   templateUrl: './pocket-pet.component.html',

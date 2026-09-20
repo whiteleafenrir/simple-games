@@ -68,6 +68,7 @@
       <p class="care-message" role="status">{{ i18n.t(message) }}</p>
     }
   </section>
+  <app-pet-questions [pet]="pet" />
 </section>
 } @if (!viewedPet()) {
 <section class="pet-page">

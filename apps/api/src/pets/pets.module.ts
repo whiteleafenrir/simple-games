@@ -8,6 +8,8 @@ import { PetsController } from './pets.controller';
 import { POCKET_PET_REPOSITORY } from './pocket-pet.repository';
 import { PocketPetService } from './pocket-pet.service';
 import { PrismaPocketPetRepository } from './prisma-pocket-pet.repository';
+import { PetQuestionService } from './pet-question.service';
+import { PetQuestionsController } from './pet-questions.controller';
 
 @Module({
   imports: [
@@ -15,10 +17,12 @@ import { PrismaPocketPetRepository } from './prisma-pocket-pet.repository';
   ],
   controllers: [
     GuestSessionsController,
-    PetsController
+    PetsController,
+    PetQuestionsController
   ],
   providers: [
     PocketPetService,
+    PetQuestionService,
     GuestSessionAuthService,
     GuestSessionGuard,
     {

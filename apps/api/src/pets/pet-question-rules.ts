@@ -1,10 +1,10 @@
-import { OwnedPet } from './pet-domain.types';
+import { OwnedPet, QuestionOutcome, QuestionFailureReason } from './pet-domain.types';
 import { normalizeStats, petMood } from './pet-engine';
 import { changePetTrust } from './pet-trust';
 
-export type QuestionOutcome = 'correct' | 'incorrect' | 'declined';
+export type { QuestionOutcome } from './pet-domain.types';
 
-// Provisional Q1 values, kept on the server. Attempt validation belongs to Q2.
+// Provisional Q1 balance, kept on the server; tuning belongs to Q3.
 export const QUESTION_ACTIVITY_RULES = {
   playerEnergyCost: 0,
   cooldownMinutes: 30,
@@ -20,7 +20,7 @@ export interface QuestionOutcomeState extends Pick<OwnedPet, 'stats' | 'trust' |
 }
 
 // Pure calculation for a server-verified outcome, not a command to award credit.
-// Q2 must validate the active attempt and persist its outcome exactly once.
+// The question service validates the attempt and persists its outcome exactly once.
 export function resolveQuestionOutcome(
   pet: Pick<OwnedPet, 'stats' | 'trust'>,
   outcome: QuestionOutcome
@@ -33,4 +33,16 @@ export function resolveQuestionOutcome(
     mood: petMood(stats),
     activityCompleted: effect.activityCompleted
   };
+}
+
+export function questionFailureReason(pet: OwnedPet): QuestionFailureReason | null {
+  if (pet.status !== 'pet') return 'inactive';
+  if (pet.awayUntil) return 'away';
+  if (!pet.isLightOn) return 'sleeping';
+  if (pet.petId === 'dragon') return 'no-content';
+  return null;
+}
+
+export function questionReadyAt(completedAt: string): string {
+  return new Date(Date.parse(completedAt) + QUESTION_ACTIVITY_RULES.cooldownMinutes * 60_000).toISOString();
 }

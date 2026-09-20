@@ -2,6 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom, Observable, timeout } from 'rxjs';
 import type { ApplyCareActionRequest, CreatePetRequest, GuestSession } from '@simple-games/pet-contract';
+import type { AnswerQuestionRequest, PetQuestionHistoryPage, PetQuestionResponse, QuestionLanguage, StartQuestionRequest } from '@simple-games/pet-contract';
 
 import { PetOption, SessionLength } from '../pocket-pet/pocket-pet.model';
 import { OwnedPet, PetCareActionId, PetCareActionResult, PetHistoryPage } from './owned-pet.model';
@@ -58,5 +59,24 @@ export class PetApiService {
       `${API_BASE_URL}/guest-sessions/${encodeURIComponent(guestId)}/pets/${encodeURIComponent(petId)}/history`,
       { ...REQUEST_OPTIONS, params: cursor ? { cursor } : {} }
     ));
+  }
+
+  startQuestion(guestId: string, petId: string, language: QuestionLanguage): Promise<PetQuestionResponse> {
+    return this.request(this.http.post<PetQuestionResponse>(this.questionsUrl(guestId, petId),
+      { language } satisfies StartQuestionRequest, REQUEST_OPTIONS));
+  }
+
+  answerQuestion(guestId: string, petId: string, attemptId: string, optionId: string | null): Promise<PetQuestionResponse> {
+    return this.request(this.http.post<PetQuestionResponse>(`${this.questionsUrl(guestId, petId)}/${encodeURIComponent(attemptId)}/answer`,
+      { optionId } satisfies AnswerQuestionRequest, REQUEST_OPTIONS));
+  }
+
+  getQuestionHistory(guestId: string, petId: string, cursor: string | null): Promise<PetQuestionHistoryPage> {
+    return this.request(this.http.get<PetQuestionHistoryPage>(`${this.questionsUrl(guestId, petId)}/history`,
+      { ...REQUEST_OPTIONS, params: cursor ? { cursor } : {} }));
+  }
+
+  private questionsUrl(guestId: string, petId: string): string {
+    return `${API_BASE_URL}/guest-sessions/${encodeURIComponent(guestId)}/pets/${encodeURIComponent(petId)}/questions`;
   }
 }

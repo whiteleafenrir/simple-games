@@ -1,0 +1,69 @@
+<section class="questions" [attr.aria-label]="i18n.t('questionTitle')">
+  <div class="heading">
+    <div><h2>{{ i18n.t('questionTitle') }}</h2><p>{{ i18n.t(historyOnly() || pet().status !== 'pet' ? 'questionMemoryHint' : 'questionHint') }}</p></div>
+    <strong>{{ i18n.t('petTrust') }}: {{ trust() }}/100</strong>
+  </div>
+  <div class="controls">
+    @if (!historyOnly() && pet().status === 'pet') {
+      <button #openButton class="primary" type="button" [disabled]="disabled()" (click)="open()">{{ i18n.t(busy() ? 'petActionPending' : 'questionOpen') }}</button>
+    }
+    <button type="button" [attr.aria-expanded]="historyVisible()" (click)="toggleHistory()">{{ i18n.t('questionHistory') }}</button>
+  </div>
+  @if (message(); as message) { <p role="status">{{ i18n.t(message) }}</p> }
+  @if (nextAvailableAt(); as readyAt) {
+    <p class="hint">{{ i18n.t('questionNextAt') }}: {{ readyAt | petDate:i18n.language() }}</p>
+  }
+  @if (result(); as result) {
+    <div class="reaction" role="status">
+      <strong>{{ i18n.t(outcomeKey(result.outcome)) }}</strong>
+      <p>{{ i18n.t(result.activityCompleted ? 'questionParticipated' : 'questionNotParticipated') }}</p>
+      <p>{{ i18n.t('petStatHappiness') }} {{ delta(result.happinessChange) }} · {{ i18n.t('petTrust') }} {{ delta(result.trustChange) }}</p>
+      <p>{{ i18n.t('questionRightAnswer') }}: {{ correctAnswer(result) }}. {{ result.explanation[i18n.language()] }}</p>
+    </div>
+  }
+  @if (historyVisible()) {
+    <div class="history">
+      @if (historyError(); as error) {
+        <p role="alert">{{ i18n.t(error) }}</p>
+        <button type="button" [disabled]="historyBusy()" (click)="loadHistory()">{{ i18n.t('petRetry') }}</button>
+      }
+      @if (historyBusy()) { <p role="status">{{ i18n.t('petLoading') }}</p> }
+      @if (!historyBusy() && !historyError() && history().length === 0) { <p>{{ i18n.t('questionHistoryEmpty') }}</p> }
+      @for (entry of history(); track entry.attempt.id) {
+        <article>
+          <small>{{ entry.completedAt | petDate:i18n.language() }}</small>
+          <h3>{{ entry.attempt.content[i18n.language()].prompt }}</h3>
+          <p>{{ i18n.t(outcomeKey(entry.outcome)) }} {{ i18n.t(entry.activityCompleted ? 'questionParticipated' : 'questionNotParticipated') }}</p>
+          <p>{{ i18n.t('petStatHappiness') }} {{ delta(entry.happinessChange) }} · {{ i18n.t('petTrust') }} {{ delta(entry.trustChange) }}</p>
+          <p>{{ i18n.t('questionRightAnswer') }}: {{ correctAnswer(entry) }}. {{ entry.explanation[i18n.language()] }}</p>
+        </article>
+      }
+      @if (historyCursor()) {
+        <button type="button" [disabled]="historyBusy()" (click)="loadHistory(true)">{{ i18n.t('questionHistoryMore') }}</button>
+      }
+    </div>
+  }
+</section>
+
+<dialog #questionDialog aria-labelledby="question-dialog-title" aria-describedby="question-decline-hint" (cancel)="cancel($event)">
+  @if (attempt(); as attempt) {
+    <div class="dialog-heading">
+      <span>{{ pet().name }} · {{ i18n.t('questionTitle') }}</span>
+      <button type="button" class="close" [disabled]="busy() || storage.commandPending() || !!retryAnswer()" [attr.aria-label]="i18n.t('questionDecline')" (click)="answer(null)">×</button>
+    </div>
+    <h2 id="question-dialog-title" tabindex="-1" autofocus>{{ attempt.content[i18n.language()].prompt }}</h2>
+    <p class="hint" id="question-decline-hint">{{ i18n.t('questionDeclineHint') }}</p>
+    <div class="answers" [attr.aria-busy]="busy()">
+      @for (option of attempt.content[i18n.language()].options; track option.id) {
+        <button type="button" [disabled]="busy() || storage.commandPending() || !!retryAnswer()" (click)="answer(option.id)">{{ option.text }}</button>
+      }
+    </div>
+    @if (busy()) { <p role="status">{{ i18n.t('petActionPending') }}</p> }
+    @if (retryAnswer()) {
+      <div class="retry" role="alert">
+        <p>{{ i18n.t('questionAnswerError') }}</p>
+        <button type="button" [disabled]="busy() || storage.commandPending()" (click)="retry()">{{ i18n.t('petRetry') }}</button>
+      </div>
+    }
+  }
+</dialog>

@@ -5,6 +5,7 @@ import { PetOption, SessionLength } from '../pocket-pet/pocket-pet.model';
 import { OwnedPet, PetCareActionId, PetCareActionResult, PetHistoryPage } from './owned-pet.model';
 import { PetApiService } from './pet-api.service';
 import { petErrorKey } from './pet-error.utils';
+import type { PetQuestionHistoryPage, PetQuestionResponse, QuestionLanguage } from '@simple-games/pet-contract';
 
 @Injectable({ providedIn: 'root' })
 export class PetStorageService implements OnDestroy {
@@ -87,6 +88,29 @@ export class PetStorageService implements OnDestroy {
 
   petById(id: string | null): OwnedPet | null {
     return this.pets().find(pet => pet.id === id) ?? null;
+  }
+
+  startQuestion(petId: string, language: QuestionLanguage): Promise<PetQuestionResponse | null> {
+    return this.questionCommand(guestId => this.petApi.startQuestion(guestId, petId, language));
+  }
+
+  answerQuestion(petId: string, attemptId: string, optionId: string | null): Promise<PetQuestionResponse | null> {
+    return this.questionCommand(guestId => this.petApi.answerQuestion(guestId, petId, attemptId, optionId));
+  }
+
+  async getQuestionHistory(petId: string, cursor: string | null): Promise<PetQuestionHistoryPage> {
+    await this.ready();
+    const guestId = this.guestId();
+    if (!guestId) throw new Error('Guest session unavailable.');
+    return this.petApi.getQuestionHistory(guestId, petId, cursor);
+  }
+
+  private questionCommand(operation: (guestId: string) => Promise<PetQuestionResponse>): Promise<PetQuestionResponse | null> {
+    return this.command(async guestId => {
+      const result = await operation(guestId);
+      if (!this.destroyed) this.pets.update(pets => pets.map(pet => pet.id === result.pet.id ? result.pet : pet));
+      return result;
+    });
   }
 
   private async command<T>(operation: (guestId: string) => Promise<T>): Promise<T | null> {

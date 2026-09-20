@@ -7,6 +7,7 @@ import { TranslationKey } from '../i18n/translations';
 import { petErrorKey } from '../pets/pet-error.utils';
 import { I18nService } from '../i18n/i18n.service';
 import { PetStatsComponent } from '../pets/pet-stats.component';
+import { PetQuestionsComponent } from '../pets/pet-questions.component';
 import { PetDatePipe } from '../pets/pet-date.pipe';
 import {
   OwnedPet,
@@ -38,6 +39,7 @@ import { PetStorageService } from '../pets/pet-storage.service';
   imports: [
     RouterLink,
     PetStatsComponent,
+    PetQuestionsComponent,
     PetDatePipe
   ],
   templateUrl: './pet-profile.component.html',

@@ -107,3 +107,49 @@ export interface CreatePetRequest {
 export interface ApplyCareActionRequest {
   actionId: PetCareActionId;
 }
+
+export type QuestionLanguage = 'ru' | 'en';
+export type QuestionOutcome = 'correct' | 'incorrect' | 'declined';
+export type QuestionFailureReason = 'inactive' | 'sleeping' | 'away' | 'cooldown' | 'no-content';
+
+export interface QuestionContent {
+  prompt: string;
+  options: { id: string; text: string }[];
+}
+
+export interface PetQuestionAttempt {
+  id: string;
+  questionId: string;
+  version: number;
+  periodOfLife: PetPeriodOfLife;
+  language: QuestionLanguage;
+  issuedAt: string;
+  content: Record<QuestionLanguage, QuestionContent>;
+}
+
+export interface PetQuestionResult {
+  attempt: PetQuestionAttempt;
+  completedAt: string;
+  outcome: QuestionOutcome;
+  selectedOptionId: string | null;
+  correctOptionId: string;
+  activityCompleted: boolean;
+  happinessChange: number;
+  trustChange: number;
+  explanation: Record<QuestionLanguage, string>;
+}
+
+export interface PetQuestionResponse {
+  pet: OwnedPet;
+  attempt: PetQuestionAttempt | null;
+  result: PetQuestionResult | null;
+  reason: QuestionFailureReason | null;
+  nextAvailableAt: string | null;
+}
+
+export interface StartQuestionRequest { language: QuestionLanguage; }
+export interface AnswerQuestionRequest { optionId: string | null; }
+export interface PetQuestionHistoryPage {
+  items: PetQuestionResult[];
+  nextCursor: string | null;
+}

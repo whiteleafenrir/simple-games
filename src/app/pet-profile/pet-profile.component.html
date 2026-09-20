@@ -102,6 +102,8 @@
       </section>
     }
 
+    <app-pet-questions [pet]="ownedPet" [historyOnly]="true" />
+
     <section class="history-panel" [attr.aria-busy]="historyLoading()">
       <div class="panel-heading">
         <span>{{ i18n.t('petCareHistoryTitle') }}</span>

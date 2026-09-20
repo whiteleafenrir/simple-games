@@ -1,0 +1,31 @@
+:host { display: block; }
+.questions { margin-top: 24px; padding: 24px; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); }
+.heading, .dialog-heading, .controls { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.heading { flex-wrap: wrap; margin-bottom: 16px; }
+.heading h2 { margin: 0 0 8px; }
+.heading p { margin: 0; color: var(--muted-text); }
+.heading strong { color: var(--primary); white-space: nowrap; }
+.controls { flex-wrap: wrap; justify-content: flex-start; }
+button { min-height: 44px; padding: 10px 16px; border: 1px solid var(--border); border-radius: 10px; background: var(--secondary); color: var(--secondary-text); font-weight: 700; }
+button:hover:not(:disabled) { background: var(--secondary-hover); }
+button:focus-visible { outline: 3px solid var(--primary); outline-offset: 3px; }
+button:disabled { opacity: .55; cursor: not-allowed; }
+.primary { background: var(--primary); color: var(--primary-contrast); border-color: transparent; }
+.primary:hover:not(:disabled) { background: var(--primary-hover); }
+.hint { color: var(--muted-text); font-size: .92rem; line-height: 1.5; }
+.reaction { margin-top: 20px; padding: 18px; background: var(--primary-soft-fill); border-radius: 12px; line-height: 1.5; }
+.reaction p { margin: 8px 0 0; }
+.history { margin-top: 20px; }
+article { border-top: 1px solid var(--border); padding: 16px 0; line-height: 1.5; }
+article small { color: var(--muted-text); }
+article h3 { margin: 8px 0; font-size: 1rem; }
+article p { margin: 8px 0; }
+dialog { width: min(560px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); overflow-y: auto; padding: 24px; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 20px; box-shadow: var(--shadow-strong); }
+dialog::backdrop { background: rgba(8, 17, 28, .65); }
+.dialog-heading span { font-weight: 700; color: var(--muted-text); }
+.close { min-width: 44px; padding: 0; font-size: 1.65rem; flex-shrink: 0; }
+dialog h2 { font-size: 1.4rem; line-height: 1.45; margin: 20px 0 12px; }
+.answers { display: grid; gap: 10px; margin-top: 20px; }
+.answers button { text-align: left; line-height: 1.45; }
+.retry { margin-top: 16px; line-height: 1.5; }
+@media (max-width: 560px) { .questions, dialog { padding: 18px; } .controls button { width: 100%; } dialog h2 { font-size: 1.2rem; } }
