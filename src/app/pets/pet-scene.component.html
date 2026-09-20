@@ -1,0 +1,69 @@
+<section class="scene" [class.night]="!pet().isLightOn && pet().status === 'pet'" [attr.aria-label]="i18n.t('petScene')">
+  <div class="room" aria-hidden="true"><div class="window"><span></span></div><div class="hill"></div><div class="floor"></div></div>
+  <header class="scene-heading">
+    <span class="scene-eyebrow">{{ i18n.t('petScene') }}</span>
+    <p class="scene-status"><i aria-hidden="true"></i>{{ sceneState() }}</p>
+  </header>
+  <div class="scene-layout">
+    <div class="pet-visual">
+      @if (pet().status !== 'pet') {
+        <div class="empty-scene" aria-hidden="true"><svg viewBox="0 0 80 80"><path d="M23 69V25a17 17 0 0 1 34 0v44M15 69h50M46 44h1" /></svg></div>
+        <p>{{ i18n.t('sceneMemoryHint') }}</p>
+      } @else if (pet().awayUntil; as awayUntil) {
+        <div class="empty-scene" aria-hidden="true"><app-pet-action-icon action="walk" /></div>
+        <p>{{ i18n.t('sceneAwayHint') }}<br><strong>{{ awayUntil | petDate:i18n.language() }}</strong></p>
+      } @else {
+        <app-pet-illustration [species]="pet().petId" [mood]="pet().mood" [sleeping]="!pet().isLightOn" />
+        <p class="pet-caption">{{ i18n.t(pet().isLightOn ? 'sceneHomeHint' : 'sceneSleepHint') }}</p>
+      }
+    </div>
+    @for (id of actions; track id) {
+      <div #slot class="action-slot" [class]="'action-slot action-' + id"
+        [class.unavailable]="disabled(id)" [attr.tabindex]="disabled(id) ? 0 : -1"
+        [attr.role]="disabled(id) ? 'group' : null" [attr.aria-label]="disabled(id) ? label(id) + '. ' + state(id) : null"
+        [attr.aria-describedby]="tooltip() === id ? 'action-tip-' + id : null"
+        (pointerenter)="hover(id, $event)" (pointerleave)="tooltip.set(null)"
+        (focusin)="tooltip.set(id)" (focusout)="tooltip.set(null)" (click)="inspectDisabled(id, $event, slot)" (keydown.enter)="inspectDisabled(id, $event, slot)" (keydown.space)="inspectDisabled(id, $event, slot)">
+        <button type="button" class="action-button" [disabled]="disabled(id)"
+          [attr.aria-label]="label(id)" [attr.aria-describedby]="tooltip() === id ? 'action-tip-' + id : null"
+          (click)="choose(id, $event, slot)">
+          <app-pet-action-icon [action]="id" />
+          <span>{{ label(id) }}</span>
+          @if (disabled(id)) { <svg class="lock" viewBox="0 0 16 16" aria-hidden="true"><path d="M5 7V5a3 3 0 0 1 6 0v2M4 7h8v7H4Z" /></svg> }
+        </button>
+        @if (tooltip() === id) {
+          <div class="action-tooltip" role="tooltip" [id]="'action-tip-' + id">
+            <strong>{{ label(id) }}</strong>
+            <ng-container [ngTemplateOutlet]="actionDetails" [ngTemplateOutletContext]="{ $implicit: id }" />
+          </div>
+        }
+      </div>
+    }
+  </div>
+  <p class="touch-hint">{{ i18n.t('sceneTouchHint') }}</p>
+</section>
+
+<ng-template #actionDetails let-id>
+  <p>{{ hint(id) }}</p>
+  <dl class="action-facts">
+    <div><dt>{{ i18n.t('sceneEnergyCost') }}</dt><dd>{{ availability(id).playerEnergyCost }}</dd></div>
+    <div><dt>{{ i18n.t('careCooldown') }}</dt><dd>{{ availability(id).cooldownMinutes }} {{ i18n.t('minutesShort') }}</dd></div>
+  </dl>
+  <p class="availability" [class.is-ready]="!disabled(id)">{{ state(id) }}</p>
+  @if (availability(id).nextAvailableAt; as readyAt) {
+    <p class="ready-at">{{ i18n.t('sceneCheckAt') }} {{ readyAt | petDate:i18n.language() }}</p>
+  }
+</ng-template>
+
+<dialog #actionDialog class="action-dialog" aria-labelledby="action-dialog-title" (cancel)="cancel($event)">
+  @if (selectedAction(); as id) {
+    <header><app-pet-action-icon [action]="id" /><h2 id="action-dialog-title">{{ label(id) }}</h2><button class="close" type="button" [attr.aria-label]="i18n.t('sceneCloseDetails')" (click)="closeDetails()">×</button></header>
+    <ng-container [ngTemplateOutlet]="actionDetails" [ngTemplateOutletContext]="{ $implicit: id }" />
+    <div class="sheet-actions">
+      <button class="execute" type="button" [disabled]="disabled(id)" (click)="execute()">{{ i18n.t(id === 'questions' ? 'questionOpen' : 'scenePerformAction') }}</button>
+      @if (disabled(id)) {
+        <button type="button" [disabled]="refreshing() || blocked() === 'petActionPending'" (click)="refreshRequested.emit()">{{ i18n.t('sceneRefresh') }}</button>
+      }
+    </div>
+  }
+</dialog>

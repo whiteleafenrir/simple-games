@@ -1,0 +1,59 @@
+<svg viewBox="0 0 280 260" fill="none" aria-hidden="true">
+  <ellipse class="shadow" cx="140" cy="232" rx="75" ry="12" />
+  <g class="companion">
+    @if (species() === 'cat' || species() === 'dog') {
+      <path class="tail" d="M188 206c47 8 58-42 35-47-17-4-17 15-10 16" />
+    } @else if (species() === 'dinosaur' || species() === 'dragon') {
+      <path class="coat" d="m181 179 69 33c-14 26-53 15-75 2Z" />
+      <path class="accent" d="m213 194 4-17 12 24 4-10 11 18" />
+    }
+    <ellipse class="coat" cx="140" cy="180" rx="57" ry="53" />
+    <ellipse class="belly" cx="140" cy="186" rx="35" ry="35" />
+    <ellipse class="coat" cx="103" cy="224" rx="23" ry="12" />
+    <ellipse class="coat" cx="177" cy="224" rx="23" ry="12" />
+    <g class="head">
+      @switch (species()) {
+        @case ('cat') {
+          <path class="coat" d="M81 99 78 31q2-13 14-4l42 40m15 0 40-40q14-9 13 4l-3 68" />
+          <path class="ear" d="m89 73-1-31 25 23m54 0 24-23-1 31" />
+        }
+        @case ('dog') {
+          <path class="accent" d="M95 62c-39-31-52 5-47 51 4 30 27 23 41-6m96-45c39-31 52 5 47 51-4 30-27 23-41-6" />
+        }
+        @case ('parrot') {
+          <path class="accent" d="M118 67q-22-33-9-45 14 5 19 35-2-45 11-45 13 11 1 47 19-33 29-23 4 18-22 35" />
+        }
+        @default {
+          <path class="accent" d="m97 69 3-29 22 18 17-33 15 31 24-15 7 34" />
+        }
+      }
+      <path class="coat" d="M74 104c0-37 23-55 66-55s66 18 66 55v20c0 35-24 50-66 50s-66-15-66-50Z" />
+      <ellipse class="blush" cx="97" cy="131" rx="13" ry="7" />
+      <ellipse class="blush" cx="183" cy="131" rx="13" ry="7" />
+      @if (sleeping()) {
+        <path class="face" d="M100 115q10 10 20 0m40 0q10 10 20 0" />
+      } @else {
+        <g class="eyes">
+          <ellipse class="ink" cx="111" cy="113" rx="6" ry="9" />
+          <ellipse class="ink" cx="169" cy="113" rx="6" ry="9" />
+          <circle fill="white" cx="113" cy="110" r="2" /><circle fill="white" cx="171" cy="110" r="2" />
+        </g>
+      }
+      @if (species() === 'parrot') {
+        <path fill="#e9a949" d="M126 133q14-16 28 0l-14 20Z" />
+      } @else {
+        <path class="ink" d="M133 129q7-5 14 0l-7 7Z" />
+        @if (mood() === 'upset' || mood() === 'angry' || mood() === 'irritated') {
+          <path class="face" d="M130 148q10-9 20 0" />
+        } @else {
+          <path class="face" d="M127 144q13 12 26 0" />
+        }
+      }
+    </g>
+  </g>
+  @if (sleeping()) {
+    <g class="sleep-marks" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M218 91h13l-13 14h13m8-43h17l-17 19h17" />
+    </g>
+  }
+</svg>

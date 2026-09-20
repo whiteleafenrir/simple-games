@@ -9,66 +9,46 @@
 }
 @if (viewedPet(); as pet) {
 <section class="pet-session">
-  <a class="back-link" routerLink="/">{{ i18n.t('backHome') }}</a>
-  <p class="eyebrow">{{ i18n.t('pocketPet') }}</p>
-  <h1>{{ pet.name }}</h1>
-  <div class="pet-hero">
-    <div class="pet-avatar" [class.cat]="pet.petId === 'cat'" [class.dog]="pet.petId === 'dog'" [class.parrot]="pet.petId === 'parrot'" [class.dinosaur]="pet.petId === 'dinosaur'" [class.dragon]="pet.petId === 'dragon'" aria-hidden="true"></div>
-    <div class="pet-meta">
-      <p><strong>{{ i18n.t(petOption(pet).titleKey) }}</strong></p>
+  <header class="session-heading">
+    <div>
+      <a class="back-link" routerLink="/">{{ i18n.t('backHome') }}</a>
+      <h1>{{ pet.name }}</h1>
+      <p class="session-subtitle">{{ i18n.t(petOption(pet).titleKey) }} · {{ periodOfLifeLabel(pet.periodOfLife) }}</p>
+    </div>
+    <a class="profile-link" [routerLink]="['/profile/pets', pet.id]">{{ i18n.t('petDetailsTitle') }} <span aria-hidden="true">↗</span></a>
+  </header>
+  <div class="session-main">
+    <app-pet-scene [pet]="pet" [blocked]="sceneBlocked()" [refreshing]="petStorage.refreshing()"
+      (actionRequested)="onSceneAction($event, questions)" (refreshRequested)="petStorage.resolvePets()" />
+    <aside class="session-vitals" [attr.aria-label]="i18n.t('sceneWellbeing')">
+      <h2>{{ i18n.t('sceneWellbeing') }}</h2>
+      <app-pet-stats [stats]="pet.stats" [compact]="true" />
+      <div class="player-energy-meter">
+        <div><span>{{ i18n.t('playerEnergy') }}</span><strong>{{ playerEnergyValue(pet) }}/{{ playerEnergyMax(pet) }}</strong></div>
+        <b aria-hidden="true"><i [style.width.%]="playerEnergyPercent(pet)"></i></b>
+      </div>
+      <p class="care-hint">{{ i18n.t('petCareHint') }}</p>
+    </aside>
+  </div>
+  @if (careMessage(); as message) { <p class="care-message" role="status">{{ i18n.t(message) }}</p> }
+  @if (pet.farewell; as farewell) {
+    <div class="farewell-card">
+      <h2>{{ i18n.t('petFarewellTitle') }}</h2>
+      <p>{{ farewellPhraseLabel(farewell.phraseId) }}</p>
+      <p>{{ farewellReasonLabel(farewell.reason) }} · {{ i18n.t('petFinalCareScore') }}: {{ farewell.finalCareScore }}</p>
+    </div>
+  }
+  <app-pet-questions #questions [pet]="pet" [showTrigger]="false" />
+  <details class="session-details">
+    <summary>{{ i18n.t('sceneSessionDetails') }}</summary>
+    <div>
       <p>{{ i18n.t('petStatus') }}: {{ statusLabel(pet.status) }}</p>
       <p>{{ i18n.t('petMood') }}: {{ moodLabel(pet.mood) }}</p>
-      <p>{{ i18n.t('petPeriodOfLife') }}: {{ periodOfLifeLabel(pet.periodOfLife) }}</p>
       <p>{{ i18n.t('petLight') }}: {{ lightLabel(pet) }}</p>
-      <p>{{ i18n.t('playerEnergy') }}: {{ playerEnergyValue(pet) }}/{{ playerEnergyMax(pet) }}</p>
-      @if (pet.awayUntil; as awayUntil) {
-        <p>{{ i18n.t('petAwayUntil') }}: {{ awayUntil | petDate:i18n.language() }}</p>
-      }
       <p>{{ i18n.t('timeSince') }}: {{ petAgeLabel(pet) }}</p>
       <p>{{ i18n.t('sessionEnds') }}: {{ pet.endsAt | petDate:i18n.language() }}</p>
-      @if (pet.farewell; as farewell) {
-        <p>{{ i18n.t('petFarewellReason') }}: {{ farewellReasonLabel(farewell.reason) }}</p>
-        <p>{{ i18n.t('petFinalCareScore') }}: {{ farewell.finalCareScore }}</p>
-        <p><strong>{{ farewellPhraseLabel(farewell.phraseId) }}</strong></p>
-      }
     </div>
-  </div>
-
-  <section class="care-panel" [attr.aria-label]="i18n.t('petCareTitle')">
-    <div class="care-heading">
-      <span>{{ i18n.t('petCareTitle') }}</span>
-      <strong>{{ i18n.t('petCareHint') }}</strong>
-    </div>
-
-    <div class="player-energy-meter">
-      <div>
-        <span>{{ i18n.t('playerEnergy') }}</span>
-        <strong>{{ playerEnergyValue(pet) }}/{{ playerEnergyMax(pet) }}</strong>
-      </div>
-      <b aria-hidden="true"><i [style.width.%]="playerEnergyPercent(pet)"></i></b>
-    </div>
-
-    <app-pet-stats [stats]="pet.stats"></app-pet-stats>
-
-    <div class="care-actions">
-      @for (actionId of careActions; track actionId) {
-        <button
-          type="button"
-          [disabled]="isCareActionDisabled(pet)"
-          (click)="careForPet(pet, actionId)"
-        >
-          <strong>{{ careActionLabel(actionId, pet) }}</strong>
-          <span>{{ careActionHint(actionId) }}</span>
-          <small>{{ careActionState(pet) }}</small>
-        </button>
-      }
-    </div>
-
-    @if (careMessage(); as message) {
-      <p class="care-message" role="status">{{ i18n.t(message) }}</p>
-    }
-  </section>
-  <app-pet-questions [pet]="pet" />
+  </details>
 </section>
 } @if (!viewedPet()) {
 <section class="pet-page">

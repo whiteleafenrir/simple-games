@@ -2,14 +2,14 @@ import { DOCUMENT } from '@angular/common';
 import { Injectable, OnDestroy, computed, inject, signal } from '@angular/core';
 import { TranslationKey } from '../i18n/translations';
 import { PetOption, SessionLength } from '../pocket-pet/pocket-pet.model';
-import { OwnedPet, PetCareActionId, PetCareActionResult, PetHistoryPage } from './owned-pet.model';
+import { PetSnapshot, PetCareActionId, PetCareActionResponse, PetHistoryPage } from './owned-pet.model';
 import { PetApiService } from './pet-api.service';
 import { petErrorKey } from './pet-error.utils';
 import type { PetQuestionHistoryPage, PetQuestionResponse, QuestionLanguage } from '@simple-games/pet-contract';
 
 @Injectable({ providedIn: 'root' })
 export class PetStorageService implements OnDestroy {
-  readonly pets = signal<OwnedPet[]>([]);
+  readonly pets = signal<PetSnapshot[]>([]);
   readonly activePet = computed(() => this.pets().find(pet => pet.status === 'pet') ?? null);
   readonly guestId = signal<string | null>(null);
   readonly loading = signal(true);
@@ -63,7 +63,7 @@ export class PetStorageService implements OnDestroy {
     return request;
   }
 
-  async addPet(pet: PetOption, sessionLength: SessionLength, name: string): Promise<OwnedPet | null> {
+  async addPet(pet: PetOption, sessionLength: SessionLength, name: string): Promise<PetSnapshot | null> {
     return this.command(async guestId => {
       const ownedPet = await this.petApi.createPet(guestId, pet, sessionLength, name.trim());
       if (!this.destroyed) this.pets.update(pets => [ownedPet, ...pets.filter(item => item.id !== ownedPet.id)]);
@@ -71,7 +71,7 @@ export class PetStorageService implements OnDestroy {
     });
   }
 
-  async careForPet(id: string, actionId: PetCareActionId): Promise<PetCareActionResult | null> {
+  async careForPet(id: string, actionId: PetCareActionId): Promise<PetCareActionResponse | null> {
     return this.command(async guestId => {
       const result = await this.petApi.applyCareAction(guestId, id, actionId);
       if (!this.destroyed) this.pets.update(pets => pets.map(pet => pet.id === result.pet.id ? result.pet : pet));
@@ -86,7 +86,7 @@ export class PetStorageService implements OnDestroy {
     return this.petApi.getHistory(guestId, petId, cursor);
   }
 
-  petById(id: string | null): OwnedPet | null {
+  petById(id: string | null): PetSnapshot | null {
     return this.pets().find(pet => pet.id === id) ?? null;
   }
 

@@ -3,7 +3,7 @@ import { ApiBadRequestResponse, ApiBody, ApiCookieAuth, ApiForbiddenResponse, Ap
 import { PET_CARE_ACTION_IDS } from './pet-engine';
 
 import { GuestSessionGuard } from './guest-session.guard';
-import { OwnedPet, PetCareActionResult, PetHistoryPage } from './pet-domain.types';
+import { PetSnapshot, PetCareActionResponse, PetHistoryPage } from './pet-domain.types';
 import { PocketPetService } from './pocket-pet.service';
 
 @ApiTags('Питомцы')
@@ -19,8 +19,8 @@ export class PetsController {
 
   @Get()
   @Header('Cache-Control', 'no-store')
-  @ApiOperation({ summary: 'Посмотреть питомцев гостя', description: 'Текущие snapshots с careHistoryCount и отдельным trust (0–100), без массива истории. Сохраняет изменения активного питомца с учётом прошедшего времени.' })
-  listPets(@Param('guestId') guestId: string): Promise<OwnedPet[]> {
+  @ApiOperation({ summary: 'Посмотреть питомцев гостя', description: 'Текущие snapshots с careHistoryCount и отдельным trust (0–100), без массива истории. Поле actions содержит серверную доступность ухода/вопросов, причины, стоимость и cooldown; не сохраняется в БД. Сохраняет изменения активного питомца с учётом прошедшего времени.' })
+  listPets(@Param('guestId') guestId: string): Promise<PetSnapshot[]> {
     return this.pocketPetService.listPets(guestId);
   }
 
@@ -38,7 +38,7 @@ export class PetsController {
   createPet(
     @Param('guestId') guestId: string,
     @Body() request: unknown
-  ): Promise<OwnedPet> {
+  ): Promise<PetSnapshot> {
     return this.pocketPetService.createPet(guestId, request);
   }
 
@@ -49,7 +49,7 @@ export class PetsController {
   getPet(
     @Param('guestId') guestId: string,
     @Param('petId', new ParseUUIDPipe({ version: '4' })) petId: string
-  ): Promise<OwnedPet> {
+  ): Promise<PetSnapshot> {
     return this.pocketPetService.getPet(guestId, petId);
   }
 
@@ -78,7 +78,7 @@ export class PetsController {
     @Param('guestId') guestId: string,
     @Param('petId', new ParseUUIDPipe({ version: '4' })) petId: string,
     @Body() request: unknown
-  ): Promise<PetCareActionResult> {
+  ): Promise<PetCareActionResponse> {
     return this.pocketPetService.applyCareAction(guestId, petId, request);
   }
 }

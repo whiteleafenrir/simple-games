@@ -5,7 +5,7 @@ import type { ApplyCareActionRequest, CreatePetRequest, GuestSession } from '@si
 import type { AnswerQuestionRequest, PetQuestionHistoryPage, PetQuestionResponse, QuestionLanguage, StartQuestionRequest } from '@simple-games/pet-contract';
 
 import { PetOption, SessionLength } from '../pocket-pet/pocket-pet.model';
-import { OwnedPet, PetCareActionId, PetCareActionResult, PetHistoryPage } from './owned-pet.model';
+import { PetSnapshot, PetCareActionId, PetCareActionResponse, PetHistoryPage } from './owned-pet.model';
 
 const API_BASE_URL = '/api';
 const REQUEST_OPTIONS = { withCredentials: true } as const;
@@ -24,30 +24,30 @@ export class PetApiService {
     return this.request(this.http.post<GuestSession>(`${API_BASE_URL}/guest-sessions`, {}, REQUEST_OPTIONS));
   }
 
-  getPets(guestId: string): Promise<OwnedPet[]> {
-    return this.request(this.http.get<OwnedPet[]>(
+  getPets(guestId: string): Promise<PetSnapshot[]> {
+    return this.request(this.http.get<PetSnapshot[]>(
       `${API_BASE_URL}/guest-sessions/${encodeURIComponent(guestId)}/pets`,
       REQUEST_OPTIONS
     ));
   }
 
-  createPet(guestId: string, pet: PetOption, sessionLength: SessionLength, name: string): Promise<OwnedPet> {
-    return this.request(this.http.post<OwnedPet>(`${API_BASE_URL}/guest-sessions/${encodeURIComponent(guestId)}/pets`, {
+  createPet(guestId: string, pet: PetOption, sessionLength: SessionLength, name: string): Promise<PetSnapshot> {
+    return this.request(this.http.post<PetSnapshot>(`${API_BASE_URL}/guest-sessions/${encodeURIComponent(guestId)}/pets`, {
       name,
       petId: pet.id,
       sessionLengthId: sessionLength.id
     } satisfies CreatePetRequest, REQUEST_OPTIONS));
   }
 
-  getPet(guestId: string, petId: string): Promise<OwnedPet> {
-    return this.request(this.http.get<OwnedPet>(
+  getPet(guestId: string, petId: string): Promise<PetSnapshot> {
+    return this.request(this.http.get<PetSnapshot>(
       `${API_BASE_URL}/guest-sessions/${encodeURIComponent(guestId)}/pets/${encodeURIComponent(petId)}`,
       REQUEST_OPTIONS
     ));
   }
 
-  applyCareAction(guestId: string, petId: string, actionId: PetCareActionId): Promise<PetCareActionResult> {
-    return this.request(this.http.post<PetCareActionResult>(
+  applyCareAction(guestId: string, petId: string, actionId: PetCareActionId): Promise<PetCareActionResponse> {
+    return this.request(this.http.post<PetCareActionResponse>(
       `${API_BASE_URL}/guest-sessions/${encodeURIComponent(guestId)}/pets/${encodeURIComponent(petId)}/actions`,
       { actionId } satisfies ApplyCareActionRequest,
       REQUEST_OPTIONS

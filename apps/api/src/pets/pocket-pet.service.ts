@@ -7,7 +7,8 @@ import {
   GuestSession,
   OwnedPet,
   PetCareActionId,
-  PetCareActionResult,
+  PetCareActionResponse,
+  PetSnapshot,
   PetHistoryPage,
   PetId,
   SessionLengthId
@@ -16,6 +17,7 @@ import { applyPetCareAction, createInitialPetCareState, PET_CARE_ACTION_IDS, res
 import { ActivePetConflictError, GuestSessionNotFoundError, POCKET_PET_REPOSITORY, PocketPetRepository, PocketPetTransaction } from './pocket-pet.repository';
 import { parseRequestBody } from './request-body';
 import { HISTORY_PAGE_SIZE, historyPage, parseHistoryCursor } from './pet-history';
+import { petSnapshot } from './pet-snapshot';
 
 const CREATEABLE_PET_IDS: readonly PetId[] = ['cat', 'dog', 'parrot', 'dinosaur'] as const;
 const SESSION_LENGTH_MINUTES: Record<SessionLengthId, number> = {
@@ -45,23 +47,24 @@ export class PocketPetService {
     return session;
   }
 
-  listPets(guestId: string, now?: Date): Promise<OwnedPet[]> {
+  listPets(guestId: string, now?: Date): Promise<PetSnapshot[]> {
     return this.withGuestTransaction(guestId, now, (tx, at) => this.resolvePets(tx, at));
   }
 
-  private async resolvePets(tx: PocketPetTransaction, now: Date): Promise<OwnedPet[]> {
+  private async resolvePets(tx: PocketPetTransaction, now: Date): Promise<PetSnapshot[]> {
     const pets = await tx.listPets();
-    const resolvedPets: OwnedPet[] = [];
+    const resolvedPets: PetSnapshot[] = [];
 
     for (const pet of pets) {
       const resolved = resolvePetState(pet, now);
-      resolvedPets.push(pet.status === 'pet' ? await tx.savePet(resolved) : resolved);
+      const saved = pet.status === 'pet' ? await tx.savePet(resolved) : resolved;
+      resolvedPets.push(await petSnapshot(tx, saved, now));
     }
 
     return resolvedPets;
   }
 
-  async createPet(guestId: string, request: unknown, now?: Date): Promise<OwnedPet> {
+  async createPet(guestId: string, request: unknown, now?: Date): Promise<PetSnapshot> {
     const body = parseRequestBody(request, ['petId', 'sessionLengthId', 'name']);
     const { petId, sessionLengthId, name } = {
       petId: parseCreateablePetId(body['petId']),
@@ -90,11 +93,11 @@ export class PocketPetService {
         endsAt: endsAt.toISOString()
       };
 
-      return tx.createPet(pet);
+      return petSnapshot(tx, await tx.createPet(pet), at);
     });
   }
 
-  getPet(guestId: string, petId: string, now?: Date): Promise<OwnedPet> {
+  getPet(guestId: string, petId: string, now?: Date): Promise<PetSnapshot> {
     return this.withGuestTransaction(guestId, now, async (tx, at) => {
       const pet = await tx.getPet(petId);
 
@@ -103,7 +106,7 @@ export class PocketPetService {
       }
 
       const resolved = resolvePetState(pet, at);
-      return pet.status === 'pet' ? tx.savePet(resolved) : resolved;
+      return petSnapshot(tx, pet.status === 'pet' ? await tx.savePet(resolved) : resolved, at);
     });
   }
 
@@ -112,7 +115,7 @@ export class PocketPetService {
     petId: string,
     request: unknown,
     now?: Date
-  ): Promise<PetCareActionResult> {
+  ): Promise<PetCareActionResponse> {
     const body = parseRequestBody(request, ['actionId']);
     const { actionId } = { actionId: parseCareActionId(body['actionId']) } satisfies ApplyCareActionRequest;
     return this.withGuestTransaction(guestId, now, async (tx, at) => {
@@ -124,7 +127,7 @@ export class PocketPetService {
 
       const result = applyPetCareAction(pet, actionId, at);
       if (pet.status === 'pet') await tx.savePet(result.pet, result.historyEntry);
-      return result;
+      return { ...result, pet: await petSnapshot(tx, result.pet, at) };
     });
   }
 

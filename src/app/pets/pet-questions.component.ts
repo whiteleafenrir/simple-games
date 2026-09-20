@@ -1,5 +1,5 @@
 import { afterRenderEffect, ChangeDetectionStrategy, Component, DestroyRef, effect, ElementRef, inject, input, signal, viewChild } from '@angular/core';
-import type { OwnedPet, PetQuestionAttempt, PetQuestionResult, QuestionFailureReason, QuestionOutcome } from '@simple-games/pet-contract';
+import type { PetSnapshot, PetQuestionAttempt, PetQuestionResult, QuestionFailureReason, QuestionOutcome } from '@simple-games/pet-contract';
 import { I18nService } from '../i18n/i18n.service';
 import { TranslationKey } from '../i18n/translations';
 import { PetDatePipe } from './pet-date.pipe';
@@ -14,8 +14,10 @@ import { PetStorageService } from './pet-storage.service';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class PetQuestionsComponent {
-  readonly pet = input.required<OwnedPet>();
+  readonly pet = input.required<PetSnapshot>();
   readonly historyOnly = input(false);
+  readonly showTrigger = input(true);
+  private externalTrigger: HTMLElement | null = null;
   readonly i18n = inject(I18nService);
   readonly storage = inject(PetStorageService);
   private readonly destroyRef = inject(DestroyRef);
@@ -50,13 +52,15 @@ export class PetQuestionsComponent {
       if (this.attempt() && !dialog.open) dialog.showModal();
       else if (!this.attempt() && dialog.open) {
         dialog.close();
-        this.openButton()?.nativeElement.focus();
+        if (this.externalTrigger?.isConnected) this.externalTrigger.focus();
+        else this.openButton()?.nativeElement.focus();
       }
     });
   }
 
-  async open(): Promise<void> {
+  async open(trigger?: HTMLElement): Promise<void> {
     if (this.disabled()) return;
+    this.externalTrigger = trigger ?? null;
     const petId = this.pet().id;
     this.busy.set(true); this.message.set(null);
     const response = await this.storage.startQuestion(petId, this.i18n.language());
@@ -131,7 +135,7 @@ export class PetQuestionsComponent {
   }
 
   disabled(): boolean {
-    return this.historyOnly() || this.busy() || this.storage.commandPending() || this.storage.loading() || !!this.storage.syncError() || this.pet().status !== 'pet';
+    return this.historyOnly() || this.busy() || this.storage.commandPending() || this.storage.loading() || !!this.storage.syncError() || !this.pet().actions.questions.available;
   }
 
   outcomeKey(outcome: QuestionOutcome): TranslationKey {

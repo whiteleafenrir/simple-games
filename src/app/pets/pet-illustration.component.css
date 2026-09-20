@@ -1,0 +1,22 @@
+:host { display: block; width: min(100%, 300px); --coat: #83b8a0; --accent: #508c74; color: #385b50; }
+:host.dog { --coat: #d6ad7d; --accent: #a97b50; }
+:host.parrot { --coat: #97b8cf; --accent: #5c8da7; }
+:host.dinosaur { --coat: #9bbf88; --accent: #72955e; }
+svg { display: block; width: 100%; overflow: visible; }
+.coat { fill: var(--coat); }
+.accent { fill: var(--accent); }
+.belly { fill: #fff3d8; }
+.ear, .blush { fill: #e7a89c; }
+.blush { opacity: .6; }
+.ink { fill: #30463e; }
+.face { stroke: #30463e; stroke-width: 3; stroke-linecap: round; }
+.tail { stroke: var(--coat); stroke-width: 21; stroke-linecap: round; }
+.shadow { fill: #344f3b; opacity: .12; }
+.companion { transform-origin: 140px 230px; animation: breathe 4s ease-in-out infinite; }
+.eyes { transform-origin: 140px 113px; animation: blink 6s infinite; }
+:host.sleeping .companion { animation-duration: 6s; }
+.sleep-marks { animation: drift 4s ease-in-out infinite; }
+@keyframes breathe { 0%, 100% { transform: translateY(0) scaleY(1); } 50% { transform: translateY(-4px) scaleY(1.015); } }
+@keyframes blink { 0%, 43%, 47%, 100% { transform: scaleY(1); } 45% { transform: scaleY(.1); } }
+@keyframes drift { 0%, 100% { opacity: .35; transform: translateY(3px); } 50% { opacity: .9; transform: translateY(-5px); } }
+@media (prefers-reduced-motion: reduce) { .companion, .eyes, .sleep-marks { animation: none; } }

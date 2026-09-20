@@ -4,6 +4,7 @@ import { AnswerQuestionRequest, OwnedPet, PetQuestionHistoryPage, PetQuestionRes
 import { resolvePetState } from './pet-engine';
 import { parseHistoryCursor } from './pet-history';
 import { publicQuestion, questionResult, StoredQuestionAttempt } from './pet-question-attempt';
+import { petSnapshot } from './pet-snapshot';
 import { QUESTION_CATALOG } from './pet-question-catalog';
 import { questionFailureReason, questionReadyAt, resolveQuestionOutcome } from './pet-question-rules';
 import { GuestSessionNotFoundError, POCKET_PET_REPOSITORY, PocketPetRepository, PocketPetTransaction } from './pocket-pet.repository';
@@ -24,15 +25,15 @@ export class PetQuestionService {
       const at = now ?? new Date();
       const pet = await this.resolvePet(tx, petId, at);
       const reason = questionFailureReason(pet);
-      if (reason) return response(pet, { reason });
+      if (reason) return response(tx, pet, at, { reason });
       const latest = await tx.latestQuestion(petId);
-      if (latest && !latest.completedAt) return response(pet, { attempt: publicQuestion(latest) });
+      if (latest && !latest.completedAt) return response(tx, pet, at, { attempt: publicQuestion(latest) });
       if (latest?.completedAt) {
         const nextAvailableAt = questionReadyAt(latest.completedAt);
-        if (Date.parse(nextAvailableAt) > at.getTime()) return response(pet, { reason: 'cooldown', nextAvailableAt });
+        if (Date.parse(nextAvailableAt) > at.getTime()) return response(tx, pet, at, { reason: 'cooldown', nextAvailableAt });
       }
       const pool = QUESTION_CATALOG.filter(item => item.periodOfLife === pet.periodOfLife && item.content[input.language]);
-      if (pool.length === 0) return response(pet, { reason: 'no-content' });
+      if (pool.length === 0) return response(tx, pet, at, { reason: 'no-content' });
       const asked = new Set(await tx.askedQuestionIds(petId));
       const unseen = pool.filter(item => !asked.has(item.id));
       const different = pool.filter(item => item.id !== latest?.questionId);
@@ -49,7 +50,7 @@ export class PetQuestionService {
         selectedOptionId: null, activityCompleted: null, happinessChange: null, trustChange: null
       };
       await tx.saveQuestion(attempt);
-      return response(pet, { attempt: publicQuestion(attempt) });
+      return response(tx, pet, at, { attempt: publicQuestion(attempt) });
     });
   }
 
@@ -66,10 +67,10 @@ export class PetQuestionService {
       const attempt = await tx.getQuestion(petId, attemptId);
       if (!attempt) throw new NotFoundException('Question attempt not found.');
       if (attempt.completedAt) {
-        return response(pet, { result: questionResult(attempt), nextAvailableAt: questionReadyAt(attempt.completedAt) });
+        return response(tx, pet, at, { result: questionResult(attempt), nextAvailableAt: questionReadyAt(attempt.completedAt) });
       }
       const reason = questionFailureReason(pet);
-      if (reason) return response(pet, { reason });
+      if (reason) return response(tx, pet, at, { reason });
       if (input.optionId !== null && !attempt.optionOrder.includes(input.optionId)) {
         throw new BadRequestException('Option does not belong to this question.');
       }
@@ -82,7 +83,7 @@ export class PetQuestionService {
       };
       await tx.saveQuestion(completed);
       await tx.savePet(nextPet);
-      return response(nextPet, { result: questionResult(completed), nextAvailableAt: questionReadyAt(completed.completedAt!) });
+      return response(tx, nextPet, at, { result: questionResult(completed), nextAvailableAt: questionReadyAt(completed.completedAt!) });
     });
   }
 
@@ -117,6 +118,6 @@ export class PetQuestionService {
   }
 }
 
-function response(pet: OwnedPet, fields: Partial<Omit<PetQuestionResponse, 'pet'>>): PetQuestionResponse {
-  return { pet, attempt: null, result: null, reason: null, nextAvailableAt: null, ...fields };
+async function response(tx: PocketPetTransaction, pet: OwnedPet, at: Date, fields: Partial<Omit<PetQuestionResponse, 'pet'>>): Promise<PetQuestionResponse> {
+  return { pet: await petSnapshot(tx, pet, at), attempt: null, result: null, reason: null, nextAvailableAt: null, ...fields };
 }

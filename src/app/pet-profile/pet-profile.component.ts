@@ -10,7 +10,7 @@ import { PetStatsComponent } from '../pets/pet-stats.component';
 import { PetQuestionsComponent } from '../pets/pet-questions.component';
 import { PetDatePipe } from '../pets/pet-date.pipe';
 import {
-  OwnedPet,
+  PetSnapshot,
   PetCareActionEntry,
   PetCareActionId,
   PetFarewellPhraseId,
@@ -55,7 +55,7 @@ export class PetProfileComponent {
     { initialValue: this.route.snapshot.paramMap.get('petId') }
   );
 
-  readonly pet = computed((): OwnedPet | null => this.pets.petById(this.petId()));
+  readonly pet = computed((): PetSnapshot | null => this.pets.petById(this.petId()));
   readonly statIds: readonly PetStatId[] = PET_STAT_IDS;
 
   readonly historyEntries = signal<PetCareActionEntry[]>([]);
@@ -117,7 +117,7 @@ export class PetProfileComponent {
     return this.i18n.t(petStatKey(statId));
   }
 
-  lightLabel(pet: OwnedPet): string {
+  lightLabel(pet: PetSnapshot): string {
     return pet.isLightOn ? this.i18n.t('petLightOn') : this.i18n.t('petLightOff');
   }
 

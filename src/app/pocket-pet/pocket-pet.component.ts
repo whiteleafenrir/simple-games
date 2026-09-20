@@ -6,11 +6,12 @@ import { map } from 'rxjs';
 import { I18nService } from '../i18n/i18n.service';
 import { TranslationKey } from '../i18n/translations';
 import { PetStatsComponent } from '../pets/pet-stats.component';
+import { PetSceneComponent, PetSceneActionEvent } from '../pets/pet-scene.component';
 import { PetQuestionsComponent } from '../pets/pet-questions.component';
 import { PetDatePipe } from '../pets/pet-date.pipe';
 import {
-  PET_CARE_ACTION_IDS,
   OwnedPet,
+  PetSnapshot,
   PetCareActionId,
   PetFarewellPhraseId,
   PetFarewellReason,
@@ -19,8 +20,6 @@ import {
   PetStatus
 } from '../pets/owned-pet.model';
 import {
-  petCareActionHintKey,
-  petCareActionKey,
   petFarewellPhraseKey,
   petFarewellReasonKey,
   petMoodKey,
@@ -38,6 +37,7 @@ import { PetOption, SessionLength } from './pocket-pet.model';
     RouterLink,
     PetStatsComponent,
     PetQuestionsComponent,
+    PetSceneComponent,
     PetDatePipe
   ],
   templateUrl: './pocket-pet.component.html',
@@ -53,12 +53,23 @@ export class PocketPetComponent {
     { initialValue: this.route.snapshot.paramMap.get('petId') }
   );
 
-  readonly viewedPet = computed((): OwnedPet | null => {
+  readonly viewedPet = computed((): PetSnapshot | null => {
     const id = this.viewedPetId();
     return id ? this.petStorage.petById(id) : this.petStorage.activePet();
   });
 
-  readonly careActions: readonly PetCareActionId[] = PET_CARE_ACTION_IDS;
+  readonly sceneBlocked = computed<TranslationKey | null>(() => this.petStorage.commandPending() ? 'petActionPending' : this.petStorage.loading() ? 'petLoading' : this.petStorage.syncError());
+
+  async onSceneAction(event: PetSceneActionEvent, questions: PetQuestionsComponent): Promise<void> {
+    if (this.sceneBlocked()) return;
+    if (event.id === 'questions') { this.careMessage.set(null); await questions.open(event.trigger); return; }
+    const pet = this.viewedPet();
+    if (pet && pet.actions[event.id].available) {
+      await this.careForPet(pet, event.id);
+      if (event.trigger.isConnected) event.trigger.focus();
+    }
+  }
+
   readonly sessionLengths: readonly SessionLength[] = SESSION_LENGTHS;
   readonly petOptions: readonly PetOption[] = PET_OPTIONS;
   readonly selectedSession = signal<SessionLength>(SESSION_LENGTHS[1]);
@@ -173,18 +184,6 @@ export class PocketPetComponent {
     return this.i18n.t(petPeriodOfLifeKey(periodOfLife));
   }
 
-  careActionLabel(actionId: PetCareActionId, pet: OwnedPet | null = null): string {
-    if (actionId === 'toggleLight' && pet) {
-      return pet.isLightOn ? this.i18n.t('turnLightOff') : this.i18n.t('turnLightOn');
-    }
-
-    return this.i18n.t(petCareActionKey(actionId));
-  }
-
-  careActionHint(actionId: PetCareActionId): string {
-    return this.i18n.t(petCareActionHintKey(actionId));
-  }
-
   farewellReasonLabel(reason: PetFarewellReason): string {
     return this.i18n.t(petFarewellReasonKey(reason));
   }
@@ -209,26 +208,6 @@ export class PocketPetComponent {
     }
 
     return Math.min(100, Math.max(0, (this.playerEnergyValue(pet) / max) * 100));
-  }
-
-  isCareActionDisabled(pet: OwnedPet): boolean {
-    return this.petStorage.commandPending() || this.petStorage.loading() || !!this.petStorage.syncError() || pet.status !== 'pet';
-  }
-
-  careActionState(pet: OwnedPet): string {
-    if (this.petStorage.commandPending()) return this.i18n.t('petActionPending');
-    if (this.petStorage.loading()) {
-      return this.i18n.t('petLoading');
-    }
-
-    const error = this.petStorage.syncError();
-    if (error) return this.i18n.t(error);
-
-    if (pet.status !== 'pet') {
-      return this.i18n.t('careActionInactive');
-    }
-
-    return this.i18n.t('careActionReady');
   }
 
   lightLabel(pet: OwnedPet): string {

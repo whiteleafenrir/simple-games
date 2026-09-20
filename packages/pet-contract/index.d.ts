@@ -84,6 +84,20 @@ export interface OwnedPet {
 
 export type PetCareActionFailureReason = 'cooldown' | 'inactive' | 'away' | 'sleeping' | 'player-energy';
 
+export type PetSceneActionId = PetCareActionId | 'questions';
+export interface PetActionAvailability {
+  available: boolean;
+  reason: PetCareActionFailureReason | QuestionFailureReason | null;
+  playerEnergyCost: number;
+  cooldownMinutes: number;
+  nextAvailableAt: string | null;
+}
+
+/** Вычисляемое представление API; actions не сохраняются в БД. */
+export interface PetSnapshot extends OwnedPet {
+  actions: Record<PetSceneActionId, PetActionAvailability>;
+}
+
 export interface PetCareActionResult {
   pet: OwnedPet;
   historyEntry: PetCareActionEntry | null;
@@ -106,6 +120,10 @@ export interface CreatePetRequest {
 
 export interface ApplyCareActionRequest {
   actionId: PetCareActionId;
+}
+
+export interface PetCareActionResponse extends Omit<PetCareActionResult, 'pet'> {
+  pet: PetSnapshot;
 }
 
 export type QuestionLanguage = 'ru' | 'en';
@@ -140,7 +158,7 @@ export interface PetQuestionResult {
 }
 
 export interface PetQuestionResponse {
-  pet: OwnedPet;
+  pet: PetSnapshot;
   attempt: PetQuestionAttempt | null;
   result: PetQuestionResult | null;
   reason: QuestionFailureReason | null;

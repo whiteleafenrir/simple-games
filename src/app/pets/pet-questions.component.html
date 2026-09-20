@@ -4,7 +4,7 @@
     <strong>{{ i18n.t('petTrust') }}: {{ trust() }}/100</strong>
   </div>
   <div class="controls">
-    @if (!historyOnly() && pet().status === 'pet') {
+    @if (showTrigger() && !historyOnly() && pet().status === 'pet') {
       <button #openButton class="primary" type="button" [disabled]="disabled()" (click)="open()">{{ i18n.t(busy() ? 'petActionPending' : 'questionOpen') }}</button>
     }
     <button type="button" [attr.aria-expanded]="historyVisible()" (click)="toggleHistory()">{{ i18n.t('questionHistory') }}</button>
