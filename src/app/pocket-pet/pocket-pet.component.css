@@ -45,15 +45,16 @@ h1 {
 .session-subtitle { margin-top: 10px; color: var(--muted-text); font-size: .9rem; }
 .profile-link { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; color: var(--primary); font-size: .85rem; text-decoration: none; flex-shrink: 0; }
 .session-main { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 20px; align-items: stretch; }
-.session-vitals { display: grid; align-content: start; gap: 18px; padding: 20px; border: 1px solid var(--border); border-radius: 24px; background: var(--surface-glass-strong); }
-.session-vitals h2 { font-size: 1rem; line-height: 1.4; }
+.session-sidebar { display: grid; align-content: start; gap: 16px; min-width: 0; }
+.session-vitals,
+.player-energy-panel { display: grid; align-content: start; gap: 18px; padding: 20px; border: 1px solid var(--border); border-radius: 24px; background: var(--surface-glass-strong); }
+.session-sidebar h2 { font-size: 1rem; line-height: 1.4; color: var(--text); }
 .care-hint { color: var(--muted-text); font-size: .8rem; line-height: 1.6; }
-.player-energy-meter { display: grid; gap: 10px; }
-.player-energy-meter div { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px; font-size: .8rem; }
-.player-energy-meter span { color: var(--muted-text); }
-.player-energy-meter strong { color: var(--text); }
-.player-energy-meter b { height: 7px; border-radius: 999px; background: var(--secondary); overflow: hidden; }
-.player-energy-meter i { display: block; height: 100%; border-radius: inherit; background: var(--success); }
+.player-energy-panel { gap: 12px; background: var(--surface); }
+.player-energy-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+.player-energy-heading strong { color: var(--text); font-size: .9rem; white-space: nowrap; }
+.player-energy-meter { height: 7px; border-radius: 999px; background: var(--secondary); overflow: hidden; }
+.player-energy-meter span { display: block; height: 100%; border-radius: inherit; background: var(--primary); }
 .care-message { color: var(--success-text); font-weight: 650; padding: 12px 16px; background: var(--surface); border-radius: 12px; }
 .session-details { padding: 18px 22px; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); }
 .session-details summary { cursor: pointer; min-height: 24px; color: var(--muted-text); font-size: .9rem; }
@@ -61,7 +62,7 @@ h1 {
 .farewell-card { display: grid; gap: 12px; padding: 24px; border-radius: 20px; background: var(--surface); line-height: 1.5; }
 .farewell-card h2 { font-size: 1.2rem; }
 @media (max-width: 900px) { .session-main { grid-template-columns: 1fr; } }
-@media (max-width: 600px) { .pet-session { gap: 16px; } .session-heading { align-items: flex-start; } .profile-link { max-width: 100px; text-align: right; font-size: .75rem; } .session-vitals { padding: 16px; } }
+@media (max-width: 600px) { .pet-session { gap: 16px; } .session-heading { align-items: flex-start; } .profile-link { max-width: 100px; text-align: right; font-size: .75rem; } .session-vitals, .player-energy-panel { padding: 16px; } }
 
 .lead {
   max-width: 680px;
@@ -166,6 +167,10 @@ h1 {
 
 .pet-card.disabled {
   cursor: not-allowed;
+  border-style: dashed;
+}
+
+.pet-card.disabled .pet-portrait {
   opacity: 0.54;
 }
 
@@ -181,7 +186,7 @@ h1 {
 }
 
 .pet-card.accent-ember .mode-badge {
-  color: var(--secondary-text);
+  color: #1f2937;
   background: var(--win);
 }
 

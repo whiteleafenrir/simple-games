@@ -20,14 +20,20 @@
   <div class="session-main">
     <app-pet-scene [pet]="pet" [blocked]="sceneBlocked()" [refreshing]="petStorage.refreshing()"
       (actionRequested)="onSceneAction($event, questions)" (refreshRequested)="petStorage.resolvePets()" />
-    <aside class="session-vitals" [attr.aria-label]="i18n.t('sceneWellbeing')">
-      <h2>{{ i18n.t('sceneWellbeing') }}</h2>
-      <app-pet-stats [stats]="pet.stats" [compact]="true" />
-      <div class="player-energy-meter">
-        <div><span>{{ i18n.t('playerEnergy') }}</span><strong>{{ playerEnergyValue(pet) }}/{{ playerEnergyMax(pet) }}</strong></div>
-        <b aria-hidden="true"><i [style.width.%]="playerEnergyPercent(pet)"></i></b>
-      </div>
-      <p class="care-hint">{{ i18n.t('petCareHint') }}</p>
+    <aside class="session-sidebar">
+      <section class="session-vitals" aria-labelledby="pet-wellbeing-title">
+        <h2 id="pet-wellbeing-title">{{ i18n.t('sceneWellbeing') }}</h2>
+        <app-pet-stats [stats]="pet.stats" [compact]="true" />
+        <p class="care-hint">{{ i18n.t('petEnergyHint') }}</p>
+      </section>
+      <section class="player-energy-panel" aria-labelledby="player-energy-title">
+        <div class="player-energy-heading">
+          <h2 id="player-energy-title">{{ i18n.t('playerEnergy') }}</h2>
+          <strong>{{ playerEnergyValue(pet) }}/{{ playerEnergyMax(pet) }}</strong>
+        </div>
+        <div class="player-energy-meter" aria-hidden="true"><span [style.width.%]="playerEnergyPercent(pet)"></span></div>
+        <p class="care-hint">{{ i18n.t('playerEnergyHint') }}</p>
+      </section>
     </aside>
   </div>
   @if (careMessage(); as message) { <p class="care-message" role="status">{{ i18n.t(message) }}</p> }
