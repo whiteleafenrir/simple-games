@@ -9,20 +9,13 @@
   }
   @if (pet(); as ownedPet) {
     <section class="pet-hero">
-      <span
-        class="pet-avatar"
-        [class.cat]="ownedPet.petId === 'cat'"
-        [class.dog]="ownedPet.petId === 'dog'"
-        [class.parrot]="ownedPet.petId === 'parrot'"
-        [class.dinosaur]="ownedPet.petId === 'dinosaur'"
-        [class.dragon]="ownedPet.petId === 'dragon'"
-        aria-hidden="true"
-      ></span>
+      <app-pet-illustration class="pet-avatar" [species]="ownedPet.petId" [mood]="ownedPet.mood" [sleeping]="ownedPet.status === 'pet' && !ownedPet.isLightOn" />
       <div>
         <p class="eyebrow">{{ i18n.t('petDetailsTitle') }}</p>
         <h1>{{ ownedPet.name }}</h1>
-        <p>{{ i18n.t(petOption(ownedPet).titleKey) }} · {{ i18n.t(petOption(ownedPet).modeKey) }}</p>
+        <p>{{ i18n.t(petOption(ownedPet).titleKey) }} · {{ periodOfLifeLabel(ownedPet.periodOfLife) }}</p>
       </div>
+      @if (ownedPet.status === 'pet') { <a class="return-link" [routerLink]="['/games/pocket-pet', ownedPet.id]">{{ i18n.t('homeReturn') }} <span aria-hidden="true">↗</span></a> }
     </section>
 
     <section class="details-panel">

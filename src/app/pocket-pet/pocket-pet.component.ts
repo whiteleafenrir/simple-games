@@ -1,10 +1,11 @@
 import { Component, computed, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
 
 import { I18nService } from '../i18n/i18n.service';
 import { TranslationKey } from '../i18n/translations';
+import { PetIllustrationComponent } from '../pets/pet-illustration.component';
 import { PetStatsComponent } from '../pets/pet-stats.component';
 import { PetSceneComponent, PetSceneActionEvent } from '../pets/pet-scene.component';
 import { PetQuestionsComponent } from '../pets/pet-questions.component';
@@ -36,6 +37,7 @@ import { PetOption, SessionLength } from './pocket-pet.model';
   imports: [
     RouterLink,
     PetStatsComponent,
+    PetIllustrationComponent,
     PetQuestionsComponent,
     PetSceneComponent,
     PetDatePipe
@@ -48,6 +50,7 @@ export class PocketPetComponent {
   public readonly i18n = inject(I18nService);
   public readonly petStorage = inject(PetStorageService);
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly viewedPetId = toSignal(
     this.route.paramMap.pipe(map((paramMap) => paramMap.get('petId'))),
     { initialValue: this.route.snapshot.paramMap.get('petId') }
@@ -73,7 +76,7 @@ export class PocketPetComponent {
   readonly sessionLengths: readonly SessionLength[] = SESSION_LENGTHS;
   readonly petOptions: readonly PetOption[] = PET_OPTIONS;
   readonly selectedSession = signal<SessionLength>(SESSION_LENGTHS[1]);
-  readonly selectedPet = signal<PetOption>(PET_OPTIONS[0]);
+  readonly selectedPet = signal<PetOption>(PET_OPTIONS.find(pet => !pet.disabled && pet.id === this.route.snapshot.queryParamMap.get('species')) ?? PET_OPTIONS[0]);
   readonly petName = signal<string>('');
   readonly createdPetMessage = signal<TranslationKey | null>(null);
   readonly errorMessage = signal<TranslationKey | null>(null);
@@ -122,6 +125,7 @@ export class PocketPetComponent {
     this.petName.set('');
     this.createdPetMessage.set('petCreated');
     this.errorMessage.set(null);
+    await this.router.navigate(['/games/pocket-pet', ownedPet.id]);
   }
 
   async careForPet(pet: OwnedPet, actionId: PetCareActionId): Promise<void> {

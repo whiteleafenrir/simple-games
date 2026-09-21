@@ -1,31 +1,61 @@
-<section class="home">
-  <div class="intro">
-    <p class="eyebrow">{{ i18n.t('homeEyebrow') }}</p>
-    <h1>{{ i18n.t('homeTitle') }}</h1>
-    <p class="lead">
-      {{ i18n.t('homeLead') }}
-    </p>
-    <div class="home-actions">
-      <a class="play-link" routerLink="/games/pocket-pet">{{ i18n.t('openFirstGame') }}</a>
-      <a class="secondary-link" routerLink="/games/tic-tac-toe">{{ i18n.t('openTicTacToe') }}</a>
-      @if (activePetId(); as petId) {
-        <a class="secondary-link" [routerLink]="['/games/pocket-pet', petId]">{{ i18n.t('viewPetSession') }}</a>
-        <a class="secondary-link" [routerLink]="['/profile/pets', petId]">{{ i18n.t('viewPet') }}</a>
+@if (pets.syncError(); as error) {
+  <div class="pet-feedback" role="alert"><span>{{ i18n.t(error) }}</span><button type="button" [disabled]="pets.refreshing()" (click)="pets.resolvePets()">{{ i18n.t('petRetry') }}</button></div>
+}
+<section class="home-hero" [attr.aria-busy]="pets.loading()">
+  <div class="hero-copy">
+    <p class="eyebrow"><span aria-hidden="true"></span>{{ i18n.t(pets.activePet() ? 'homeWelcomeBack' : 'homeEyebrow') }}</p>
+    @if (pets.activePet(); as pet) {
+      <h1>{{ i18n.t('homeWithPet') }}<br><em>{{ pet.name }}</em></h1>
+      <p class="lead">{{ i18n.t(pet.awayUntil ? 'homePetAway' : !pet.isLightOn ? 'homePetSleeping' : 'homePetHere') }}</p>
+      <div class="pet-summary"><span>{{ i18n.t(petOption(pet).titleKey) }}</span><span>{{ i18n.t(petPeriodOfLifeKey(pet.periodOfLife)) }}</span><span>{{ i18n.t(petMoodKey(pet.mood)) }}</span></div>
+      <a class="primary-link" [routerLink]="['/games/pocket-pet', pet.id]">{{ i18n.t('homeReturn') }} <span aria-hidden="true">↗</span></a>
+    } @else {
+      <h1>{{ i18n.t('homeTitle') }}<br><em>{{ i18n.t('homeTitleAccent') }}</em></h1>
+      <p class="lead">{{ i18n.t('homeLead') }}</p>
+      @if (pets.loading()) {
+        <p class="loading-note" role="status">{{ i18n.t('petLoading') }}</p>
+      } @else if (!pets.syncError()) {
+        <a class="primary-link" routerLink="/games/pocket-pet">{{ i18n.t('openFirstGame') }} <span aria-hidden="true">↗</span></a>
+        <p class="hero-note">{{ i18n.t('homeStartNote') }}</p>
       }
-    </div>
+    }
   </div>
-
-  <div class="preview" aria-hidden="true">
-    <div class="pet-scene">
-      <span class="sun"></span>
-      <span class="hill hill-back"></span>
-      <span class="hill hill-front"></span>
-      <span class="dino-body"></span>
-      <span class="dino-neck"></span>
-      <span class="dino-head"></span>
-      <span class="dino-tail"></span>
-      <span class="dino-leg leg-left"></span>
-      <span class="dino-leg leg-right"></span>
-    </div>
+  <div class="hero-art" aria-hidden="true">
+    <div class="art-orbit"></div><div class="art-sun"></div><span class="art-spark spark-one">✦</span><span class="art-spark spark-two">✧</span>
+    @if (pets.activePet(); as pet) {
+      <app-pet-illustration class="main-companion solo" [species]="pet.petId" [mood]="pet.mood" [sleeping]="!pet.isLightOn" />
+      <span class="art-note">{{ i18n.t(pet.awayUntil ? 'sceneAway' : !pet.isLightOn ? 'sceneSleeping' : 'homeArtNote') }}</span>
+    } @else {
+      <app-pet-illustration class="friend-companion" species="dinosaur" mood="joyful" />
+      <app-pet-illustration class="main-companion" species="cat" mood="joyful" />
+      <span class="art-note">{{ i18n.t('homeArtNote') }}</span>
+    }
+    <svg class="art-sprig" viewBox="0 0 100 150"><path d="M49 145c9-43-12-78 12-127"/><path d="M52 113C20 111 15 84 18 74c24 0 37 17 34 39ZM53 86c29-1 42-20 40-33-24-2-41 13-40 33ZM54 60C30 55 25 37 29 24c24 5 33 21 25 36Z"/></svg>
+  </div>
+</section>
+@if (!pets.loading() && !pets.syncError()) {
+  @if (!pets.activePet()) {
+    <section class="companions" aria-labelledby="companions-title">
+      <div class="section-heading"><div><p class="eyebrow">{{ i18n.t('homeCompanionsEyebrow') }}</p><h2 id="companions-title">{{ i18n.t('homeCompanionsTitle') }}</h2></div><p>{{ i18n.t('homeCompanionsNote') }}</p></div>
+      <div class="companion-grid">
+        @for (pet of companions; track pet.id) {
+          <a class="companion-card" routerLink="/games/pocket-pet" [queryParams]="{ species: pet.id }">
+            <app-pet-illustration [species]="pet.id" mood="joyful" />
+            <span>{{ i18n.t(pet.titleKey) }}<span aria-hidden="true">↗</span></span>
+          </a>
+        }
+      </div>
+    </section>
+  }
+  @if (memories() > 0) {
+    <a class="album-link" routerLink="/profile"><span><strong>{{ i18n.t('homeMemoriesTitle') }}</strong><small>{{ i18n.t('homeMemoriesText') }}</small></span><span class="memory-count">{{ memories() }} <span aria-hidden="true">↗</span></span></a>
+  }
+}
+<section class="rhythm" aria-labelledby="rhythm-title">
+  <div class="section-heading"><div><p class="eyebrow">{{ i18n.t('homeRhythmEyebrow') }}</p><h2 id="rhythm-title">{{ i18n.t('homeRhythmTitle') }}</h2></div><p>{{ i18n.t('homeRhythmNote') }}</p></div>
+  <div class="rhythm-grid">
+    <article><span class="rhythm-icon"><app-pet-action-icon action="feed" /></span><span class="rhythm-number" aria-hidden="true">01</span><h3>{{ i18n.t('homeMorning') }}</h3><p>{{ i18n.t('homeMorningText') }}</p></article>
+    <article><span class="rhythm-icon"><app-pet-action-icon action="walk" /></span><span class="rhythm-number" aria-hidden="true">02</span><h3>{{ i18n.t('homeDay') }}</h3><p>{{ i18n.t('homeDayText') }}</p></article>
+    <article><span class="rhythm-icon"><app-pet-action-icon action="toggleLight" /></span><span class="rhythm-number" aria-hidden="true">03</span><h3>{{ i18n.t('homeEvening') }}</h3><p>{{ i18n.t('homeEveningText') }}</p></article>
   </div>
 </section>

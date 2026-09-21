@@ -1,59 +1,84 @@
-<svg viewBox="0 0 280 260" fill="none" aria-hidden="true">
-  <ellipse class="shadow" cx="140" cy="232" rx="75" ry="12" />
+<svg viewBox="0 0 240 240" fill="none" aria-hidden="true">
+  <ellipse class="shadow" cx="120" cy="220" rx="72" ry="9"/>
   <g class="companion">
-    @if (species() === 'cat' || species() === 'dog') {
-      <path class="tail" d="M188 206c47 8 58-42 35-47-17-4-17 15-10 16" />
-    } @else if (species() === 'dinosaur' || species() === 'dragon') {
-      <path class="coat" d="m181 179 69 33c-14 26-53 15-75 2Z" />
-      <path class="accent" d="m213 194 4-17 12 24 4-10 11 18" />
-    }
-    <ellipse class="coat" cx="140" cy="180" rx="57" ry="53" />
-    <ellipse class="belly" cx="140" cy="186" rx="35" ry="35" />
-    <ellipse class="coat" cx="103" cy="224" rx="23" ry="12" />
-    <ellipse class="coat" cx="177" cy="224" rx="23" ry="12" />
-    <g class="head">
-      @switch (species()) {
-        @case ('cat') {
-          <path class="coat" d="M81 99 78 31q2-13 14-4l42 40m15 0 40-40q14-9 13 4l-3 68" />
-          <path class="ear" d="m89 73-1-31 25 23m54 0 24-23-1 31" />
-        }
-        @case ('dog') {
-          <path class="accent" d="M95 62c-39-31-52 5-47 51 4 30 27 23 41-6m96-45c39-31 52 5 47 51-4 30-27 23-41-6" />
-        }
-        @case ('parrot') {
-          <path class="accent" d="M118 67q-22-33-9-45 14 5 19 35-2-45 11-45 13 11 1 47 19-33 29-23 4 18-22 35" />
-        }
-        @default {
-          <path class="accent" d="m97 69 3-29 22 18 17-33 15 31 24-15 7 34" />
-        }
+    @switch (species()) {
+      @case ('cat') {
+        <path class="outline coat" d="M166 190c40 14 59-12 47-35-6-12-18-5-14 4 7 17-9 22-25 14"/>
+        <path class="outline coat" d="M77 150c-9 16-12 39-9 55 2 11 23 14 52 14s50-3 52-14c3-16 0-39-9-55Z"/>
+        <ellipse class="cream" cx="120" cy="187" rx="25" ry="28"/>
+        <path class="outline coat" d="M62 89 61 37q0-11 10-5l36 24q13-3 26 0l36-24q10-6 10 5l-1 52c12 15 12 42 1 55-13 17-35 23-59 23s-46-6-59-23c-11-13-11-40 1-55Z"/>
+        <path class="ear" d="m71 48 2 32 22-17Zm98 0-24 15 22 17Z"/>
+        <path class="accent-line" d="M110 61v13m10-15v14m10-12v13"/>
+        <path class="face whisker" d="m72 121-24-4m24 13-23 4m119-13 24-4m-24 13 23 4"/>
+        <path class="outline coat" d="M81 192v18q8 8 23 0v-17m32 0v17q15 8 23 0v-18"/>
       }
-      <path class="coat" d="M74 104c0-37 23-55 66-55s66 18 66 55v20c0 35-24 50-66 50s-66-15-66-50Z" />
-      <ellipse class="blush" cx="97" cy="131" rx="13" ry="7" />
-      <ellipse class="blush" cx="183" cy="131" rx="13" ry="7" />
+      @case ('dog') {
+        <path class="outline coat" d="M166 190q44-1 37-37-3-10-10-3-1 24-30 23"/>
+        <path class="outline coat" d="M80 145q-18 28-14 59c1 15 107 15 108 0q4-31-14-59"/>
+        <ellipse class="cream" cx="120" cy="185" rx="28" ry="30"/>
+        <path class="outline coat" d="M66 91c0-30 21-47 54-47s54 17 54 47l7 28c7 27-21 48-61 48s-68-21-61-48Z"/>
+        <path class="outline accent" d="M71 55C46 46 34 65 37 94l4 33q3 15 15 6l19-49q6-21-4-29Zm98 0c25-9 37 10 34 39l-4 33q-3 15-15 6l-19-49q-6-21 4-29Z"/>
+        <path class="cream" d="M117 48q-5 22-13 43c-6 16 1 34 16 34s22-18 16-34q-8-21-13-43Z"/>
+        <ellipse class="cream" cx="120" cy="138" rx="31" ry="21"/>
+        <path class="outline coat" d="M78 194v17q11 8 24 0v-18m36 0v18q13 8 24 0v-17"/>
+      }
+      @case ('parrot') {
+        <path class="outline accent" d="m95 174 7 42q4 9 11 1l8-20 9 20q8 8 11-2l5-41"/>
+        <path class="outline coat" d="M77 99c-4-38 17-56 43-56s49 18 45 56c18 20 29 44 19 69-10 27-40 34-64 34s-54-7-64-34c-10-25 3-51 21-69Z"/>
+        <path class="outline accent" d="M111 45q-24-24-11-29 13 1 21 24 1-31 13-27 10 6-2 30"/>
+        <path class="cream" d="M85 108c-1-20 13-26 25-18l10 9 10-9c12-8 26-2 25 18v18c0 29-15 49-35 49s-35-20-35-49Z"/>
+        <path class="outline accent" d="M72 132q-27 13-11 44 19-7 22-24m85-20q27 13 11 44-19-7-22-24"/>
+        <path class="feet" d="M97 203v13m-7 1 7-4 7 4m39-14v13m-7 1 7-4 7 4"/>
+      }
+      @default {
+        @if (species() === 'dragon') {
+          <path class="outline accent" d="m80 161-36-43-5 50 27-4-3 23Zm80 0 36-43 5 50-27-4 3 23Z"/>
+        }
+        <path class="outline coat" d="M155 176q42 17 63-13 8-11 8 2c0 39-30 51-66 37"/>
+        <path class="accent" d="m174 179 6-15 12 18 8-14 10 6"/>
+        <path class="outline coat" d="M79 134q-16 28-12 68c2 18 97 19 103 1 6-22-1-51-12-69"/>
+        <ellipse class="cream" cx="119" cy="180" rx="28" ry="32"/>
+        <path class="outline accent" d="m86 62 1-22 20 9 14-26 13 26 22-9-2 29"/>
+        <path class="outline coat" d="M67 104c0-35 17-53 49-53 36 0 56 20 54 53 13 7 18 15 17 28-2 24-30 35-65 35-36 0-60-12-60-36 0-10 1-18 5-27Z"/>
+        <path class="cream" d="M74 131c15-15 31-15 49-9 14-6 37-6 53 6 5 22-23 31-54 31s-51-10-48-28"/>
+        <circle class="accent" cx="77" cy="101" r="5"/><circle class="accent" cx="89" cy="87" r="3"/>
+        <path class="outline coat" d="M79 195v16q10 9 25 0v-17m33 0v17q15 9 25 0v-16"/>
+        <path class="face" d="M84 153q-7 10 5 15m63-15q7 10-5 15"/>
+      }
+    }
+    <g class="expression">
       @if (sleeping()) {
-        <path class="face" d="M100 115q10 10 20 0m40 0q10 10 20 0" />
+        <path class="face" d="M89 110q9 9 18 0m26 0q9 9 18 0"/>
       } @else {
         <g class="eyes">
-          <ellipse class="ink" cx="111" cy="113" rx="6" ry="9" />
-          <ellipse class="ink" cx="169" cy="113" rx="6" ry="9" />
-          <circle fill="white" cx="113" cy="110" r="2" /><circle fill="white" cx="171" cy="110" r="2" />
+          <ellipse class="ink" cx="98" cy="108" rx="4.5" ry="6.5"/><ellipse class="ink" cx="142" cy="108" rx="4.5" ry="6.5"/>
+          <circle fill="#fffaf0" cx="99.5" cy="106" r="1.5"/><circle fill="#fffaf0" cx="143.5" cy="106" r="1.5"/>
         </g>
+        @if (mood() === 'angry' || mood() === 'irritated') {
+          <path class="face" d="m90 95 15 5m30 0 15-5"/>
+        }
+        @if (mood() === 'upset' || mood() === 'thoughtful') {
+          <path class="face" d="m91 96 13-4m32 0 13 4"/>
+        }
       }
+      <ellipse class="blush" cx="82" cy="125" rx="9" ry="5"/><ellipse class="blush" cx="158" cy="125" rx="9" ry="5"/>
       @if (species() === 'parrot') {
-        <path fill="#e9a949" d="M126 133q14-16 28 0l-14 20Z" />
+        <path class="beak" d="M109 122q11-12 22 0l-11 18Z"/>
       } @else {
-        <path class="ink" d="M133 129q7-5 14 0l-7 7Z" />
-        @if (mood() === 'upset' || mood() === 'angry' || mood() === 'irritated') {
-          <path class="face" d="M130 148q10-9 20 0" />
+        @if (species() === 'dinosaur' || species() === 'dragon') {
+          <circle class="ink" cx="112" cy="128" r="2"/><circle class="ink" cx="128" cy="128" r="2"/>
         } @else {
-          <path class="face" d="M127 144q13 12 26 0" />
+          <path class="nose" d="M114 126q6-4 12 0l-6 6Z"/>
+        }
+        @if (mood() === 'upset' || mood() === 'angry' || mood() === 'irritated') {
+          <path class="face" d="M112 143q8-8 16 0"/>
+        } @else {
+          <path class="face" d="M111 139q9 9 18 0"/>
         }
       }
     </g>
   </g>
   @if (sleeping()) {
-    <g class="sleep-marks" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M218 91h13l-13 14h13m8-43h17l-17 19h17" />
-    </g>
+    <g class="sleep-marks face"><path d="M186 66h10l-10 12h10m8-35h14l-14 16h14"/></g>
   }
 </svg>

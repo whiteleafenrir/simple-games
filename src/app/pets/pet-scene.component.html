@@ -13,7 +13,7 @@
         <div class="empty-scene" aria-hidden="true"><app-pet-action-icon action="walk" /></div>
         <p>{{ i18n.t('sceneAwayHint') }}<br><strong>{{ awayUntil | petDate:i18n.language() }}</strong></p>
       } @else {
-        <app-pet-illustration [species]="pet().petId" [mood]="pet().mood" [sleeping]="!pet().isLightOn" />
+        <app-pet-illustration [animated]="true" [species]="pet().petId" [mood]="pet().mood" [sleeping]="!pet().isLightOn" />
         <p class="pet-caption">{{ i18n.t(pet().isLightOn ? 'sceneHomeHint' : 'sceneSleepHint') }}</p>
       }
     </div>

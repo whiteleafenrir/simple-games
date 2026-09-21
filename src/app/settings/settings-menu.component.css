@@ -18,10 +18,10 @@
   width: 42px;
   aspect-ratio: 1;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 16px;
   color: var(--text);
   background: var(--surface);
-  box-shadow: var(--shadow-soft);
+  box-shadow: none;
 }
 
 .settings-trigger:hover,
@@ -49,7 +49,7 @@
   width: min(320px, calc(100vw - 32px));
   padding: 16px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 16px;
   background: var(--surface);
   box-shadow: var(--shadow-strong);
 }
@@ -74,7 +74,7 @@
 .control-group > span {
   color: var(--subtle-text);
   font-size: 0.82rem;
-  font-weight: 800;
+  font-weight: 650;
   text-transform: uppercase;
 }
 
@@ -87,7 +87,7 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   padding: 3px;
-  border-radius: 8px;
+  border-radius: 16px;
   background: var(--soft-surface);
 }
 
@@ -95,10 +95,10 @@
   min-height: 34px;
   padding: 0 10px;
   border: 0;
-  border-radius: 6px;
+  border-radius: 12px;
   color: var(--muted-text);
   background: transparent;
-  font-weight: 800;
+  font-weight: 650;
 }
 
 .segmented-control button.active {
@@ -110,10 +110,10 @@
 .close-popover {
   min-height: 38px;
   border: 0;
-  border-radius: 8px;
+  border-radius: 16px;
   color: var(--primary-contrast);
   background: var(--primary);
-  font-weight: 800;
+  font-weight: 650;
 }
 
 .close-popover:hover {

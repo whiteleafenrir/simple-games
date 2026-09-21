@@ -61,7 +61,7 @@
   <div class="pet-copy">
     <a class="back-link" routerLink="/">{{ i18n.t('backHome') }}</a>
     <p class="eyebrow">{{ i18n.t('mainGame') }}</p>
-    <h1>{{ i18n.t('pocketPet') }}</h1>
+    <h1>{{ i18n.t('adoptionTitle') }}</h1>
     <p class="lead">{{ i18n.t('pocketPetIntro') }}</p>
   </div>
 
@@ -100,26 +100,12 @@
           class="pet-card"
           [class.active]="selectedPet().id === pet.id"
           [class.disabled]="pet.disabled"
-          [class.accent-blue]="pet.accent === 'blue'"
-          [class.accent-green]="pet.accent === 'green'"
-          [class.accent-gold]="pet.accent === 'gold'"
-          [class.accent-ember]="pet.accent === 'ember'"
           [disabled]="pet.disabled"
           [attr.aria-pressed]="selectedPet().id === pet.id"
           (click)="selectPet(pet)"
         >
-          <span class="mode-badge">{{ i18n.t(pet.modeKey) }}</span>
-          <span
-            class="pet-portrait"
-            [class.cat]="pet.id === 'cat'"
-            [class.dog]="pet.id === 'dog'"
-            [class.parrot]="pet.id === 'parrot'"
-            [class.dinosaur]="pet.id === 'dinosaur'"
-            [class.dragon]="pet.id === 'dragon'"
-            aria-hidden="true"
-          >
-            <span></span>
-          </span>
+          @if (pet.disabled || selectedPet().id === pet.id) { <span class="selection-badge">{{ i18n.t(pet.disabled ? 'petComingLater' : 'petSelected') }}</span> }
+          <app-pet-illustration [species]="pet.id" mood="joyful" />
           <strong>{{ i18n.t(pet.titleKey) }}</strong>
           <small>{{ i18n.t(pet.descriptionKey) }}</small>
         </button>
@@ -134,7 +120,7 @@
     </div>
 
     <label class="name-field">
-      <span>{{ i18n.t('petName') }}</span>
+      <span class="visually-hidden">{{ i18n.t('petName') }}</span>
       <input
         type="text"
         [value]="petName()"

@@ -1,5 +1,5 @@
 :host { display: block; min-width: 0; }
-.scene { position: relative; isolation: isolate; border: 1px solid var(--border); border-radius: 28px; padding: 24px; background: color-mix(in srgb, var(--surface) 86%, #bdd9bf); box-shadow: var(--shadow-soft); color: var(--text); }
+.scene { position: relative; isolation: isolate; border: 1px solid var(--border); border-radius: 28px; padding: 24px; background: var(--garden-bg); box-shadow: none; color: var(--text); }
 .room { position: absolute; z-index: -1; inset: 0; overflow: hidden; border-radius: inherit; background: radial-gradient(ellipse at 50% 75%, #fff6d155, transparent 70%); }
 .window { position: absolute; width: 108px; height: 136px; top: 62px; left: calc(50% - 54px); border: 9px solid color-mix(in srgb, var(--surface) 70%, #aeaa89); border-radius: 70px 70px 8px 8px; background: linear-gradient(#a3cecf, #e1eac5); overflow: hidden; opacity: .8; }
 .window::after { content: ''; position: absolute; top: 58%; left: 0; width: 100%; height: 6px; background: color-mix(in srgb, var(--surface) 70%, #aeaa89); }

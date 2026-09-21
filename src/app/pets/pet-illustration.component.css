@@ -1,22 +1,24 @@
-:host { display: block; width: min(100%, 300px); --coat: #83b8a0; --accent: #508c74; color: #385b50; }
-:host.dog { --coat: #d6ad7d; --accent: #a97b50; }
-:host.parrot { --coat: #97b8cf; --accent: #5c8da7; }
-:host.dinosaur { --coat: #9bbf88; --accent: #72955e; }
+:host { display: block; width: min(100%, 300px); --coat: #dcad79; --accent: #bc8556; --outline: #704e39; }
+:host.dog { --coat: #d8b38b; --accent: #9c7054; --outline: #6c4c39; }
+:host.parrot { --coat: #92bcb0; --accent: #588b80; --outline: #3c645e; }
+:host.dinosaur { --coat: #a4ba87; --accent: #728c61; --outline: #4e6344; }
+:host.dragon { --coat: #b8a4c9; --accent: #88739f; --outline: #635473; }
 svg { display: block; width: 100%; overflow: visible; }
-.coat { fill: var(--coat); }
-.accent { fill: var(--accent); }
-.belly { fill: #fff3d8; }
-.ear, .blush { fill: #e7a89c; }
-.blush { opacity: .6; }
-.ink { fill: #30463e; }
-.face { stroke: #30463e; stroke-width: 3; stroke-linecap: round; }
-.tail { stroke: var(--coat); stroke-width: 21; stroke-linecap: round; }
+.coat { fill: var(--coat); }.accent { fill: var(--accent); }
+.outline { stroke: var(--outline); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+.cream { fill: #f8e9cd; }.ear { fill: #e2a198; }.blush { fill: #d8897b; opacity: .5; }
+.ink { fill: #403d35; }.nose { fill: #895952; }.beak { fill: #e5b35f; stroke: #947141; stroke-width: 2; stroke-linejoin: round; }
+.face { stroke: #403d35; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+.whisker { stroke: var(--outline); opacity: .65; stroke-width: 2; }
+.feet { stroke: #9d754c; stroke-width: 4; stroke-linecap: round; }
+.accent-line { stroke: var(--accent); stroke-width: 5; stroke-linecap: round; }
 .shadow { fill: #344f3b; opacity: .12; }
-.companion { transform-origin: 140px 230px; animation: breathe 4s ease-in-out infinite; }
-.eyes { transform-origin: 140px 113px; animation: blink 6s infinite; }
-:host.sleeping .companion { animation-duration: 6s; }
-.sleep-marks { animation: drift 4s ease-in-out infinite; }
-@keyframes breathe { 0%, 100% { transform: translateY(0) scaleY(1); } 50% { transform: translateY(-4px) scaleY(1.015); } }
+.companion { transform-origin: 120px 220px; }.eyes { transform-origin: 120px 108px; }
+:host.animated .companion { animation: breathe 4s ease-in-out infinite; }
+:host.animated .eyes { animation: blink 6s infinite; }
+:host.animated.sleeping .companion { animation-duration: 6s; }
+:host.animated .sleep-marks { animation: drift 4s ease-in-out infinite; }
+@keyframes breathe { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px) scaleY(1.01); } }
 @keyframes blink { 0%, 43%, 47%, 100% { transform: scaleY(1); } 45% { transform: scaleY(.1); } }
 @keyframes drift { 0%, 100% { opacity: .35; transform: translateY(3px); } 50% { opacity: .9; transform: translateY(-5px); } }
-@media (prefers-reduced-motion: reduce) { .companion, .eyes, .sleep-marks { animation: none; } }
+@media (prefers-reduced-motion: reduce) { :host.animated .companion, :host.animated .eyes, :host.animated .sleep-marks { animation: none; } }

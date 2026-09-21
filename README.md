@@ -1,6 +1,6 @@
 # Simple Games
 
-Браузерные игры на Angular 22 standalone components. Основное направление — **Pocket Pet**: забота о фэнтези-питомце в ограниченной жизненной сессии. Дополнительно есть крестики-нолики.
+**Pocket Pet** — браузерная игра на Angular 22 standalone components: забота о фэнтези-питомце в ограниченной жизненной сессии. Главная помогает вернуться к другу, альбом хранит общие истории. Прежние игры сохранены по прямым маршрутам и скрыты из навигации.
 
 Стек: Angular + NestJS API + PostgreSQL 17 + Prisma 7. Состояние питомцев хранится на backend, гостевая сессия восстанавливается через HttpOnly-cookie.
 
@@ -17,7 +17,7 @@ npm run dev
 
 Открыть всё во втором терминале: `npm run dev:open`. Остановить приложения: **Ctrl+C**, данные сохраняются.
 
-- [Игра](http://localhost:4200/games/pocket-pet)
+- [Игра](http://localhost:4200)
 - [Backend: Swagger](http://localhost:3000/api/docs)
 - [База: Prisma Studio](http://localhost:5555)
 

@@ -6,6 +6,7 @@ import { map } from 'rxjs';
 import { TranslationKey } from '../i18n/translations';
 import { petErrorKey } from '../pets/pet-error.utils';
 import { I18nService } from '../i18n/i18n.service';
+import { PetIllustrationComponent } from '../pets/pet-illustration.component';
 import { PetStatsComponent } from '../pets/pet-stats.component';
 import { PetQuestionsComponent } from '../pets/pet-questions.component';
 import { PetDatePipe } from '../pets/pet-date.pipe';
@@ -39,6 +40,7 @@ import { PetStorageService } from '../pets/pet-storage.service';
   imports: [
     RouterLink,
     PetStatsComponent,
+    PetIllustrationComponent,
     PetQuestionsComponent,
     PetDatePipe
   ],
