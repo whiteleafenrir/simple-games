@@ -282,6 +282,8 @@ function petCoreData(pet: OwnedPet) {
     careHistoryCount: pet.careHistoryCount,
     trust: pet.trust,
     name: pet.name,
+    coatColor: pet.appearance.color,
+    coatPattern: pet.appearance.pattern,
     petId: pet.petId,
     mode: pet.mode,
     status: pet.status,

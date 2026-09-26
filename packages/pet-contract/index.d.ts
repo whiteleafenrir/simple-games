@@ -1,5 +1,8 @@
 // Общий HTTP-контракт. Только типы; даты передаются как ISO-строки.
 export type PetId = 'cat' | 'dog' | 'parrot' | 'dinosaur' | 'dragon';
+export type PetCoatColor = 'natural' | 'honey' | 'ash' | 'rose' | 'lavender' | 'mint';
+export type PetCoatPattern = 'plain' | 'spots' | 'stripes';
+export interface PetAppearance { color: PetCoatColor; pattern: PetCoatPattern; }
 export type PetMode = 'easy' | 'medium' | 'insane';
 export type SessionLengthId = 'short' | 'standard' | 'long';
 
@@ -60,6 +63,7 @@ export interface PetCareActionEntry {
 }
 
 export interface OwnedPet {
+  appearance: PetAppearance;
   id: string;
   name: string;
   petId: PetId;
@@ -113,6 +117,7 @@ export interface PetHistoryPage {
 }
 
 export interface CreatePetRequest {
+  appearance?: PetAppearance;
   name: string;
   petId: PetId;
   sessionLengthId: SessionLengthId;

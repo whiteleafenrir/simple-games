@@ -1,0 +1,41 @@
+<dialog #gamesDialog aria-labelledby="pet-games-heading" (cancel)="cancel($event)">
+  <header>
+    <div>
+      <p class="eyebrow">{{ pet().name }} · {{ i18n.t('petGamesTogether') }}</p>
+      <h2 #heading id="pet-games-heading" tabindex="-1">{{ i18n.t(selected() === 'word-clouds' ? 'wordCloudsTitle' : selected() === 'tic-tac-toe' ? 'ticTacToe' : 'petGamesTitle') }}</h2>
+    </div>
+    <button class="close" type="button" [attr.aria-label]="i18n.t('petGamesClose')" (click)="close()">×</button>
+  </header>
+  @if (opened()) {
+    @if (message(); as error) { <p class="feedback" role="alert">{{ i18n.t(error) }}</p> }
+    @if (unavailable(); as reason) {
+      <p class="feedback" role="status">{{ i18n.t(reason) }}</p>
+    } @else if (selected(); as game) {
+      <button class="back" type="button" (click)="back()">← {{ i18n.t('petGamesBack') }}</button>
+      @switch (game) {
+        @case ('word-clouds') { <app-word-clouds /> }
+        @case ('tic-tac-toe') { <app-pet-tic-tac-toe [petName]="pet().name" /> }
+      }
+      <p class="session-note">{{ i18n.t('petGamesFreeReplay') }}</p>
+    } @else {
+      <p class="intro">{{ i18n.t('petGamesIntro') }}</p>
+      <div class="choices" [attr.aria-busy]="busy()">
+        <button class="game-card" type="button" [disabled]="!!startBlocked()" (click)="choose('word-clouds')">
+          <span class="game-icon word-icon" aria-hidden="true"><svg viewBox="0 0 72 72"><circle cx="44" cy="27" r="15" /><path d="M15 53C3 43 13 29 24 34 28 14 51 20 51 35 68 35 68 56 52 56H20Z" /></svg></span>
+          <span class="game-copy"><strong>{{ i18n.t('wordCloudsTitle') }}</strong><span>{{ i18n.t('wordCloudsDescription') }}</span><small>{{ i18n.t('wordCloudsTag') }}</small></span>
+          <span class="arrow" aria-hidden="true">↗</span>
+        </button>
+        <button class="game-card" type="button" [disabled]="!!startBlocked()" (click)="choose('tic-tac-toe')">
+          <span class="game-icon" aria-hidden="true"><svg viewBox="0 0 72 72"><path d="M27 9v54M47 9v54M9 27h54M9 47h54M12 12l10 10m0-10L12 22M51 51l10 10m0-10L51 61" /><circle cx="37" cy="37" r="6" /></svg></span>
+          <span class="game-copy"><strong>{{ i18n.t('ticTacToe') }}</strong><span>{{ i18n.t('petTicDescription') }}</span><small>{{ i18n.t('petTicTag') }}</small></span>
+          <span class="arrow" aria-hidden="true">↗</span>
+        </button>
+      </div>
+      @if (startBlocked(); as reason) { <p class="feedback" role="status">{{ i18n.t(reason) }}</p> }
+      <p class="session-note">{{ i18n.t(started() ? 'petGamesFreeReplay' : 'petGamesCareNote') }}</p>
+      @if (!started()) {
+        <p class="cost">{{ i18n.t('sceneEnergyCost') }}: {{ pet().actions.play.playerEnergyCost }} · {{ i18n.t('careCooldown') }}: {{ pet().actions.play.cooldownMinutes }} {{ i18n.t('minutesShort') }}</p>
+      }
+    }
+  }
+</dialog>

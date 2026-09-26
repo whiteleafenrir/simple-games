@@ -1,84 +1,153 @@
 <svg viewBox="0 0 240 240" fill="none" aria-hidden="true">
+  <defs>
+    <clipPath [id]="bodyId + '-clip'"><use [attr.href]="'#' + bodyId" /></clipPath>
+    <clipPath [id]="headId + '-clip'"><use [attr.href]="'#' + headId" /></clipPath>
+  </defs>
   <ellipse class="shadow" cx="120" cy="220" rx="72" ry="9"/>
   <g class="companion">
     @switch (species()) {
       @case ('cat') {
-        <path class="outline coat" d="M166 190c40 14 59-12 47-35-6-12-18-5-14 4 7 17-9 22-25 14"/>
-        <path class="outline coat" d="M77 150c-9 16-12 39-9 55 2 11 23 14 52 14s50-3 52-14c3-16 0-39-9-55Z"/>
+        <path class="tail outline coat" d="M166 190c40 14 59-12 47-35-6-12-18-5-14 4 7 17-9 22-25 14"/>
+        <path [attr.id]="bodyId" class="outline coat" d="M77 150c-9 16-12 39-9 55 2 11 23 14 52 14s50-3 52-14c3-16 0-39-9-55Z"/>
         <ellipse class="cream" cx="120" cy="187" rx="25" ry="28"/>
-        <path class="outline coat" d="M62 89 61 37q0-11 10-5l36 24q13-3 26 0l36-24q10-6 10 5l-1 52c12 15 12 42 1 55-13 17-35 23-59 23s-46-6-59-23c-11-13-11-40 1-55Z"/>
-        <path class="ear" d="m71 48 2 32 22-17Zm98 0-24 15 22 17Z"/>
-        <path class="accent-line" d="M110 61v13m10-15v14m10-12v13"/>
-        <path class="face whisker" d="m72 121-24-4m24 13-23 4m119-13 24-4m-24 13 23 4"/>
-        <path class="outline coat" d="M81 192v18q8 8 23 0v-17m32 0v17q15 8 23 0v-18"/>
       }
       @case ('dog') {
-        <path class="outline coat" d="M166 190q44-1 37-37-3-10-10-3-1 24-30 23"/>
-        <path class="outline coat" d="M80 145q-18 28-14 59c1 15 107 15 108 0q4-31-14-59"/>
+        <path class="tail outline coat" d="M166 190q44-1 37-37-3-10-10-3-1 24-30 23"/>
+        <path [attr.id]="bodyId" class="outline coat" d="M80 145q-18 28-14 59c1 15 107 15 108 0q4-31-14-59"/>
         <ellipse class="cream" cx="120" cy="185" rx="28" ry="30"/>
-        <path class="outline coat" d="M66 91c0-30 21-47 54-47s54 17 54 47l7 28c7 27-21 48-61 48s-68-21-61-48Z"/>
-        <path class="outline accent" d="M71 55C46 46 34 65 37 94l4 33q3 15 15 6l19-49q6-21-4-29Zm98 0c25-9 37 10 34 39l-4 33q-3 15-15 6l-19-49q-6-21 4-29Z"/>
-        <path class="cream" d="M117 48q-5 22-13 43c-6 16 1 34 16 34s22-18 16-34q-8-21-13-43Z"/>
-        <ellipse class="cream" cx="120" cy="138" rx="31" ry="21"/>
-        <path class="outline coat" d="M78 194v17q11 8 24 0v-18m36 0v18q13 8 24 0v-17"/>
       }
       @case ('parrot') {
-        <path class="outline accent" d="m95 174 7 42q4 9 11 1l8-20 9 20q8 8 11-2l5-41"/>
-        <path class="outline coat" d="M77 99c-4-38 17-56 43-56s49 18 45 56c18 20 29 44 19 69-10 27-40 34-64 34s-54-7-64-34c-10-25 3-51 21-69Z"/>
-        <path class="outline accent" d="M111 45q-24-24-11-29 13 1 21 24 1-31 13-27 10 6-2 30"/>
-        <path class="cream" d="M85 108c-1-20 13-26 25-18l10 9 10-9c12-8 26-2 25 18v18c0 29-15 49-35 49s-35-20-35-49Z"/>
-        <path class="outline accent" d="M72 132q-27 13-11 44 19-7 22-24m85-20q27 13 11 44-19-7-22-24"/>
-        <path class="feet" d="M97 203v13m-7 1 7-4 7 4m39-14v13m-7 1 7-4 7 4"/>
+        <path class="tail outline accent" d="m95 174 7 42q4 9 11 1l8-20 9 20q8 8 11-2l5-41"/>
+        <path [attr.id]="bodyId" class="outline coat" d="M77 99c-4-38 17-56 43-56s49 18 45 56c18 20 29 44 19 69-10 27-40 34-64 34s-54-7-64-34c-10-25 3-51 21-69Z"/>
+        <path class="wing wing-left outline accent" d="M72 132q-27 13-11 44 19-7 22-24"/>
+        <path class="wing wing-right outline accent" d="M168 132q27 13 11 44-19-7-22-24"/>
       }
       @default {
         @if (species() === 'dragon') {
-          <path class="outline accent" d="m80 161-36-43-5 50 27-4-3 23Zm80 0 36-43 5 50-27-4 3 23Z"/>
+          <path class="wing wing-left outline accent" d="m80 161-36-43-5 50 27-4-3 23Z"/>
+          <path class="wing wing-right outline accent" d="m160 161 36-43 5 50-27-4 3 23Z"/>
         }
-        <path class="outline coat" d="M155 176q42 17 63-13 8-11 8 2c0 39-30 51-66 37"/>
-        <path class="accent" d="m174 179 6-15 12 18 8-14 10 6"/>
-        <path class="outline coat" d="M79 134q-16 28-12 68c2 18 97 19 103 1 6-22-1-51-12-69"/>
+        <g class="tail">
+          <path class="outline coat" d="M155 176q42 17 63-13 8-11 8 2c0 39-30 51-66 37"/>
+          <path class="accent" d="m174 179 6-15 12 18 8-14 10 6"/>
+        </g>
+        <path [attr.id]="bodyId" class="outline coat" d="M79 134q-16 28-12 68c2 18 97 19 103 1 6-22-1-51-12-69"/>
         <ellipse class="cream" cx="119" cy="180" rx="28" ry="32"/>
-        <path class="outline accent" d="m86 62 1-22 20 9 14-26 13 26 22-9-2 29"/>
-        <path class="outline coat" d="M67 104c0-35 17-53 49-53 36 0 56 20 54 53 13 7 18 15 17 28-2 24-30 35-65 35-36 0-60-12-60-36 0-10 1-18 5-27Z"/>
-        <path class="cream" d="M74 131c15-15 31-15 49-9 14-6 37-6 53 6 5 22-23 31-54 31s-51-10-48-28"/>
-        <circle class="accent" cx="77" cy="101" r="5"/><circle class="accent" cx="89" cy="87" r="3"/>
-        <path class="outline coat" d="M79 195v16q10 9 25 0v-17m33 0v17q15 9 25 0v-16"/>
-        <path class="face" d="M84 153q-7 10 5 15m63-15q7 10-5 15"/>
       }
     }
-    <g class="expression">
-      @if (sleeping()) {
-        <path class="face" d="M89 110q9 9 18 0m26 0q9 9 18 0"/>
-      } @else {
-        <g class="eyes">
-          <ellipse class="ink" cx="98" cy="108" rx="4.5" ry="6.5"/><ellipse class="ink" cx="142" cy="108" rx="4.5" ry="6.5"/>
-          <circle fill="#fffaf0" cx="99.5" cy="106" r="1.5"/><circle fill="#fffaf0" cx="143.5" cy="106" r="1.5"/>
-        </g>
-        @if (mood() === 'angry' || mood() === 'irritated') {
-          <path class="face" d="m90 95 15 5m30 0 15-5"/>
+    <g petSurface [pattern]="appearance().pattern" [dirt]="dirt()" [attr.clip-path]="'url(#' + bodyId + '-clip)'" />
+    <g class="head">
+      @switch (species()) {
+        @case ('cat') {
+          <path [attr.id]="headId" class="outline coat" d="M62 89 61 37q0-11 10-5l36 24q13-3 26 0l36-24q10-6 10 5l-1 52c12 15 12 42 1 55-13 17-35 23-59 23s-46-6-59-23c-11-13-11-40 1-55Z"/>
+          <path class="ear" d="m71 48 2 32 22-17Zm98 0-24 15 22 17Z"/>
+          <path class="accent-line" d="M110 61v13m10-15v14m10-12v13"/>
+          <path class="face whisker" d="m72 121-24-4m24 13-23 4m119-13 24-4m-24 13 23 4"/>
         }
-        @if (mood() === 'upset' || mood() === 'thoughtful') {
-          <path class="face" d="m91 96 13-4m32 0 13 4"/>
+        @case ('dog') {
+          <path [attr.id]="headId" class="outline coat" d="M66 91c0-30 21-47 54-47s54 17 54 47l7 28c7 27-21 48-61 48s-68-21-61-48Z"/>
+          <path class="floppy-ear ear-left outline accent" d="M71 55C46 46 34 65 37 94l4 33q3 15 15 6l19-49q6-21-4-29Z"/>
+          <path class="floppy-ear ear-right outline accent" d="M169 55c25-9 37 10 34 39l-4 33q-3 15-15 6l-19-49q-6-21 4-29Z"/>
+          <path class="cream" d="M117 48q-5 22-13 43c-6 16 1 34 16 34s22-18 16-34q-8-21-13-43Z"/>
+          <ellipse class="cream" cx="120" cy="138" rx="31" ry="21"/>
+        }
+        @case ('parrot') {
+          <path [attr.id]="headId" class="outline coat" d="M77 99c-4-38 17-56 43-56s49 18 45 56l-2 29q-43 39-86 0Z"/>
+          <path class="crest outline accent" d="M111 45q-24-24-11-29 13 1 21 24 1-31 13-27 10 6-2 30"/>
+          <path class="cream" d="M85 108c-1-20 13-26 25-18l10 9 10-9c12-8 26-2 25 18v18c0 29-15 49-35 49s-35-20-35-49Z"/>
+        }
+        @default {
+          <path class="outline accent" d="m86 62 1-22 20 9 14-26 13 26 22-9-2 29"/>
+          <path [attr.id]="headId" class="outline coat" d="M67 104c0-35 17-53 49-53 36 0 56 20 54 53 13 7 18 15 17 28-2 24-30 35-65 35-36 0-60-12-60-36 0-10 1-18 5-27Z"/>
+          <path class="cream" d="M74 131c15-15 31-15 49-9 14-6 37-6 53 6 5 22-23 31-54 31-31 0-51-10-48-28"/>
+          <circle class="accent" cx="77" cy="101" r="5"/><circle class="accent" cx="89" cy="87" r="3"/>
         }
       }
-      <ellipse class="blush" cx="82" cy="125" rx="9" ry="5"/><ellipse class="blush" cx="158" cy="125" rx="9" ry="5"/>
-      @if (species() === 'parrot') {
-        <path class="beak" d="M109 122q11-12 22 0l-11 18Z"/>
-      } @else {
-        @if (species() === 'dinosaur' || species() === 'dragon') {
-          <circle class="ink" cx="112" cy="128" r="2"/><circle class="ink" cx="128" cy="128" r="2"/>
+      <g petSurface [head]="true" [pattern]="appearance().pattern" [dirt]="dirt()" [attr.clip-path]="'url(#' + headId + '-clip)'" />
+      <g class="expression">
+        @if (sleeping()) {
+          <path class="face" d="M89 110q9 9 18 0m26 0q9 9 18 0"/>
+        } @else if (beingPetted()) {
+          <path class="face" d="M89 107q9 10 18 0m26 0q9 10 18 0m-66 5-3 3m73-3 3 3"/>
+        } @else if (expression() === 'joyful') {
+          <path class="face" d="M89 111q9-13 18 0m26 0q9-13 18 0"/>
         } @else {
-          <path class="nose" d="M114 126q6-4 12 0l-6 6Z"/>
+          <g class="gaze"><g class="eyes">
+            <ellipse class="ink" cx="98" cy="108" rx="4.5" ry="6.5"/><ellipse class="ink" cx="142" cy="108" rx="4.5" ry="6.5"/>
+            <circle fill="#fffaf0" cx="99.5" cy="106" r="1.5"/><circle fill="#fffaf0" cx="143.5" cy="106" r="1.5"/>
+          </g></g>
+          @switch (expression()) {
+            @case ('angry') { <path class="face" d="m89 94 17 7m28 0 17-7"/> }
+            @case ('irritated') { <path class="face" d="m89 100 17 1m28-5 17 4"/> }
+            @case ('upset') { <path class="face" d="m89 98 16-6m30 0 16 6"/> }
+            @case ('thoughtful') { <path class="face" d="m89 94 16-2m30 5 16 3"/> }
+          }
         }
-        @if (mood() === 'upset' || mood() === 'angry' || mood() === 'irritated') {
-          <path class="face" d="M112 143q8-8 16 0"/>
+        <ellipse class="blush" cx="82" cy="125" rx="9" ry="5"/><ellipse class="blush" cx="158" cy="125" rx="9" ry="5"/>
+        @if (species() === 'parrot') {
+          <path class="beak" d="M109 122q11-12 22 0l-11 18Z"/>
         } @else {
-          <path class="face" d="M111 139q9 9 18 0"/>
+          @if (species() === 'dinosaur' || species() === 'dragon') {
+            <circle class="ink" cx="112" cy="128" r="2"/><circle class="ink" cx="128" cy="128" r="2"/>
+          } @else {
+            <path class="nose" d="M114 126q6-4 12 0l-6 6Z"/>
+          }
+          @if (sleeping()) {
+            <path class="face" d="M115 140q5 4 10 0"/>
+          } @else if (beingPetted()) {
+            <path class="face" d="M108 138q12 14 24 0"/>
+          } @else {
+            @switch (expression()) {
+              @case ('joyful') { <path class="face mouth" d="M109 137q11 20 22 0Z" fill="#895952"/> }
+              @case ('upset') { <path class="face" d="M112 144q8-9 16 0"/> }
+              @case ('angry') { <path class="face" d="M110 144q10-10 20 0"/> }
+              @case ('irritated') { <path class="face" d="m112 143 16-3"/> }
+              @case ('thoughtful') { <path class="face" d="M119 142h10"/> }
+              @default { <path class="face" d="M111 139q9 9 18 0"/> }
+            }
+          }
         }
+      </g>
+      @if (beingPetted()) {
+        <g class="petting-hand">
+          <path class="hand-skin" d="m165 42-14-6q-9-5-18-1l-27 9q-6 2-3 7 2 3 7 1l18-5-31 10q-6 2-3 7 2 3 7 1l30-9-23 8q-6 2-3 7 2 3 7 1l26-8q15-3 19-12l11-4Z"/>
+          <path class="hand-cuff" d="m160 33 18 7-6 19-18-7Z"/>
+          <path class="hand-detail" d="m130 46 8-2m-6 11 9-3"/>
+        </g>
       }
     </g>
+    @switch (species()) {
+      @case ('parrot') {
+        <path class="paw paw-left feet" d="M97 203v13m-7 1 7-4 7 4"/>
+        <path class="paw paw-right feet" d="M143 203v13m-7 1 7-4 7 4"/>
+      }
+      @default {
+        <path class="paw paw-left outline coat" d="M79 194v17q10 9 25 0v-17"/>
+        <path class="paw paw-right outline coat" d="M137 194v17q15 9 25 0v-17"/>
+      }
+    }
   </g>
+  @if (reaction() === 'clean' && !sleeping()) {
+    <g class="wash-bubbles">
+      <circle cx="47" cy="130" r="9"/><circle cx="188" cy="115" r="7"/><circle cx="201" cy="154" r="11"/>
+    </g>
+  }
   @if (sleeping()) {
     <g class="sleep-marks face"><path d="M186 66h10l-10 12h10m8-35h14l-14 16h14"/></g>
+  } @else if (beingPetted()) {
+    <g class="petting-hearts">
+      <path class="affection-heart heart-left" d="M39 91c-16-10-11-21-3-18l3 3 3-3c8-3 13 8-3 18Z"/>
+      <path class="affection-heart heart-right" d="M195 77c-20-13-14-26-4-22l4 4 4-4c10-4 16 9-4 22Z"/>
+    </g>
+  } @else {
+    <g class="mood-marks">
+      @switch (expression()) {
+        @case ('joyful') { <path class="spark" d="m30 73 3-9 3 9 9 3-9 3-3 9-3-9-9-3Zm171-34 2-6 2 6 6 2-6 2-2 6-2-6-6-2Z"/> }
+        @case ('angry') { <path class="frustration" d="M199 76q-8 0-8-8m13 13q0 8-8 8m-10-13q-8 0-8 8m13 10q0 8 8 8"/> }
+        @case ('upset') { <path class="sigh" d="M185 135q13 0 16 7m-18 0q10 0 12 6"/> }
+        @case ('thoughtful') { <g class="thought"><circle cx="185" cy="84" r="2.5"/><circle cx="197" cy="70" r="4"/><circle cx="211" cy="52" r="6"/></g> }
+        @case ('irritated') { <path class="frustration" d="m190 74 7-7-2 12 7-7m-12 20 7-7-2 12 7-7"/> }
+      }
+    </g>
   }
 </svg>

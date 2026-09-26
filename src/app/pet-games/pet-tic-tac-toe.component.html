@@ -1,0 +1,11 @@
+<p class="rules">{{ i18n.t('petTicRules') }}</p>
+<div class="players"><span><b class="cross">X</b> {{ i18n.t('petGameYou') }}</span><span><b class="circle">O</b> {{ petName() }}</span></div>
+<p class="status" role="status" aria-live="polite">{{ status() }}</p>
+<div class="board" role="group" [attr.aria-label]="i18n.t('gameBoard')">
+  @for (cell of board(); track $index) {
+    <button type="button" [class.cross]="cell === 'X'" [class.circle]="cell === 'O'" [class.winning]="winningCells().includes($index)"
+      [attr.aria-label]="i18n.t('cell') + ' ' + ($index + 1) + ': ' + (cell || i18n.t('petGameEmpty'))"
+      [attr.aria-disabled]="!!cell || finished() || thinking()" (click)="play($index)">{{ cell }}</button>
+  }
+</div>
+<button class="new-round" type="button" (click)="newRound()">{{ i18n.t('newRound') }}</button>

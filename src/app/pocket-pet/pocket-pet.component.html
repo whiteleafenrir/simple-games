@@ -19,7 +19,7 @@
   </header>
   <div class="session-main">
     <app-pet-scene [pet]="pet" [blocked]="sceneBlocked()" [refreshing]="petStorage.refreshing()"
-      (actionRequested)="onSceneAction($event, questions)" (refreshRequested)="petStorage.resolvePets()" />
+      (actionRequested)="onSceneAction($event, questions, games)" (refreshRequested)="petStorage.resolvePets()" />
     <aside class="session-sidebar">
       <section class="session-vitals" aria-labelledby="pet-wellbeing-title">
         <h2 id="pet-wellbeing-title">{{ i18n.t('sceneWellbeing') }}</h2>
@@ -36,6 +36,7 @@
       </section>
     </aside>
   </div>
+  @if (pet.status === 'pet') { <app-pet-appearance-editor [pet]="pet" /> }
   @if (careMessage(); as message) { <p class="care-message" role="status">{{ i18n.t(message) }}</p> }
   @if (pet.farewell; as farewell) {
     <div class="farewell-card">
@@ -45,6 +46,7 @@
     </div>
   }
   <app-pet-questions #questions [pet]="pet" [showTrigger]="false" />
+  <app-pet-games #games [pet]="pet" />
   <details class="session-details">
     <summary>{{ i18n.t('sceneSessionDetails') }}</summary>
     <div>
@@ -77,6 +79,7 @@
           type="button"
           [class.active]="selectedSession().id === sessionLength.id"
           [attr.aria-pressed]="selectedSession().id === sessionLength.id"
+          [disabled]="petStorage.commandPending()"
           (click)="selectSession(sessionLength)"
         >
           <strong>{{ i18n.t(sessionLength.titleKey) }}</strong>
@@ -100,12 +103,12 @@
           class="pet-card"
           [class.active]="selectedPet().id === pet.id"
           [class.disabled]="pet.disabled"
-          [disabled]="pet.disabled"
+          [disabled]="pet.disabled || petStorage.commandPending()"
           [attr.aria-pressed]="selectedPet().id === pet.id"
           (click)="selectPet(pet)"
         >
           @if (pet.disabled || selectedPet().id === pet.id) { <span class="selection-badge">{{ i18n.t(pet.disabled ? 'petComingLater' : 'petSelected') }}</span> }
-          <app-pet-illustration [species]="pet.id" mood="joyful" />
+          <app-pet-illustration [species]="pet.id" mood="joyful" [appearance]="selectedPet().id === pet.id ? appearance() : defaultAppearance" />
           <strong>{{ i18n.t(pet.titleKey) }}</strong>
           <small>{{ i18n.t(pet.descriptionKey) }}</small>
         </button>
@@ -113,9 +116,29 @@
     </div>
   </section>
 
+  <section class="selection-panel" aria-labelledby="creation-appearance-title">
+    <div class="section-heading"><span>03</span><h2 id="creation-appearance-title">{{ i18n.t('petAppearance') }}</h2></div>
+    <p class="appearance-intro">{{ i18n.t('appearanceCreateHint') }}</p>
+    <div class="appearance-preview">
+      <div class="appearance-portrait">
+        <span class="preview-label">{{ i18n.t('appearancePreview') }}</span>
+        <app-pet-illustration [species]="selectedPet().id" mood="joyful" [calmJoy]="true" [appearance]="appearance()" [animated]="true" />
+        <strong>{{ petName().trim() || i18n.t(selectedPet().titleKey) }}</strong>
+        <span class="appearance-caption" aria-live="polite">{{ appearanceLabel() }}</span>
+      </div>
+      <div class="appearance-controls">
+        <app-pet-appearance-picker [value]="appearance()" [disabled]="petStorage.commandPending()" (valueChange)="appearance.set($event)" />
+        <div class="appearance-actions">
+          <button type="button" [disabled]="petStorage.commandPending()" (click)="randomizeAppearance()">{{ i18n.t('appearanceRandomize') }}</button>
+          <button type="button" [disabled]="petStorage.commandPending() || isDefaultAppearance()" (click)="resetAppearance()">{{ i18n.t('appearanceReset') }}</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <section class="selection-panel" [attr.aria-label]="i18n.t('petName')">
     <div class="section-heading">
-      <span>03</span>
+      <span>04</span>
       <h2>{{ i18n.t('petName') }}</h2>
     </div>
 
@@ -124,6 +147,7 @@
       <input
         type="text"
         [value]="petName()"
+        [disabled]="petStorage.commandPending()"
         (input)="updatePetName($any($event.target).value)"
         [placeholder]="i18n.t('petNamePlaceholder')"
         required
@@ -135,6 +159,7 @@
   <aside class="summary-panel">
     <span>{{ i18n.t('petSelectionSummary') }}</span>
     <strong>{{ petName().trim() || i18n.t(selectedPet().titleKey) }} · {{ i18n.t(selectedSession().titleKey) }}</strong>
+    <p>{{ i18n.t('petAppearance') }}: {{ appearanceLabel() }}</p>
     <p>{{ i18n.t('petSelectionHint') }}</p>
     @if (petStorage.activePet()) {
       <p class="error-message">{{ i18n.t('activePetExists') }}</p>

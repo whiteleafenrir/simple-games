@@ -9,7 +9,7 @@
   }
   @if (pet(); as ownedPet) {
     <section class="pet-hero">
-      <app-pet-illustration class="pet-avatar" [species]="ownedPet.petId" [mood]="ownedPet.mood" [sleeping]="ownedPet.status === 'pet' && !ownedPet.isLightOn" />
+      <app-pet-illustration class="pet-avatar" [species]="ownedPet.petId" [appearance]="ownedPet.appearance" [cleanliness]="ownedPet.stats.cleanliness" [mood]="ownedPet.mood" [sleeping]="ownedPet.status === 'pet' && !ownedPet.isLightOn" />
       <div>
         <p class="eyebrow">{{ i18n.t('petDetailsTitle') }}</p>
         <h1>{{ ownedPet.name }}</h1>

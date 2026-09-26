@@ -2,9 +2,10 @@ import { DOCUMENT } from '@angular/common';
 import { Injectable, OnDestroy, computed, inject, signal } from '@angular/core';
 import { TranslationKey } from '../i18n/translations';
 import { PetOption, SessionLength } from '../pocket-pet/pocket-pet.model';
-import { PetSnapshot, PetCareActionId, PetCareActionResponse, PetHistoryPage } from './owned-pet.model';
+import { PetAppearance, PetSnapshot, PetCareActionId, PetCareActionResponse, PetHistoryPage } from './owned-pet.model';
 import { PetApiService } from './pet-api.service';
 import { petErrorKey } from './pet-error.utils';
+import { CARE_REACTIONS, PetReactionService } from './pet-reaction';
 import type { PetQuestionHistoryPage, PetQuestionResponse, QuestionLanguage } from '@simple-games/pet-contract';
 
 @Injectable({ providedIn: 'root' })
@@ -19,6 +20,7 @@ export class PetStorageService implements OnDestroy {
   readonly commandError = signal<TranslationKey | null>(null);
 
   private readonly document = inject(DOCUMENT);
+  private readonly reactions = inject(PetReactionService);
   private readonly timerId: ReturnType<typeof setInterval>;
   private queue: Promise<void> = Promise.resolve();
   private refreshPromise: Promise<void> | null = null;
@@ -63,18 +65,33 @@ export class PetStorageService implements OnDestroy {
     return request;
   }
 
-  async addPet(pet: PetOption, sessionLength: SessionLength, name: string): Promise<PetSnapshot | null> {
+  async addPet(pet: PetOption, sessionLength: SessionLength, name: string, appearance: PetAppearance): Promise<PetSnapshot | null> {
     return this.command(async guestId => {
-      const ownedPet = await this.petApi.createPet(guestId, pet, sessionLength, name.trim());
+      const ownedPet = await this.petApi.createPet(guestId, pet, sessionLength, name.trim(), appearance);
       if (!this.destroyed) this.pets.update(pets => [ownedPet, ...pets.filter(item => item.id !== ownedPet.id)]);
       return ownedPet;
     });
   }
 
+  updateAppearance(id: string, appearance: PetAppearance): Promise<PetSnapshot | null> {
+    return this.command(async guestId => {
+      const pet = await this.petApi.updateAppearance(guestId, id, appearance);
+      if (!this.destroyed) this.pets.update(pets => pets.map(item => item.id === pet.id ? pet : item));
+      return pet;
+    }, 'appearanceUnavailable');
+  }
+
   async careForPet(id: string, actionId: PetCareActionId): Promise<PetCareActionResponse | null> {
     return this.command(async guestId => {
       const result = await this.petApi.applyCareAction(guestId, id, actionId);
-      if (!this.destroyed) this.pets.update(pets => pets.map(pet => pet.id === result.pet.id ? result.pet : pet));
+      if (!this.destroyed) {
+        this.pets.update(pets => pets.map(pet => pet.id === result.pet.id ? result.pet : pet));
+        const kind = CARE_REACTIONS[actionId];
+        if (result.applied) {
+          this.reactions.clear();
+          if (kind && result.pet.status === 'pet' && result.pet.isLightOn && !result.pet.awayUntil) this.reactions.play(id, kind);
+        }
+      }
       return result;
     });
   }
@@ -95,7 +112,13 @@ export class PetStorageService implements OnDestroy {
   }
 
   answerQuestion(petId: string, attemptId: string, optionId: string | null): Promise<PetQuestionResponse | null> {
-    return this.questionCommand(guestId => this.petApi.answerQuestion(guestId, petId, attemptId, optionId));
+    return this.questionCommand(async guestId => {
+      const response = await this.petApi.answerQuestion(guestId, petId, attemptId, optionId);
+      if (!this.destroyed && !response.reason && response.result && response.pet.status === 'pet' && response.pet.isLightOn && !response.pet.awayUntil) {
+        this.reactions.play(petId, response.result.outcome === 'declined' ? 'thoughtful' : 'joy');
+      }
+      return response;
+    });
   }
 
   async getQuestionHistory(petId: string, cursor: string | null): Promise<PetQuestionHistoryPage> {
@@ -113,7 +136,7 @@ export class PetStorageService implements OnDestroy {
     });
   }
 
-  private async command<T>(operation: (guestId: string) => Promise<T>): Promise<T | null> {
+  private async command<T>(operation: (guestId: string) => Promise<T>, conflictKey?: TranslationKey): Promise<T | null> {
     if (this.commandPending() || this.destroyed) return null;
     // Set before the first await, so double clicks cannot enqueue another command.
     this.commandPending.set(true);
@@ -124,7 +147,7 @@ export class PetStorageService implements OnDestroy {
           if (!this.destroyed) this.commandError.set(null);
           return result;
         } catch (error) {
-          if (!this.destroyed) this.commandError.set(petErrorKey(error));
+          if (!this.destroyed) this.commandError.set(petErrorKey(error, conflictKey));
           // Reconcile a possible committed command after a lost response; keep its error visible.
           void this.resolvePets();
           return null;

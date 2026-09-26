@@ -1,5 +1,5 @@
 import { DOCUMENT, NgTemplateOutlet } from '@angular/common';
-import { afterRenderEffect, ChangeDetectionStrategy, Component, ElementRef, inject, input, output, signal, viewChild } from '@angular/core';
+import { afterRenderEffect, ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, input, output, signal, viewChild } from '@angular/core';
 import { I18nService } from '../i18n/i18n.service';
 import { TranslationKey } from '../i18n/translations';
 import { PetSceneActionId, PetSnapshot } from './owned-pet.model';
@@ -7,6 +7,7 @@ import { petCareActionHintKey, petCareActionKey, petMoodKey } from './pet-displa
 import { PetActionIconComponent } from './pet-action-icon.component';
 import { PetIllustrationComponent } from './pet-illustration.component';
 import { PetDatePipe } from './pet-date.pipe';
+import { PET_REACTIONS, PetReactionService } from './pet-reaction';
 
 export interface PetSceneActionEvent { id: PetSceneActionId; trigger: HTMLElement; }
 
@@ -20,6 +21,16 @@ export interface PetSceneActionEvent { id: PetSceneActionId; trigger: HTMLElemen
 })
 export class PetSceneComponent {
   readonly pet = input.required<PetSnapshot>();
+  private readonly reactions = inject(PetReactionService);
+  readonly reaction = computed(() => {
+    const pet = this.pet();
+    const reaction = this.reactions.current();
+    return pet.status === 'pet' && pet.isLightOn && !pet.awayUntil && reaction?.petId === pet.id ? reaction : null;
+  });
+  readonly reactionLabel = computed(() => {
+    const reaction = this.reaction();
+    return reaction ? PET_REACTIONS[reaction.kind].label : null;
+  });
   readonly blocked = input<TranslationKey | null>(null);
   readonly refreshing = input(false);
   readonly actionRequested = output<PetSceneActionEvent>();
@@ -29,12 +40,19 @@ export class PetSceneComponent {
   private readonly dialog = viewChild.required<ElementRef<HTMLDialogElement>>('actionDialog');
   private trigger: HTMLElement | null = null;
   private currentPetId = '';
+  private feedbackAction: PetSceneActionId | null = null;
   readonly tooltip = signal<PetSceneActionId | null>(null);
   readonly selectedAction = signal<PetSceneActionId | null>(null);
   readonly actions: readonly PetSceneActionId[] = ['feed', 'junkFood', 'clean', 'play', 'walk', 'questions', 'toggleLight'];
 
   constructor() {
+    effect(() => {
+      const pet = this.pet();
+      const current = this.reactions.current();
+      if (current && (current.petId !== pet.id || pet.status !== 'pet' || !pet.isLightOn || pet.awayUntil)) this.reactions.clear();
+    });
     afterRenderEffect(() => {
+      if (this.reaction()) this.tooltip.set(null);
       if (this.currentPetId !== this.pet().id) { this.currentPetId = this.pet().id; this.closeDetails(); }
       if (this.selectedAction() && !this.dialog().nativeElement.open) this.dialog().nativeElement.showModal();
     });
@@ -71,13 +89,19 @@ export class PetSceneComponent {
   }
 
   hover(id: PetSceneActionId, event: PointerEvent): void {
-    if (event.pointerType === 'mouse') this.tooltip.set(id);
+    if (event.pointerType === 'mouse') { this.feedbackAction = null; this.tooltip.set(id); }
+  }
+
+  focusTooltip(id: PetSceneActionId): void {
+    // Returning focus after a command must not cover the pet's brief reaction.
+    if (this.feedbackAction === id && this.reaction()) return;
+    this.tooltip.set(id);
   }
 
   choose(id: PetSceneActionId, event: MouseEvent, trigger: HTMLElement): void {
     event.stopPropagation();
-    if (this.usesActionSheet(event)) { this.showDetails(id, trigger); return; }
-    if (!this.disabled(id)) { this.tooltip.set(null); this.actionRequested.emit({ id, trigger }); }
+    if (id !== 'play' && this.usesActionSheet(event)) { this.showDetails(id, trigger); return; }
+    if (!this.disabled(id)) { this.feedbackAction = id; this.tooltip.set(null); this.actionRequested.emit({ id, trigger }); }
   }
 
   inspectDisabled(id: PetSceneActionId, event: Event, trigger: HTMLElement): void {
@@ -89,6 +113,7 @@ export class PetSceneComponent {
     const trigger = this.trigger;
     if (!id || !trigger || this.disabled(id)) return;
     this.closeDetails();
+    this.feedbackAction = id;
     this.actionRequested.emit({ id, trigger });
   }
 

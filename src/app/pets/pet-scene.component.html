@@ -13,8 +13,8 @@
         <div class="empty-scene" aria-hidden="true"><app-pet-action-icon action="walk" /></div>
         <p>{{ i18n.t('sceneAwayHint') }}<br><strong>{{ awayUntil | petDate:i18n.language() }}</strong></p>
       } @else {
-        <app-pet-illustration [animated]="true" [species]="pet().petId" [mood]="pet().mood" [sleeping]="!pet().isLightOn" />
-        <p class="pet-caption">{{ i18n.t(pet().isLightOn ? 'sceneHomeHint' : 'sceneSleepHint') }}</p>
+        <app-pet-illustration [animated]="true" [species]="pet().petId" [mood]="pet().mood" [appearance]="pet().appearance" [cleanliness]="pet().stats.cleanliness" [calmJoy]="true" [reaction]="reaction()?.kind ?? null" [sleeping]="!pet().isLightOn" />
+        <p class="pet-caption" role="status">{{ i18n.t(reactionLabel() ?? (pet().isLightOn ? 'sceneHomeHint' : 'sceneSleepHint')) }}</p>
       }
     </div>
     @for (id of actions; track id) {
@@ -23,7 +23,7 @@
         [attr.role]="disabled(id) ? 'group' : null" [attr.aria-label]="disabled(id) ? label(id) + '. ' + state(id) : null"
         [attr.aria-describedby]="tooltip() === id ? 'action-tip-' + id : null"
         (pointerenter)="hover(id, $event)" (pointerleave)="tooltip.set(null)"
-        (focusin)="tooltip.set(id)" (focusout)="tooltip.set(null)" (click)="inspectDisabled(id, $event, slot)" (keydown.enter)="inspectDisabled(id, $event, slot)" (keydown.space)="inspectDisabled(id, $event, slot)">
+        (focusin)="focusTooltip(id)" (focusout)="tooltip.set(null)" (click)="inspectDisabled(id, $event, slot)" (keydown.enter)="inspectDisabled(id, $event, slot)" (keydown.space)="inspectDisabled(id, $event, slot)">
         <button type="button" class="action-button" [disabled]="disabled(id)"
           [attr.aria-label]="label(id)" [attr.aria-describedby]="tooltip() === id ? 'action-tip-' + id : null"
           (click)="choose(id, $event, slot)">

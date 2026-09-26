@@ -23,7 +23,7 @@
   <div class="hero-art" aria-hidden="true">
     <div class="art-orbit"></div><div class="art-sun"></div><span class="art-spark spark-one">✦</span><span class="art-spark spark-two">✧</span>
     @if (pets.activePet(); as pet) {
-      <app-pet-illustration class="main-companion solo" [species]="pet.petId" [mood]="pet.mood" [sleeping]="!pet.isLightOn" />
+      <app-pet-illustration class="main-companion solo" [species]="pet.petId" [appearance]="pet.appearance" [cleanliness]="pet.stats.cleanliness" [mood]="pet.mood" [sleeping]="!pet.isLightOn" />
       <span class="art-note">{{ i18n.t(pet.awayUntil ? 'sceneAway' : !pet.isLightOn ? 'sceneSleeping' : 'homeArtNote') }}</span>
     } @else {
       <app-pet-illustration class="friend-companion" species="dinosaur" mood="joyful" />

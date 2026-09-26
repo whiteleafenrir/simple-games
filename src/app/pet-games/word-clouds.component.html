@@ -1,0 +1,41 @@
+@if (round(); as game) {
+  <p class="rules">{{ i18n.t('wordCloudsRules') }}</p>
+  <div class="sky" [class.solved]="outcome() === 'won'">
+    <svg viewBox="0 0 340 195" aria-hidden="true">
+      <g class="sun-rays"><path d="M170 19v13m0 123v13M96 94H83m174 0h-13M118 42l10 10m84 84 10 10M222 42l-10 10m-84 84-10 10" /></g>
+      <circle class="sun" cx="170" cy="94" r="49" />
+      <path class="sun-face" d="M150 89v3m40-3v3m-33 16q13 13 26 0" />
+      @for (cloud of clouds; track $index) {
+        @if ($index < misses()) {
+          <g class="cloud" [attr.transform]="'translate(' + cloud.x + ' ' + cloud.y + ')'">
+            <path d="M7 31C-5 17 8 5 20 11 24-9 54-8 60 10 81 3 93 30 75 37H15Z" />
+          </g>
+        }
+      }
+    </svg>
+    <span class="topic">{{ i18n.t(game.entry.hintKey) }}</span>
+  </div>
+  <div class="word" [attr.aria-label]="spokenWord()" role="group">
+    @for (item of letters(); track $index) {
+      <span [class.revealed]="item.visible" aria-hidden="true">{{ item.visible ? item.letter : '·' }}</span>
+    }
+  </div>
+  <div class="status" role="status" aria-live="polite" aria-atomic="true">
+    @if (outcome() === 'playing') {
+      <p>{{ i18n.t('wordTriesLeft') }} <strong>{{ remaining() }}</strong></p>
+      <span class="visually-hidden">{{ spokenWord() }}</span>
+    } @else {
+      <p class="result">{{ i18n.t(outcome() === 'won' ? 'wordWon' : 'wordRevealed') }}</p>
+      <p>{{ i18n.t('wordAnswer') }} <strong>{{ game.word }}</strong></p>
+    }
+  </div>
+  <div class="alphabet" role="group" [attr.aria-label]="i18n.t('wordKeyboard')">
+    @for (letter of alphabet(); track letter) {
+      <button type="button" [attr.aria-disabled]="game.guesses.includes(letter) || outcome() !== 'playing'"
+        [attr.aria-label]="letter + (game.guesses.includes(letter) ? '. ' + i18n.t(game.word.includes(letter) ? 'wordLetterFound' : 'wordLetterMissed') : '')"
+        [class.found]="game.guesses.includes(letter) && game.word.includes(letter)"
+        [class.missed]="game.guesses.includes(letter) && !game.word.includes(letter)" (click)="guess(letter)">{{ letter }}</button>
+    }
+  </div>
+  <button class="new-round" type="button" (click)="newRound()">{{ i18n.t('wordNewRound') }}</button>
+}

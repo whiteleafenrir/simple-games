@@ -1,6 +1,7 @@
 import { GuestSession as GuestRecord, PetCareAction, Prisma } from '@prisma/client';
 import { GuestSession, OwnedPet, PetCareActionEntry, PetCareActionId, PetStats } from './pet-domain.types';
 import { createEmptyLastActionAt, PET_CARE_ACTION_IDS } from './pet-engine';
+import { COAT_COLORS, COAT_PATTERNS } from './pet-appearance';
 
 export const PET_SNAPSHOT_INCLUDE = {
   stats: true, playerEnergy: true, actionCooldowns: true, farewell: true
@@ -69,6 +70,10 @@ export function toOwnedPet(record: PetRecord): OwnedPet {
   if (!Number.isInteger(careHistoryCount)) throw new PetDataIntegrityError(`${field}.careHistoryCount`);
   return {
     id: record.id, name: record.name,
+    appearance: {
+      color: enumValue(record.coatColor, COAT_COLORS, field + '.coatColor'),
+      pattern: enumValue(record.coatPattern, COAT_PATTERNS, field + '.coatPattern')
+    },
     petId: enumValue<OwnedPet['petId']>(record.petId, ['cat', 'dog', 'parrot', 'dinosaur', 'dragon'], `${field}.petId`),
     mode: enumValue<OwnedPet['mode']>(record.mode, ['easy', 'medium', 'insane'], `${field}.mode`),
     status,

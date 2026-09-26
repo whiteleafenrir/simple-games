@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom, Observable, timeout } from 'rxjs';
-import type { ApplyCareActionRequest, CreatePetRequest, GuestSession } from '@simple-games/pet-contract';
+import type { ApplyCareActionRequest, CreatePetRequest, GuestSession, PetAppearance } from '@simple-games/pet-contract';
 import type { AnswerQuestionRequest, PetQuestionHistoryPage, PetQuestionResponse, QuestionLanguage, StartQuestionRequest } from '@simple-games/pet-contract';
 
 import { PetOption, SessionLength } from '../pocket-pet/pocket-pet.model';
@@ -31,12 +31,20 @@ export class PetApiService {
     ));
   }
 
-  createPet(guestId: string, pet: PetOption, sessionLength: SessionLength, name: string): Promise<PetSnapshot> {
+  createPet(guestId: string, pet: PetOption, sessionLength: SessionLength, name: string, appearance: PetAppearance): Promise<PetSnapshot> {
     return this.request(this.http.post<PetSnapshot>(`${API_BASE_URL}/guest-sessions/${encodeURIComponent(guestId)}/pets`, {
       name,
+      appearance,
       petId: pet.id,
       sessionLengthId: sessionLength.id
     } satisfies CreatePetRequest, REQUEST_OPTIONS));
+  }
+
+  updateAppearance(guestId: string, petId: string, appearance: PetAppearance): Promise<PetSnapshot> {
+    return this.request(this.http.patch<PetSnapshot>(
+      `${API_BASE_URL}/guest-sessions/${encodeURIComponent(guestId)}/pets/${encodeURIComponent(petId)}/appearance`,
+      appearance, REQUEST_OPTIONS
+    ));
   }
 
   getPet(guestId: string, petId: string): Promise<PetSnapshot> {

@@ -1,0 +1,91 @@
+<section class="animation-gallery" aria-labelledby="gallery-title">
+  <header class="gallery-heading">
+    <div>
+      <p class="eyebrow">{{ i18n.t('animationsEyebrow') }}</p>
+      <h1 id="gallery-title">{{ i18n.t('animationsTitle') }}</h1>
+      <p class="intro">{{ i18n.t('animationsIntro') }}</p>
+    </div>
+    <button class="playback" type="button" [disabled]="!!reactions.current()" (click)="paused.set(!paused())" [attr.aria-pressed]="paused()">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        @if (paused()) { <path d="m8 5 11 7-11 7Z"/> } @else { <path d="M8 5v14M16 5v14"/> }
+      </svg>
+      {{ i18n.t(paused() ? 'animationsResume' : 'animationsPause') }}
+    </button>
+  </header>
+  <p class="reduced-motion-note">{{ i18n.t('animationsReducedMotion') }}</p>
+  <fieldset class="species-picker">
+    <legend>{{ i18n.t('animationsChooseSpecies') }}</legend>
+    <div class="species-options">
+      @for (pet of species; track pet.id) {
+        <button type="button" [class.selected]="selectedSpecies().id === pet.id"
+          [attr.aria-pressed]="selectedSpecies().id === pet.id" (click)="selectedSpecies.set(pet)">
+          <app-pet-illustration [species]="pet.id" mood="neutral" />
+          <span>{{ i18n.t(pet.titleKey) }}</span>
+          @if (pet.disabled) { <small>{{ i18n.t('animationsPreview') }}</small> }
+        </button>
+      }
+    </div>
+  </fieldset>
+  <section class="appearance-lab" aria-labelledby="appearance-lab-title">
+    <h2 id="appearance-lab-title">{{ i18n.t('appearanceGalleryTitle') }}</h2>
+    <p>{{ i18n.t('appearanceGalleryHint') }}</p>
+    <app-pet-appearance-picker [value]="appearance()" (valueChange)="appearance.set($event)" />
+    <label class="cleanliness-control">{{ i18n.t('appearanceCleanliness') }} <output>{{ cleanliness() }}/100</output>
+      <input type="range" min="0" max="100" [value]="cleanliness()" (input)="cleanliness.set(+$any($event.target).value)" />
+    </label>
+  </section>
+  <article class="animation-card care-preview" aria-labelledby="reaction-preview-title">
+    <div class="preview-stage">
+      <app-pet-illustration [species]="selectedSpecies().id" mood="neutral" [appearance]="appearance()" [cleanliness]="cleanliness()"
+        [animated]="true" [paused]="paused()" [reaction]="reactions.current()?.kind ?? null" />
+    </div>
+    <div class="card-copy">
+      <h2 id="reaction-preview-title">{{ i18n.t('reactionPreviewTitle') }}</h2>
+      <p>{{ i18n.t('reactionPreviewHint') }}</p>
+      <div class="reaction-buttons">
+        @for (preview of previews; track preview.kind) {
+          <button type="button" [disabled]="!!reactions.current()" (click)="this.preview(preview.kind)">{{ i18n.t(preview.label) }}</button>
+        }
+      </div>
+      <p class="reaction-status" role="status">{{ i18n.t(reactions.current() ? reactionDefinitions[reactions.current()!.kind].label : 'reactionPreviewIdle') }}</p>
+    </div>
+  </article>
+  <article id="petting" class="animation-card care-preview" aria-labelledby="animation-petting">
+    <div class="preview-stage state-petting">
+      <app-pet-illustration [species]="selectedSpecies().id" [appearance]="appearance()" [cleanliness]="cleanliness()" mood="neutral" interaction="petting" [animated]="true" [paused]="paused()" />
+    </div>
+    <div class="card-copy">
+      <p class="eyebrow">{{ i18n.t('animationsCarePreview') }}</p>
+      <h2 id="animation-petting">{{ i18n.t('petPetting') }}</h2>
+      <p>{{ i18n.t('animationPettingHint') }}</p>
+      <p class="future-note">{{ i18n.t('animationPettingPreviewNote') }}</p>
+    </div>
+  </article>
+  <div class="collection-heading">
+    <h2>{{ i18n.t(selectedSpecies().titleKey) }}<span> / </span><span>{{ i18n.t('animationsCollection') }}</span></h2>
+    <span class="playback-status" role="status">{{ i18n.t(paused() ? 'animationsPaused' : 'animationsPlaying') }}</span>
+  </div>
+  @if (selectedSpecies().disabled) { <p class="preview-note">{{ i18n.t('animationsDragonNote') }}</p> }
+  <div class="animation-grid">
+    @for (mood of moods; track mood.id; let index = $index) {
+      <article class="animation-card" [attr.aria-labelledby]="'animation-' + mood.id">
+        <div class="preview-stage" [class]="'preview-stage state-' + mood.id">
+          <span class="card-number" aria-hidden="true">0{{ index + 1 }}</span>
+          <app-pet-illustration [species]="selectedSpecies().id" [mood]="mood.id" [appearance]="appearance()" [cleanliness]="cleanliness()" [animated]="true" [paused]="paused()" />
+        </div>
+        <div class="card-copy">
+          <h3 [id]="'animation-' + mood.id">{{ i18n.t(mood.titleKey) }}</h3>
+          <p>{{ i18n.t(mood.descriptionKey) }}</p>
+        </div>
+      </article>
+    }
+    <article class="animation-card sleep-card" aria-labelledby="animation-sleeping">
+      <div class="preview-stage state-sleeping">
+        <span class="card-number" aria-hidden="true">07</span><span class="moon" aria-hidden="true"></span>
+        <app-pet-illustration [species]="selectedSpecies().id" mood="neutral" [appearance]="appearance()" [cleanliness]="cleanliness()" [sleeping]="true" [animated]="true" [paused]="paused()" />
+      </div>
+      <div class="card-copy"><h3 id="animation-sleeping">{{ i18n.t('sceneSleeping') }}</h3><p>{{ i18n.t('animationSleepingHint') }}</p></div>
+    </article>
+  </div>
+  <p class="gallery-note">{{ i18n.t('animationsNote') }}</p>
+</section>

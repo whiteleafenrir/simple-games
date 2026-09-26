@@ -22,6 +22,8 @@ model Pet {
   guestSession    GuestSession        @relation(fields: [guestSessionId], references: [id], onDelete: Cascade)
   name            String
   petId           String
+  coatColor       String              @default("natural")
+  coatPattern     String              @default("plain")
   mode            String
   status          String
   mood            String

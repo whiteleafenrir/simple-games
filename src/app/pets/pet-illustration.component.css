@@ -1,4 +1,9 @@
-:host { display: block; width: min(100%, 300px); --coat: #dcad79; --accent: #bc8556; --outline: #704e39; }
+:host {
+  display: block; width: min(100%, 300px);
+  --coat: #dcad79; --accent: #bc8556; --outline: #704e39;
+  --body-duration: 4s; --head-duration: 8s;
+  --tail-duration: 4s; --wing-duration: 4s; --wing-angle: 3deg;
+}
 :host.dog { --coat: #d8b38b; --accent: #9c7054; --outline: #6c4c39; }
 :host.parrot { --coat: #92bcb0; --accent: #588b80; --outline: #3c645e; }
 :host.dinosaur { --coat: #a4ba87; --accent: #728c61; --outline: #4e6344; }
@@ -12,13 +17,97 @@ svg { display: block; width: 100%; overflow: visible; }
 .whisker { stroke: var(--outline); opacity: .65; stroke-width: 2; }
 .feet { stroke: #9d754c; stroke-width: 4; stroke-linecap: round; }
 .accent-line { stroke: var(--accent); stroke-width: 5; stroke-linecap: round; }
-.shadow { fill: #344f3b; opacity: .12; }
-.companion { transform-origin: 120px 220px; }.eyes { transform-origin: 120px 108px; }
-:host.animated .companion { animation: breathe 4s ease-in-out infinite; }
+.shadow { fill: #344f3b; opacity: .12; transform-origin: 120px 220px; }
+.companion { transform-origin: 120px 220px; }
+.head { transform-origin: 120px 154px; }
+.eyes { transform-origin: 120px 108px; }
+.tail { transform-origin: 165px 183px; }
+:host.parrot .tail { transform-origin: 120px 178px; }
+.wing-left { transform-origin: 77px 143px; --wing-direction: 1; }
+.wing-right { transform-origin: 163px 143px; --wing-direction: -1; }
+.ear-left { transform-origin: 71px 58px; --wing-direction: 1; }
+.ear-right { transform-origin: 169px 58px; --wing-direction: -1; }
+.crest { transform-origin: 120px 44px; }
+.spark { fill: #c99a49; }.thought { fill: var(--outline); opacity: .6; }
+.frustration, .sigh { stroke: var(--outline); stroke-width: 2.5; stroke-linecap: round; opacity: .65; }
+:host([data-motion="joyful"]) { --body-duration: 2.6s; --head-duration: 2.6s; --tail-duration: .65s; --wing-duration: .65s; --wing-angle: 12deg; }
+:host([data-motion="angry"]) { --body-duration: 2.8s; --head-duration: 2.8s; --tail-duration: 2.8s; --wing-angle: 6deg; }
+:host([data-motion="upset"]) { --body-duration: 5s; --head-duration: 5s; --tail-duration: 7s; --wing-duration: 5s; --wing-angle: 1deg; }
+:host([data-motion="thoughtful"]) { --body-duration: 5.5s; --head-duration: 6s; --tail-duration: 6s; }
+:host([data-motion="irritated"]) { --body-duration: 3.2s; --head-duration: 3.2s; --tail-duration: 1.6s; --wing-duration: 1.6s; --wing-angle: 7deg; }
+:host([data-motion="sleeping"]) { --body-duration: 6s; --head-duration: 6s; --tail-duration: 8s; --wing-duration: 6s; --wing-angle: 1deg; }
+:host([data-motion="petting"]) { --body-duration: 4.8s; --head-duration: 4.8s; --tail-duration: 1.2s; --wing-duration: 2.4s; --wing-angle: 5deg; }
+:host([data-motion="petting"]) .head { transform: translateY(-3px) rotate(-5deg); }
+:host([data-motion="petting"]) .blush { opacity: .8; }
+.petting-hand { transform-origin: 140px 52px; }
+.hand-skin { fill: #f1c7a4; stroke: #9b6e54; stroke-width: 2; stroke-linejoin: round; }
+.hand-cuff { fill: #8ea893; stroke: #526e5b; stroke-width: 2; stroke-linejoin: round; }
+.hand-detail { stroke: #c08c6c; stroke-width: 1.5; stroke-linecap: round; }
+.affection-heart { fill: #cb7a83; stroke: #a65e6b; stroke-width: 1; transform-box: fill-box; transform-origin: center; }
+/* The resting poses remain readable when motion is disabled. */
+:host([data-motion="upset"]) .head { transform: translateY(5px) rotate(4deg); }
+:host([data-motion="thoughtful"]) .head { transform: rotate(-7deg); }
+:host([data-motion="sleeping"]) .head { transform: translateY(4px) rotate(5deg); }
+:host.animated .companion { animation: breathe var(--body-duration) ease-in-out infinite; }
+:host.animated .head { animation: attentive var(--head-duration) ease-in-out infinite; }
 :host.animated .eyes { animation: blink 6s infinite; }
-:host.animated.sleeping .companion { animation-duration: 6s; }
-:host.animated .sleep-marks { animation: drift 4s ease-in-out infinite; }
-@keyframes breathe { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px) scaleY(1.01); } }
+:host.animated .tail { animation: tail-sway var(--tail-duration) ease-in-out infinite; }
+:host.animated .wing, :host.animated .floppy-ear { animation: flutter var(--wing-duration) ease-in-out infinite; }
+:host.animated .crest { animation: tail-sway var(--head-duration) ease-in-out infinite; }
+:host.animated .mood-marks { animation: mood-drift var(--body-duration) ease-in-out infinite; }
+:host.animated .sleep-marks { animation: drift 6s ease-in-out infinite; }
+:host.animated[data-motion="joyful"] .shadow { animation: hop-shadow 2.6s ease-in-out infinite; }
+:host.animated[data-motion="angry"] .paw-left { animation: paw-stomp 2.8s ease-in-out infinite; }
+:host.animated[data-motion="thoughtful"] .gaze { animation: look-around 6s ease-in-out infinite; }
+/* Keep keyframe names literal so Angular can scope them with the component. */
+:host.animated[data-motion="joyful"] .companion { animation-name: happy-hop; }
+:host.animated[data-motion="joyful"] .head { animation-name: happy-nod; }
+:host.animated[data-motion="angry"] .companion { animation-name: stomp; }
+:host.animated[data-motion="angry"] .head { animation-name: grumble; }
+:host.animated[data-motion="upset"] .companion { animation-name: sigh; }
+:host.animated[data-motion="upset"] .head { animation-name: droop; }
+:host.animated[data-motion="thoughtful"] .head { animation-name: ponder; }
+:host.animated[data-motion="irritated"] .companion { animation-name: restless; }
+:host.animated[data-motion="irritated"] .head { animation-name: head-shake; }
+:host.animated[data-motion="angry"] .tail, :host.animated[data-motion="irritated"] .tail { animation-name: tail-flick; }
+:host.animated[data-motion="sleeping"] .companion { animation-name: sleep-breathe; }
+:host.animated[data-motion="sleeping"] .head { animation-name: sleep-nod; }
+:host.animated[data-motion="petting"] .companion { animation-name: petting-sway; }
+:host.animated[data-motion="petting"] .head { animation-name: petting-nuzzle; }
+:host.animated .petting-hand { animation: gentle-stroke 4.8s ease-in-out infinite; }
+:host.animated .affection-heart { animation: affection-rise 4.8s ease-out infinite; }
+:host.animated .heart-right { animation-delay: -2.4s; }
+:host.animated.paused svg * { animation-play-state: paused !important; }
+@keyframes breathe { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px) scaleY(1.015); } }
+@keyframes attentive { 0%, 65%, 100% { transform: rotate(0); } 78%, 88% { transform: rotate(3deg); } }
+@keyframes happy-hop { 0%, 12%, 48%, 100% { transform: translateY(0) scale(1); } 18%, 40% { transform: scale(1.025, .97); } 28% { transform: translateY(-13px) scale(.98, 1.02); } 59% { transform: translateY(-7px); } 70% { transform: translateY(0); } }
+@keyframes happy-nod { 0%, 48%, 100% { transform: rotate(0); } 28% { transform: rotate(-4deg); } 59% { transform: rotate(4deg); } }
+@keyframes stomp { 0%, 25%, 55%, 100% { transform: translateY(0); } 34% { transform: translateY(-4px) rotate(-2deg); } 41%, 48% { transform: translateY(1px) scaleY(.98); } 44% { transform: translateX(2px); } }
+@keyframes paw-stomp { 0%, 23%, 42%, 100% { transform: translateY(0); } 32%, 36% { transform: translateY(-9px); } }
+@keyframes grumble { 0%, 25%, 58%, 100% { transform: translateY(1px); } 36%, 48% { transform: translateY(3px) rotate(-3deg); } 42%, 53% { transform: translateY(3px) rotate(2deg); } }
+@keyframes sigh { 0%, 100% { transform: scaleY(.98); } 28% { transform: translateY(-2px) scaleY(1.015); } 65%, 80% { transform: translateY(2px) scaleY(.965); } }
+@keyframes droop { 0%, 100% { transform: translateY(4px) rotate(3deg); } 28% { transform: translateY(1px) rotate(1deg); } 65%, 80% { transform: translateY(7px) rotate(6deg); } }
+@keyframes ponder { 0%, 100% { transform: rotate(-7deg); } 30%, 45% { transform: rotate(7deg) translateY(-2px); } 72%, 85% { transform: rotate(-9deg); } }
+@keyframes look-around { 0%, 100% { transform: translateX(-2px); } 30%, 45% { transform: translate(3px, -2px); } 72%, 85% { transform: translate(-3px, -1px); } }
+@keyframes restless { 0%, 20%, 60%, 100% { transform: translateX(0); } 30%, 47% { transform: translateX(-2px) rotate(-1deg); } 38%, 54% { transform: translateX(2px) rotate(1deg); } }
+@keyframes head-shake { 0%, 20%, 60%, 100% { transform: rotate(0); } 30%, 47% { transform: rotate(-6deg); } 38%, 54% { transform: rotate(6deg); } }
+@keyframes tail-sway { 0%, 100% { transform: rotate(-4deg); } 50% { transform: rotate(7deg); } }
+@keyframes tail-flick { 0%, 45%, 100% { transform: rotate(-3deg); } 55%, 75% { transform: rotate(12deg); } 65%, 85% { transform: rotate(-9deg); } }
+@keyframes flutter { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(calc(var(--wing-angle) * var(--wing-direction))); } }
+@keyframes sleep-breathe { 0%, 100% { transform: scale(1.02, .97); } 50% { transform: translateY(-2px) scale(1.015, 1); } }
+@keyframes sleep-nod { 0%, 100% { transform: translateY(5px) rotate(6deg); } 50% { transform: translateY(3px) rotate(4deg); } }
 @keyframes blink { 0%, 43%, 47%, 100% { transform: scaleY(1); } 45% { transform: scaleY(.1); } }
-@keyframes drift { 0%, 100% { opacity: .35; transform: translateY(3px); } 50% { opacity: .9; transform: translateY(-5px); } }
-@media (prefers-reduced-motion: reduce) { :host.animated .companion, :host.animated .eyes, :host.animated .sleep-marks { animation: none; } }
+@keyframes drift { 0%, 100% { opacity: .35; transform: translateY(3px); } 50% { opacity: .9; transform: translateY(-6px); } }
+@keyframes mood-drift { 0%, 100% { opacity: .45; transform: translateY(2px); } 50% { opacity: 1; transform: translateY(-3px); } }
+@keyframes hop-shadow { 0%, 18%, 40%, 75%, 100% { transform: scaleX(1); opacity: .12; } 28%, 59% { transform: scaleX(.82); opacity: .08; } }
+@keyframes petting-sway { 0%, 100% { transform: rotate(-1deg) scaleY(1.01); } 25%, 75% { transform: translateY(-3px) rotate(1deg) scaleY(1.025); } 50% { transform: rotate(-2deg) scaleY(1.01); } }
+@keyframes petting-nuzzle { 0%, 50%, 100% { transform: translate(-2px, -2px) rotate(-5deg); } 25%, 75% { transform: translate(3px, -5px) rotate(5deg); } }
+@keyframes gentle-stroke { 0%, 50%, 100% { transform: translate(-9px, 0) rotate(-5deg); } 25%, 75% { transform: translate(7px, 2px) rotate(4deg); } }
+@keyframes affection-rise { 0%, 100% { opacity: 0; transform: translateY(6px) scale(.7); } 15%, 50% { opacity: .9; } 85% { opacity: 0; transform: translateY(-23px) scale(1.1); } }
+@media (prefers-reduced-motion: reduce) { :host.animated svg * { animation: none !important; } }
+
+:host.animated[data-motion="content"] .head { animation: content-nod 2s ease-in-out infinite; }
+:host.animated .wash-bubbles { animation: drift 2s ease-in-out infinite; }
+.wash-bubbles { fill: #edfaff66; stroke: #a4c9d0; stroke-width: 2; }
+@keyframes content-nod { 0%, 100% { transform: rotate(0); } 35% { transform: translateY(3px) rotate(-4deg); } 70% { transform: rotate(4deg); } }
+@media (prefers-reduced-motion: reduce) { :host.animated svg * { animation: none !important; } }

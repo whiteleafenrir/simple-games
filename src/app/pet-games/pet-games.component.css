@@ -1,0 +1,16 @@
+:host { display: contents; }
+dialog { width: min(620px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); overflow-y: auto; overscroll-behavior: contain; padding: 28px; border: 1px solid var(--border); border-radius: 26px; background: var(--surface); color: var(--text); box-shadow: var(--shadow-strong); }
+dialog::backdrop { background: #101e18a6; }
+header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
+header > div { min-width: 0; }.eyebrow { margin: 0 0 7px; color: var(--muted-text); font-size: .78rem; overflow-wrap: anywhere; }
+h2 { margin: 0; font: 500 1.75rem/1.2 var(--display-font); overflow-wrap: anywhere; }h2:focus { outline: none; }
+button { min-height: 44px; border: 1px solid var(--border); border-radius: 12px; color: var(--text); background: var(--secondary); }
+button:disabled { opacity: .55; cursor: wait; }.close { width: 44px; flex: 0 0 44px; padding: 0; font-size: 1.6rem; background: transparent; }
+.intro { margin: 0 0 22px; color: var(--muted-text); line-height: 1.6; }
+.choices { display: grid; gap: 12px; }.game-card { display: flex; align-items: center; gap: 16px; padding: 20px; text-align: left; background: var(--surface-strong); }
+.game-card:hover:not(:disabled) { border-color: var(--primary); background: var(--primary-soft-fill); }
+.game-copy { display: grid; flex: 1; gap: 7px; min-width: 0; }.game-copy strong { font-size: 1.05rem; }.game-copy > span { color: var(--muted-text); font-size: .85rem; line-height: 1.5; }.game-copy small { color: var(--primary); font-size: .73rem; }
+.game-icon { display: grid; place-items: center; flex: 0 0 68px; height: 76px; border-radius: 20px; background: var(--garden-bg); }.game-icon svg { width: 60px; fill: none; stroke: var(--primary); stroke-width: 2.5; stroke-linecap: round; }.word-icon circle { fill: #f1c86d; stroke: none; }.word-icon path { fill: var(--surface-strong); stroke: var(--border); }.arrow { color: var(--primary); }
+.back { margin: 0 0 20px; padding: 8px 13px; font-size: .85rem; }.session-note { margin: 22px 0 0; padding-top: 16px; border-top: 1px solid var(--border); color: var(--muted-text); line-height: 1.6; font-size: .8rem; }.cost { margin: 8px 0 0; font-size: .78rem; color: var(--muted-text); }
+.feedback { padding: 12px; border-radius: 12px; background: var(--soft-surface); line-height: 1.5; }
+@media (max-width: 480px) { dialog { padding: 18px; border-radius: 20px; }h2 { font-size: 1.45rem; }.game-card { padding: 14px; gap: 12px; }.game-icon { flex-basis: 48px; height: 58px; border-radius: 14px; }.game-icon svg { width: 44px; }.arrow { display: none; } }

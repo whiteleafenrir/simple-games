@@ -23,7 +23,7 @@
         <article class="owned-pet-card" [class.is-active]="ownedPet.status === 'pet'">
           <div class="portrait">
             <span class="status-badge">{{ i18n.t(ownedPet.status === 'pet' ? 'albumWithYou' : 'albumMemory') }}</span>
-            <app-pet-illustration [species]="ownedPet.petId" [mood]="ownedPet.mood" [sleeping]="ownedPet.status === 'pet' && !ownedPet.isLightOn" />
+            <app-pet-illustration [species]="ownedPet.petId" [appearance]="ownedPet.appearance" [cleanliness]="ownedPet.stats.cleanliness" [mood]="ownedPet.mood" [sleeping]="ownedPet.status === 'pet' && !ownedPet.isLightOn" />
           </div>
           <div class="card-copy">
             <h3>{{ ownedPet.name }}</h3>

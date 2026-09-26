@@ -18,6 +18,7 @@ import { ActivePetConflictError, GuestSessionNotFoundError, POCKET_PET_REPOSITOR
 import { parseRequestBody } from './request-body';
 import { HISTORY_PAGE_SIZE, historyPage, parseHistoryCursor } from './pet-history';
 import { petSnapshot } from './pet-snapshot';
+import { parseAppearance } from './pet-appearance';
 
 const CREATEABLE_PET_IDS: readonly PetId[] = ['cat', 'dog', 'parrot', 'dinosaur'] as const;
 const SESSION_LENGTH_MINUTES: Record<SessionLengthId, number> = {
@@ -65,7 +66,9 @@ export class PocketPetService {
   }
 
   async createPet(guestId: string, request: unknown, now?: Date): Promise<PetSnapshot> {
-    const body = parseRequestBody(request, ['petId', 'sessionLengthId', 'name']);
+    const body = parseRequestBody(request, ['petId', 'sessionLengthId', 'name', 'appearance']);
+    const appearance = body['appearance'] === undefined
+      ? { color: 'natural', pattern: 'plain' } as const : parseAppearance(body['appearance']);
     const { petId, sessionLengthId, name } = {
       petId: parseCreateablePetId(body['petId']),
       sessionLengthId: parseSessionLengthId(body['sessionLengthId']),
@@ -83,6 +86,7 @@ export class PocketPetService {
         id: randomUUID(),
         name,
         petId,
+        appearance,
         mode: 'easy',
         status: 'pet',
         mood: 'joyful',
@@ -128,6 +132,17 @@ export class PocketPetService {
       const result = applyPetCareAction(pet, actionId, at);
       if (pet.status === 'pet') await tx.savePet(result.pet, result.historyEntry);
       return { ...result, pet: await petSnapshot(tx, result.pet, at) };
+    });
+  }
+
+  updateAppearance(guestId: string, petId: string, request: unknown, now?: Date): Promise<PetSnapshot> {
+    const appearance = parseAppearance(request);
+    return this.withGuestTransaction(guestId, now, async (tx, at) => {
+      const pet = await tx.getPet(petId);
+      if (!pet) throw new NotFoundException('Pet not found.');
+      const resolved = resolvePetState(pet, at);
+      if (resolved.status !== 'pet') throw new ConflictException('Only active pets can change appearance.');
+      return petSnapshot(tx, await tx.savePet({ ...resolved, appearance }), at);
     });
   }
 

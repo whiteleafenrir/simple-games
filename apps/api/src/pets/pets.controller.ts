@@ -1,10 +1,19 @@
-import { Body, Controller, Get, Header, Param, ParseUUIDPipe, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Header, Param, ParseUUIDPipe, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBadRequestResponse, ApiBody, ApiCookieAuth, ApiForbiddenResponse, ApiOperation, ApiParam, ApiQuery, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
 import { PET_CARE_ACTION_IDS } from './pet-engine';
-
+import { COAT_COLORS, COAT_PATTERNS } from './pet-appearance';
 import { GuestSessionGuard } from './guest-session.guard';
 import { PetSnapshot, PetCareActionResponse, PetHistoryPage } from './pet-domain.types';
 import { PocketPetService } from './pocket-pet.service';
+
+const APPEARANCE_SCHEMA = {
+  type: 'object' as const, additionalProperties: false, required: ['color', 'pattern'],
+  properties: {
+    color: { type: 'string' as const, enum: [...COAT_COLORS] },
+    pattern: { type: 'string' as const, enum: [...COAT_PATTERNS] }
+  }
+};
+
 
 @ApiTags('Питомцы')
 @ApiCookieAuth('guest-session')
@@ -31,6 +40,7 @@ export class PetsController {
     type: 'object', additionalProperties: false, required: ['name', 'petId', 'sessionLengthId'],
     properties: {
       name: { type: 'string', minLength: 1, maxLength: 32, example: 'Искорка' },
+      appearance: APPEARANCE_SCHEMA,
       petId: { type: 'string', enum: ['cat', 'dog', 'parrot', 'dinosaur'], example: 'cat' },
       sessionLengthId: { type: 'string', enum: ['short', 'standard', 'long'], example: 'short' }
     }
@@ -51,6 +61,19 @@ export class PetsController {
     @Param('petId', new ParseUUIDPipe({ version: '4' })) petId: string
   ): Promise<PetSnapshot> {
     return this.pocketPetService.getPet(guestId, petId);
+  }
+
+  @Patch(':petId/appearance')
+  @Header('Cache-Control', 'no-store')
+  @ApiParam({ name: 'petId', schema: { type: 'string', format: 'uuid' } })
+  @ApiOperation({ summary: 'Изменить внешность', description: 'Только свой активный питомец. Возвращает snapshot с appearance. Бесплатно, без события ухода. Завершённый питомец — 409, чужой — 404.' })
+  @ApiBody({ schema: APPEARANCE_SCHEMA })
+  updateAppearance(
+    @Param('guestId') guestId: string,
+    @Param('petId', new ParseUUIDPipe({ version: '4' })) petId: string,
+    @Body() request: unknown
+  ): Promise<PetSnapshot> {
+    return this.pocketPetService.updateAppearance(guestId, petId, request);
   }
 
   @Get(':petId/history')
