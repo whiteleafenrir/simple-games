@@ -23,7 +23,7 @@ npm run dev
 - [Backend: Swagger](http://localhost:3000/api/docs)
 - [База: Prisma Studio](http://localhost:5555)
 
-Диагностика: `npm run dev:doctor`. Только база и таблицы: `npm run db:studio`. Проверка сборок: `npm run check`. В PowerShell при блокировке `npm.ps1` используйте `npm.cmd`.
+Диагностика: `npm run dev:doctor`. Только база и таблицы: `npm run db:studio`. Проверка сборок: `npm run check`; lint, форматирование изменений и сборки: `npm run quality`. В PowerShell при блокировке `npm.ps1` используйте `npm.cmd`.
 
 **Подробная инструкция:** [как запускать, открывать и смотреть backend и базу](docs/backend-guide.md).
 

@@ -1,0 +1,21 @@
+# Project-scoped Angular documentation and workspace tools.
+# Resolve the installed CLI from the chat's working directory (also works in subfolders).
+# Direct Node launch avoids Windows .cmd shell handling and npx downloads.
+[mcp_servers.angular]
+command = "node"
+args = ["--eval", """
+const fs = require('node:fs');
+const path = require('node:path');
+let root = process.cwd();
+while (!fs.existsSync(path.join(root, 'angular.json'))) {
+  const parent = path.dirname(root);
+  if (parent === root) throw new Error('Angular workspace not found');
+  root = parent;
+}
+process.chdir(root);
+const cli = require.resolve('@angular/cli/bin/ng.js', { paths: [root] });
+process.argv = [process.execPath, cli, 'mcp', '--read-only'];
+require(cli);
+"""]
+enabled_tools = ["get_best_practices", "search_documentation", "list_projects"]
+startup_timeout_sec = 30

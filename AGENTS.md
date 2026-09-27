@@ -4,20 +4,23 @@
 
 Simple Games - браузерный игровой проект на Angular 22 standalone components. Основное продуктовое направление - Pocket Pet: мягкая игра про ответственность за фэнтези-питомца в ограниченной жизненной сессии.
 
-Перед изменением игрового поведения используй эти файлы как продуктовый контекст:
+Выбирай контекст по задаче через [карту в docs/ai/README.md](docs/ai/README.md#карта-контекста). Перед изменением игрового поведения сверяй соответствующий раздел GDD и focused spec с кодом; для текстовой или стилевой правки не нужно читать весь проект.
 
 - `GAME_DESIGN.md` - источник истины для продуктовых решений, roadmap, non-goals и acceptance criteria.
 - `README.md` - короткий обзор проекта, команды запуска и high-level roadmap.
 - `src/app/i18n/translations.ts` - текущие тексты интерфейса на русском и английском.
-- `apps/api/src/pets/pet-engine.ts` - текущие исполняемые правила игры.
+- `apps/api/src/pets/pet-engine.ts` - уход, время и жизненный цикл; вопросы и доверие — `pet-question-rules.ts`, `pet-question.service.ts`, `pet-trust.ts` в той же папке.
+- `packages/pet-contract/index.d.ts` - общий транспортный контракт API/frontend.
 
 ## Команды
 
-- Установить зависимости: `npm install`
+- Установить зависимости из lockfile: `npm ci` (`npm install` — при изменении зависимостей).
 - Полный локальный запуск (API + Angular + Studio): `npm run dev`
 - Инструкция backend и БД: `docs/backend-guide.md`; диагностика: `npm run dev:doctor`.
 - Только backend с подготовкой БД: `npm run dev:backend`.
 - Проверить обе сборки без тестов: `npm run check`.
+- Статический анализ: `npm run lint`; форматирование изменённых файлов: `npm run format:check` / `npm run format`.
+- Lint, форматирование и обе сборки: `npm run quality`. Для уже закоммиченных изменений используй `npm run format:check -- --base <commit>`.
 - Запустить dev server в сети: `npm start`
 - Запустить dev server локально: `npm run start:local`
 - Собрать проект: `npm run build`
@@ -51,14 +54,14 @@ Simple Games - браузерный игровой проект на Angular 22 
 
 - `GAME_DESIGN.md`: product vision, systems, roadmap, acceptance criteria, non-goals.
 - `docs/ai/`: agent workflow и шаблоны.
-- `docs/specs/`: будущие подробные спеки фич и систем.
-- `docs/plans/`: будущие implementation plans для крупных задач.
+- `docs/specs/README.md`: индекс действующих подробных спецификаций.
+- `docs/plans/README.md`: планы реализации и их статусы; очередность определяется GDD.
 
 Примеры:
 
 - Детали взросления питомцев могут начаться в `GAME_DESIGN.md`; подробные таблицы лучше вынести в `docs/specs/pet-lifecycle.md`.
 - DLC-дракон позже должен получить focused spec вроде `docs/specs/dragon.md`.
-- UX мини-игр и их влияние на состояние питомца позже должны жить в focused spec вроде `docs/specs/pet-activities.md`.
+- UX мини-игр и их связь с заботой описаны в `docs/specs/pet-activities.md`.
 
 ## Code Conventions
 
@@ -67,6 +70,7 @@ Simple Games - браузерный игровой проект на Angular 22 
 - Держи пользовательские тексты в `src/app/i18n/translations.ts`.
 - Избегай hardcoded UI strings в Angular templates/components, кроме временных developer-only labels.
 - Держи gameplay math в engine/domain files, а не в UI components.
+- Используй общий контракт через `@simple-games/pet-contract`; frontend не импортирует API/Prisma, backend не импортирует Angular, пакет контракта не зависит от обоих приложений.
 - Сохраняй существующие пользовательские изменения в worktree.
 
 ## Testing Expectations
@@ -74,12 +78,18 @@ Simple Games - браузерный игровой проект на Angular 22 
 - Тесты не являются частью текущего MVP acceptance scope.
 - Не добавляй и не расширяй `*.spec.ts` без явного запроса.
 - Отдельный этап тестового покрытия появится после фиксации UX и продуктовых правил.
+- По решению владельца 2026-09-27 устаревшие тесты удалены; не восстанавливай их или тестовый runner как часть обычной задачи. Lint и сборки не означают проверку игровых сценариев.
 
 ## Backend Direction
 
-Для изменений API дополнительно прочитай `apps/api/AGENTS.md`, для frontend pet-domain — `src/app/pets/AGENTS.md`.
+Для изменений API дополнительно прочитай `apps/api/AGENTS.md`. Для frontend питомца, включая `src/app/pocket-pet/`, `pet-profile/`, `pet-games/` и `pets/`, прочитай `src/app/pets/AGENTS.md`.
 
 Backend-направление MVP: NestJS + PostgreSQL + Prisma. Backend хранит состояние по anonymous guest id, а браузер получает guest id через HttpOnly-cookie. Pocket Pet не использует localStorage; backend остается source of truth для pet state, time, actions, cooldowns, sleep, walks и player resources.
+
+## Инструменты ИИ
+
+- Проектные скиллы проверки и ревью лежат в `.agents/skills/`; назначение и примеры вызова — в `docs/ai/README.md`. Это помощь для соответствующей задачи, а не обязательная новая процедура приёмки.
+- Для вопросов о современных Angular API используй доступный MCP `angular`: `get_best_practices`, `search_documentation`, `list_projects`. Если он недоступен, сверяй установленную версию и официальную документацию Angular; настройка — в `.codex/config.toml`.
 
 ## Boundaries
 

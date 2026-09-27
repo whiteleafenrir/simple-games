@@ -25,7 +25,10 @@
     "build:api": "tsc -p apps/api/tsconfig.json",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
-    "test": "vitest run",
+    "lint": "eslint . --max-warnings 0",
+    "format:check": "node scripts/format.mjs",
+    "format": "node scripts/format.mjs --write",
+    "quality": "npm run lint && npm run format:check && npm run check",
     "dev:backend": "npm run dev:setup && npm run dev:api",
     "dev:studio": "prisma studio --port 5555 --browser none",
     "dev:doctor": "node scripts/dev-doctor.mjs",
@@ -52,25 +55,28 @@
     "@nestjs/swagger": "^11.4.7",
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
+    "@simple-games/pet-contract": "0.1.0",
     "dotenv": "^17.4.2",
     "pg": "^8.22.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "~7.8.2",
     "tslib": "^2.8.1",
-    "zone.js": "~0.16.0",
-    "@simple-games/pet-contract": "0.1.0"
+    "zone.js": "~0.16.0"
   },
   "devDependencies": {
     "@angular/build": "22.1.7",
     "@angular/cli": "22.1.7",
     "@angular/compiler-cli": "22.1.5",
-    "@nestjs/testing": "^11.1.28",
+    "@eslint/js": "10.0.1",
     "@types/node": "^26.1.1",
     "concurrently": "^9.2.4",
+    "eslint": "10.11.0",
+    "globals": "17.12.0",
     "nodemon": "^3.1.14",
+    "prettier": "3.9.9",
     "prisma": "^7.8.0",
     "typescript": "~6.0.3",
-    "vitest": "^4.1.8"
+    "typescript-eslint": "8.70.1"
   },
   "workspaces": [
     "packages/*"

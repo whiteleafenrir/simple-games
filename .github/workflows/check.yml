@@ -1,4 +1,4 @@
-name: Build and migrations
+name: Quality and migrations
 
 on:
   push:
@@ -35,6 +35,8 @@ jobs:
       CI: true
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v6
         with:
           node-version-file: .nvmrc
@@ -42,6 +44,11 @@ jobs:
       - name: Use the pinned npm version
         run: npm install --global "$(node -p 'require("./package.json").packageManager')"
       - run: npm ci
+      - run: npm run lint
+      - name: Check formatting of changed files
+        run: npm run format:check
+        env:
+          FORMAT_BASE: ${{ github.event.pull_request.base.sha || github.event.before || 'HEAD^' }}
       - run: npx prisma validate
       - name: Apply migrations to an empty database
         run: npm run db:deploy

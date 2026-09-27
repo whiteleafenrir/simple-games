@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.angular/
+.local/
+.npm-cache/
+tmp/
+.env
+.env.*
+package-lock.json
+prisma/migrations/
+prisma/patches/

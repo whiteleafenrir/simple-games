@@ -2,9 +2,21 @@ import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { isDeepStrictEqual } from 'node:util';
 import { PrismaService } from '../prisma/prisma.service';
-import { GuestSession, OwnedPet, PetCareActionEntry, PetHistoryCursor, PetStats, PlayerEnergyState } from './pet-domain.types';
+import {
+  GuestSession,
+  OwnedPet,
+  PetCareActionEntry,
+  PetHistoryCursor,
+  PetStats,
+  PlayerEnergyState
+} from './pet-domain.types';
 import { PET_CARE_ACTIONS, PET_CARE_ACTION_IDS } from './pet-engine';
-import { ActivePetConflictError, GuestSessionNotFoundError, PocketPetRepository, PocketPetTransaction } from './pocket-pet.repository';
+import {
+  ActivePetConflictError,
+  GuestSessionNotFoundError,
+  PocketPetRepository,
+  PocketPetTransaction
+} from './pocket-pet.repository';
 import { PET_SNAPSHOT_INCLUDE, toGuestSession, toOwnedPet, toCareHistoryEntry } from './pet-record.mapper';
 import { StoredQuestionAttempt, toStoredQuestion } from './pet-question-attempt';
 
@@ -26,7 +38,12 @@ export class PrismaPocketPetRepository implements PocketPetRepository {
     return session ? toGuestSession(session) : null;
   }
 
-  async renewGuestSessionToken(guestId: string, tokenHash: string, tokenExpiresAt: Date, now: Date): Promise<GuestSession | null> {
+  async renewGuestSessionToken(
+    guestId: string,
+    tokenHash: string,
+    tokenExpiresAt: Date,
+    now: Date
+  ): Promise<GuestSession | null> {
     const session = await this.prisma.guestSession.updateMany({
       where: { id: guestId, tokenHash, tokenExpiresAt: { gt: now } },
       data: { tokenExpiresAt, lastSeenAt: now }
@@ -45,24 +62,28 @@ export class PrismaPocketPetRepository implements PocketPetRepository {
       });
 
       if (existingSession) {
-        return toGuestSession(await client.guestSession.update({
-          where: {
-            id: guestId
-          },
-          data: {
-            lastSeenAt: now
-          }
-        }));
+        return toGuestSession(
+          await client.guestSession.update({
+            where: {
+              id: guestId
+            },
+            data: {
+              lastSeenAt: now
+            }
+          })
+        );
       }
     }
 
-    return toGuestSession(await client.guestSession.create({
-      data: {
-        ...(guestId ? { id: guestId } : {}),
-        createdAt: now,
-        lastSeenAt: now
-      }
-    }));
+    return toGuestSession(
+      await client.guestSession.create({
+        data: {
+          ...(guestId ? { id: guestId } : {}),
+          createdAt: now,
+          lastSeenAt: now
+        }
+      })
+    );
   }
 
   async touchGuestSession(guestId: string, now: Date): Promise<GuestSession | null> {
@@ -77,40 +98,52 @@ export class PrismaPocketPetRepository implements PocketPetRepository {
       return null;
     }
 
-    return toGuestSession(await client.guestSession.update({
-      where: {
-        id: guestId
-      },
-      data: {
-        lastSeenAt: now
-      }
-    }));
+    return toGuestSession(
+      await client.guestSession.update({
+        where: {
+          id: guestId
+        },
+        data: {
+          lastSeenAt: now
+        }
+      })
+    );
   }
 
-  async withGuestTransaction<T>(guestId: string, operation: (transaction: PocketPetTransaction) => Promise<T>): Promise<T> {
+  async withGuestTransaction<T>(
+    guestId: string,
+    operation: (transaction: PocketPetTransaction) => Promise<T>
+  ): Promise<T> {
     try {
-      return await this.prisma.$transaction(async (tx) => {
-        const guests = await tx.$queryRaw<{ id: string }[]>
-          `SELECT "id" FROM "GuestSession" WHERE "id" = ${guestId} FOR UPDATE`;
-        if (guests.length === 0) {
-          throw new GuestSessionNotFoundError();
-        }
-        return operation(new PrismaPetTransaction(tx, guestId));
-      }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted, maxWait: 10_000, timeout: 15_000 });
+      return await this.prisma.$transaction(
+        async (tx) => {
+          const guests = await tx.$queryRaw<
+            { id: string }[]
+          >`SELECT "id" FROM "GuestSession" WHERE "id" = ${guestId} FOR UPDATE`;
+          if (guests.length === 0) {
+            throw new GuestSessionNotFoundError();
+          }
+          return operation(new PrismaPetTransaction(tx, guestId));
+        },
+        { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted, maxWait: 10_000, timeout: 15_000 }
+      );
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
         const target = error.meta?.['target'];
         // PrismaPg can omit target when PostgreSQL's error messages are localized.
         // The explicit index name stays stable inside the driver's original message.
-        const adapterError = error.meta?.['driverAdapterError'] as {
-          cause?: { originalCode?: string; originalMessage?: string }
-        } | undefined;
-        if (error.meta?.['modelName'] === 'Pet' && (
-          target === 'Pet_one_active_per_guest' ||
-          (Array.isArray(target) && target.length === 1 && target[0] === 'guestSessionId') ||
-          (adapterError?.cause?.originalCode === '23505' &&
-            adapterError.cause.originalMessage?.includes('Pet_one_active_per_guest'))
-        )) {
+        const adapterError = error.meta?.['driverAdapterError'] as
+          | {
+              cause?: { originalCode?: string; originalMessage?: string };
+            }
+          | undefined;
+        if (
+          error.meta?.['modelName'] === 'Pet' &&
+          (target === 'Pet_one_active_per_guest' ||
+            (Array.isArray(target) && target.length === 1 && target[0] === 'guestSessionId') ||
+            (adapterError?.cause?.originalCode === '23505' &&
+              adapterError.cause.originalMessage?.includes('Pet_one_active_per_guest')))
+        ) {
           throw new ActivePetConflictError();
         }
       }
@@ -123,11 +156,13 @@ export class PrismaPocketPetRepository implements PocketPetRepository {
   }
 }
 
-
 // Only constructed after locking the guest; all reads and writes share the transaction.
 class PrismaPetTransaction implements PocketPetTransaction {
   private readonly snapshots = new Map<string, OwnedPet>();
-  constructor(private readonly tx: Prisma.TransactionClient, private readonly guestId: string) {}
+  constructor(
+    private readonly tx: Prisma.TransactionClient,
+    private readonly guestId: string
+  ) {}
 
   async touchGuestSession(now: Date): Promise<void> {
     await this.tx.guestSession.update({ where: { id: this.guestId }, data: { lastSeenAt: now } });
@@ -135,15 +170,17 @@ class PrismaPetTransaction implements PocketPetTransaction {
 
   async listPets(): Promise<OwnedPet[]> {
     const records = await this.tx.pet.findMany({
-      where: { guestSessionId: this.guestId }, include: PET_SNAPSHOT_INCLUDE,
+      where: { guestSessionId: this.guestId },
+      include: PET_SNAPSHOT_INCLUDE,
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }]
     });
-    return records.map(record => this.remember(toOwnedPet(record)));
+    return records.map((record) => this.remember(toOwnedPet(record)));
   }
 
   async getPet(petId: string): Promise<OwnedPet | null> {
     const record = await this.tx.pet.findFirst({
-      where: { id: petId, guestSessionId: this.guestId }, include: PET_SNAPSHOT_INCLUDE
+      where: { id: petId, guestSessionId: this.guestId },
+      include: PET_SNAPSHOT_INCLUDE
     });
     return record ? this.remember(toOwnedPet(record)) : null;
   }
@@ -151,13 +188,19 @@ class PrismaPetTransaction implements PocketPetTransaction {
   async listHistory(petId: string, cursor: PetHistoryCursor | null, limit: number): Promise<PetCareActionEntry[]> {
     const records = await this.tx.petCareAction.findMany({
       where: {
-        petId, pet: { guestSessionId: this.guestId },
-        ...(cursor ? { OR: [
-          { appliedAt: { lt: new Date(cursor.appliedAt) } },
-          { appliedAt: new Date(cursor.appliedAt), id: { lt: cursor.id } }
-        ] } : {})
+        petId,
+        pet: { guestSessionId: this.guestId },
+        ...(cursor
+          ? {
+              OR: [
+                { appliedAt: { lt: new Date(cursor.appliedAt) } },
+                { appliedAt: new Date(cursor.appliedAt), id: { lt: cursor.id } }
+              ]
+            }
+          : {})
       },
-      orderBy: [{ appliedAt: 'desc' }, { id: 'desc' }], take: limit
+      orderBy: [{ appliedAt: 'desc' }, { id: 'desc' }],
+      take: limit
     });
     return records.map(toCareHistoryEntry);
   }
@@ -166,20 +209,26 @@ class PrismaPetTransaction implements PocketPetTransaction {
     if (pet.careHistoryCount !== 0) throw new Error('A new pet cannot have history.');
     const record = await this.tx.pet.create({
       data: {
-        id: pet.id, guestSessionId: this.guestId, ...petCoreData(pet),
+        id: pet.id,
+        guestSessionId: this.guestId,
+        ...petCoreData(pet),
         stats: { create: statsData(pet.stats) },
         playerEnergy: { create: playerEnergyData(pet.playerEnergy) },
-        actionCooldowns: { create: PET_CARE_ACTION_IDS.map(actionId => ({
-          actionId, lastActionAt: dateOrNull(pet.lastActionAt[actionId])
-        })) },
+        actionCooldowns: {
+          create: PET_CARE_ACTION_IDS.map((actionId) => ({
+            actionId,
+            lastActionAt: dateOrNull(pet.lastActionAt[actionId])
+          }))
+        },
         ...(pet.farewell ? { farewell: { create: farewellData(pet) } } : {})
-      }, include: PET_SNAPSHOT_INCLUDE
+      },
+      include: PET_SNAPSHOT_INCLUDE
     });
     return this.remember(toOwnedPet(record));
   }
 
   async savePet(pet: OwnedPet, entry: PetCareActionEntry | null = null): Promise<OwnedPet> {
-    const previous = this.snapshots.get(pet.id) ?? await this.getPet(pet.id);
+    const previous = this.snapshots.get(pet.id) ?? (await this.getPet(pet.id));
     if (!previous) throw new Error('Pet does not belong to the transaction guest.');
     let added = 0;
     if (entry) {
@@ -227,25 +276,31 @@ class PrismaPetTransaction implements PocketPetTransaction {
 
   async latestQuestion(petId: string): Promise<StoredQuestionAttempt | null> {
     const record = await this.tx.petQuestionAttempt.findFirst({
-      where: { petId, pet: { guestSessionId: this.guestId } }, orderBy: [{ issuedAt: 'desc' }, { id: 'desc' }]
+      where: { petId, pet: { guestSessionId: this.guestId } },
+      orderBy: [{ issuedAt: 'desc' }, { id: 'desc' }]
     });
     return record ? toStoredQuestion(record) : null;
   }
 
   async getQuestion(petId: string, attemptId: string): Promise<StoredQuestionAttempt | null> {
-    const record = await this.tx.petQuestionAttempt.findFirst({ where: { id: attemptId, petId, pet: { guestSessionId: this.guestId } } });
+    const record = await this.tx.petQuestionAttempt.findFirst({
+      where: { id: attemptId, petId, pet: { guestSessionId: this.guestId } }
+    });
     return record ? toStoredQuestion(record) : null;
   }
 
   async askedQuestionIds(petId: string): Promise<string[]> {
     const records = await this.tx.petQuestionAttempt.findMany({
-      where: { petId, pet: { guestSessionId: this.guestId } }, select: { questionId: true }, distinct: ['questionId']
+      where: { petId, pet: { guestSessionId: this.guestId } },
+      select: { questionId: true },
+      distinct: ['questionId']
     });
-    return records.map(record => record.questionId);
+    return records.map((record) => record.questionId);
   }
 
   async saveQuestion(attempt: StoredQuestionAttempt): Promise<void> {
-    if (!this.snapshots.has(attempt.petId) && !await this.getPet(attempt.petId)) throw new Error('Question pet does not belong to guest.');
+    if (!this.snapshots.has(attempt.petId) && !(await this.getPet(attempt.petId)))
+      throw new Error('Question pet does not belong to guest.');
     const previous = await this.getQuestion(attempt.petId, attempt.id);
     if (previous?.completedAt) {
       if (!isDeepStrictEqual(previous, attempt)) throw new Error('A completed question is immutable.');
@@ -253,25 +308,42 @@ class PrismaPetTransaction implements PocketPetTransaction {
     }
     const { definition, issuedAt, completedAt, ...fields } = attempt;
     const data = {
-      ...fields, issuedAt: new Date(issuedAt), completedAt: completedAt ? new Date(completedAt) : null,
+      ...fields,
+      issuedAt: new Date(issuedAt),
+      completedAt: completedAt ? new Date(completedAt) : null,
       definition: { ...definition, content: { ru: { ...definition.content.ru }, en: { ...definition.content.en } } }
     } satisfies Prisma.PetQuestionAttemptUncheckedCreateInput;
     if (previous) {
-      await this.tx.petQuestionAttempt.update({ where: { id: attempt.id, petId: attempt.petId, completedAt: null }, data });
+      await this.tx.petQuestionAttempt.update({
+        where: { id: attempt.id, petId: attempt.petId, completedAt: null },
+        data
+      });
     } else {
       await this.tx.petQuestionAttempt.create({ data });
     }
   }
 
-  async questionHistory(petId: string, cursor: PetHistoryCursor | null, limit: number): Promise<StoredQuestionAttempt[]> {
+  async questionHistory(
+    petId: string,
+    cursor: PetHistoryCursor | null,
+    limit: number
+  ): Promise<StoredQuestionAttempt[]> {
     const records = await this.tx.petQuestionAttempt.findMany({
       where: {
-        petId, pet: { guestSessionId: this.guestId }, completedAt: { not: null },
-        ...(cursor ? { OR: [
-          { completedAt: { lt: new Date(cursor.appliedAt) } },
-          { completedAt: new Date(cursor.appliedAt), id: { lt: cursor.id } }
-        ] } : {})
-      }, orderBy: [{ completedAt: 'desc' }, { id: 'desc' }], take: limit
+        petId,
+        pet: { guestSessionId: this.guestId },
+        completedAt: { not: null },
+        ...(cursor
+          ? {
+              OR: [
+                { completedAt: { lt: new Date(cursor.appliedAt) } },
+                { completedAt: new Date(cursor.appliedAt), id: { lt: cursor.id } }
+              ]
+            }
+          : {})
+      },
+      orderBy: [{ completedAt: 'desc' }, { id: 'desc' }],
+      take: limit
     });
     return records.map(toStoredQuestion);
   }
