@@ -1,185 +1,241 @@
 @if (petStorage.syncError(); as error) {
   <div class="pet-feedback" role="alert">
     <span>{{ i18n.t(error) }}</span>
-    <button type="button" [disabled]="petStorage.refreshing()" (click)="petStorage.resolvePets()">{{ i18n.t('petRetry') }}</button>
+    <button type="button" [disabled]="petStorage.refreshing()" (click)="petStorage.resolvePets()">
+      {{ i18n.t('petRetry') }}
+    </button>
   </div>
 }
 @if (petStorage.commandError(); as error) {
   <p class="pet-feedback" role="alert">{{ i18n.t(error) }}</p>
 }
 @if (viewedPet(); as pet) {
-<section class="pet-session">
-  <header class="session-heading">
-    <div>
-      <a class="back-link" routerLink="/">{{ i18n.t('backHome') }}</a>
-      <h1>{{ pet.name }}</h1>
-      <p class="session-subtitle">{{ i18n.t(petOption(pet).titleKey) }} · {{ periodOfLifeLabel(pet.periodOfLife) }}</p>
-    </div>
-    <a class="profile-link" [routerLink]="['/profile/pets', pet.id]">{{ i18n.t('petDetailsTitle') }} <span aria-hidden="true">↗</span></a>
-  </header>
-  <div class="session-main">
-    <app-pet-scene [pet]="pet" [blocked]="sceneBlocked()" [refreshing]="petStorage.refreshing()"
-      (actionRequested)="onSceneAction($event, questions, games)" (refreshRequested)="petStorage.resolvePets()" />
-    <aside class="session-sidebar">
-      <section class="session-vitals" aria-labelledby="pet-wellbeing-title">
-        <h2 id="pet-wellbeing-title">{{ i18n.t('sceneWellbeing') }}</h2>
-        <app-pet-stats [stats]="pet.stats" [compact]="true" />
-        <p class="care-hint">{{ i18n.t('petEnergyHint') }}</p>
-      </section>
-      <section class="player-energy-panel" aria-labelledby="player-energy-title">
-        <div class="player-energy-heading">
-          <h2 id="player-energy-title">{{ i18n.t('playerEnergy') }}</h2>
-          <strong>{{ playerEnergyValue(pet) }}/{{ playerEnergyMax(pet) }}</strong>
-        </div>
-        <div class="player-energy-meter" aria-hidden="true"><span [style.width.%]="playerEnergyPercent(pet)"></span></div>
-        <p class="care-hint">{{ i18n.t('playerEnergyHint') }}</p>
-      </section>
-    </aside>
-  </div>
-  @if (pet.status === 'pet') { <app-pet-appearance-editor [pet]="pet" /> }
-  @if (careMessage(); as message) { <p class="care-message" role="status">{{ i18n.t(message) }}</p> }
-  @if (pet.farewell; as farewell) {
-    <div class="farewell-card">
-      <h2>{{ i18n.t('petFarewellTitle') }}</h2>
-      <p>{{ farewellPhraseLabel(farewell.phraseId) }}</p>
-      <p>{{ farewellReasonLabel(farewell.reason) }} · {{ i18n.t('petFinalCareScore') }}: {{ farewell.finalCareScore }}</p>
-    </div>
-  }
-  <app-pet-questions #questions [pet]="pet" [showTrigger]="false" />
-  <app-pet-games #games [pet]="pet" />
-  <details class="session-details">
-    <summary>{{ i18n.t('sceneSessionDetails') }}</summary>
-    <div>
-      <p>{{ i18n.t('petStatus') }}: {{ statusLabel(pet.status) }}</p>
-      <p>{{ i18n.t('petMood') }}: {{ moodLabel(pet.mood) }}</p>
-      <p>{{ i18n.t('petLight') }}: {{ lightLabel(pet) }}</p>
-      <p>{{ i18n.t('timeSince') }}: {{ petAgeLabel(pet) }}</p>
-      <p>{{ i18n.t('sessionEnds') }}: {{ pet.endsAt | petDate:i18n.language() }}</p>
-    </div>
-  </details>
-</section>
-} @if (!viewedPet()) {
-<section class="pet-page">
-  <div class="pet-copy">
-    <a class="back-link" routerLink="/">{{ i18n.t('backHome') }}</a>
-    <p class="eyebrow">{{ i18n.t('mainGame') }}</p>
-    <h1>{{ i18n.t('adoptionTitle') }}</h1>
-    <p class="lead">{{ i18n.t('pocketPetIntro') }}</p>
-  </div>
-
-  <section class="selection-panel" [attr.aria-label]="i18n.t('petSessionTitle')">
-    <div class="section-heading">
-      <span>01</span>
-      <h2>{{ i18n.t('petSessionTitle') }}</h2>
-    </div>
-
-    <div class="session-grid">
-      @for (sessionLength of sessionLengths; track sessionLength.id) {
-        <button
-          type="button"
-          [class.active]="selectedSession().id === sessionLength.id"
-          [attr.aria-pressed]="selectedSession().id === sessionLength.id"
-          [disabled]="petStorage.commandPending()"
-          (click)="selectSession(sessionLength)"
-        >
-          <strong>{{ i18n.t(sessionLength.titleKey) }}</strong>
-          <span>{{ i18n.t(sessionLength.descriptionKey) }}</span>
-          <b>{{ sessionDurationLabel(sessionLength) }}</b>
-        </button>
-      }
-    </div>
-  </section>
-
-  <section class="selection-panel" [attr.aria-label]="i18n.t('petAnimalTitle')">
-    <div class="section-heading">
-      <span>02</span>
-      <h2>{{ i18n.t('petAnimalTitle') }}</h2>
-    </div>
-
-    <div class="pet-grid">
-      @for (pet of petOptions; track pet.id) {
-        <button
-          type="button"
-          class="pet-card"
-          [class.active]="selectedPet().id === pet.id"
-          [class.disabled]="pet.disabled"
-          [disabled]="pet.disabled || petStorage.commandPending()"
-          [attr.aria-pressed]="selectedPet().id === pet.id"
-          (click)="selectPet(pet)"
-        >
-          @if (pet.disabled || selectedPet().id === pet.id) { <span class="selection-badge">{{ i18n.t(pet.disabled ? 'petComingLater' : 'petSelected') }}</span> }
-          <app-pet-illustration [species]="pet.id" mood="joyful" [appearance]="selectedPet().id === pet.id ? appearance() : defaultAppearance" />
-          <strong>{{ i18n.t(pet.titleKey) }}</strong>
-          <small>{{ i18n.t(pet.descriptionKey) }}</small>
-        </button>
-      }
-    </div>
-  </section>
-
-  <section class="selection-panel" aria-labelledby="creation-appearance-title">
-    <div class="section-heading"><span>03</span><h2 id="creation-appearance-title">{{ i18n.t('petAppearance') }}</h2></div>
-    <p class="appearance-intro">{{ i18n.t('appearanceCreateHint') }}</p>
-    <div class="appearance-preview">
-      <div class="appearance-portrait">
-        <span class="preview-label">{{ i18n.t('appearancePreview') }}</span>
-        <app-pet-illustration [species]="selectedPet().id" mood="joyful" [calmJoy]="true" [appearance]="appearance()" [animated]="true" />
-        <strong>{{ petName().trim() || i18n.t(selectedPet().titleKey) }}</strong>
-        <span class="appearance-caption" aria-live="polite">{{ appearanceLabel() }}</span>
+  <section class="pet-session">
+    <header class="session-heading">
+      <div>
+        <a class="back-link" routerLink="/">{{ i18n.t('backHome') }}</a>
+        <h1>{{ pet.name }}</h1>
+        <p class="session-subtitle">
+          {{ i18n.t(petOption(pet).titleKey) }} · {{ periodOfLifeLabel(pet.periodOfLife) }}
+        </p>
       </div>
-      <div class="appearance-controls">
-        <app-pet-appearance-picker [value]="appearance()" [disabled]="petStorage.commandPending()" (valueChange)="appearance.set($event)" />
-        <div class="appearance-actions">
-          <button type="button" [disabled]="petStorage.commandPending()" (click)="randomizeAppearance()">{{ i18n.t('appearanceRandomize') }}</button>
-          <button type="button" [disabled]="petStorage.commandPending() || isDefaultAppearance()" (click)="resetAppearance()">{{ i18n.t('appearanceReset') }}</button>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section class="selection-panel" [attr.aria-label]="i18n.t('petName')">
-    <div class="section-heading">
-      <span>04</span>
-      <h2>{{ i18n.t('petName') }}</h2>
-    </div>
-
-    <label class="name-field">
-      <span class="visually-hidden">{{ i18n.t('petName') }}</span>
-      <input
-        type="text"
-        [value]="petName()"
-        [disabled]="petStorage.commandPending()"
-        (input)="updatePetName($any($event.target).value)"
-        [placeholder]="i18n.t('petNamePlaceholder')"
-        required
-        maxlength="32"
+      <a class="profile-link" [routerLink]="['/profile/pets', pet.id]"
+        >{{ i18n.t('petDetailsTitle') }} <span aria-hidden="true">↗</span></a
       >
-    </label>
-  </section>
-
-  <aside class="summary-panel">
-    <span>{{ i18n.t('petSelectionSummary') }}</span>
-    <strong>{{ petName().trim() || i18n.t(selectedPet().titleKey) }} · {{ i18n.t(selectedSession().titleKey) }}</strong>
-    <p>{{ i18n.t('petAppearance') }}: {{ appearanceLabel() }}</p>
-    <p>{{ i18n.t('petSelectionHint') }}</p>
-    @if (petStorage.activePet()) {
-      <p class="error-message">{{ i18n.t('activePetExists') }}</p>
-      <a class="inline-profile-link" [routerLink]="['/profile/pets', $safeNavigationMigration(petStorage.activePet()?.id)]">{{ i18n.t('viewPet') }}</a>
-    }
-    @if (petStorage.loading()) {
-      <p class="success-message">{{ i18n.t('petLoading') }}</p>
-    }
-
-    @if (createdPetMessage(); as message) {
-      <p class="success-message" role="status">{{ i18n.t(message) }}</p>
-    }
-    @if (errorMessage(); as error) {
-      <p class="error-message" role="alert">{{ i18n.t(error) }}</p>
-    }
-    <div class="summary-actions">
-      <button type="button" [disabled]="!canCreatePet()" (click)="createPet()">{{ i18n.t(petStorage.commandPending() ? 'petActionPending' : 'createPet') }}</button>
-      <a routerLink="/profile">{{ i18n.t('goToProfile') }}</a>
+    </header>
+    <div class="session-main">
+      <div class="session-scene">
+        <app-pet-scene
+          [pet]="pet"
+          [blocked]="sceneBlocked()"
+          [refreshing]="petStorage.refreshing()"
+          (actionRequested)="onSceneAction($event, questions, games)"
+          (refreshRequested)="petStorage.resolvePets()"
+        />
+        @if (careMessage(); as message) {
+          <p class="care-message" role="status">{{ i18n.t(message) }}</p>
+        }
+      </div>
+      <aside class="session-sidebar">
+        <section class="session-vitals" aria-labelledby="pet-wellbeing-title">
+          <h2 id="pet-wellbeing-title">{{ i18n.t('sceneWellbeing') }}</h2>
+          <app-pet-stats [stats]="pet.stats" [compact]="true" />
+          <p class="care-hint">{{ i18n.t('petEnergyHint') }}</p>
+        </section>
+        <section class="player-energy-panel" aria-labelledby="player-energy-title">
+          <div class="player-energy-heading">
+            <h2 id="player-energy-title">{{ i18n.t('playerEnergy') }}</h2>
+            <strong>{{ playerEnergyValue(pet) }}/{{ playerEnergyMax(pet) }}</strong>
+          </div>
+          <div class="player-energy-meter" aria-hidden="true">
+            <span [style.width.%]="playerEnergyPercent(pet)"></span>
+          </div>
+          <p class="care-hint">{{ i18n.t('playerEnergyHint') }}</p>
+        </section>
+      </aside>
     </div>
-  </aside>
-</section>
+    @if (pet.status === 'pet') {
+      <app-pet-appearance-editor [pet]="pet" />
+    }
+    @if (pet.farewell; as farewell) {
+      <div class="farewell-card">
+        <h2>{{ i18n.t('petFarewellTitle') }}</h2>
+        <p>{{ farewellPhraseLabel(farewell.phraseId) }}</p>
+        <p>
+          {{ farewellReasonLabel(farewell.reason) }} · {{ i18n.t('petFinalCareScore') }}: {{ farewell.finalCareScore }}
+        </p>
+      </div>
+    }
+    <app-pet-questions #questions [pet]="pet" [showTrigger]="false" />
+    <app-pet-games #games [pet]="pet" />
+    <details class="session-details">
+      <summary>{{ i18n.t('sceneSessionDetails') }}</summary>
+      <div>
+        <p>{{ i18n.t('petStatus') }}: {{ statusLabel(pet.status) }}</p>
+        <p>{{ i18n.t('petMood') }}: {{ moodLabel(pet.mood) }}</p>
+        <p>{{ i18n.t('petLight') }}: {{ lightLabel(pet) }}</p>
+        <p>{{ i18n.t('timeSince') }}: {{ petAgeLabel(pet) }}</p>
+        <p>{{ i18n.t('sessionEnds') }}: {{ pet.endsAt | petDate: i18n.language() }}</p>
+      </div>
+    </details>
+  </section>
+}
+@if (!viewedPet()) {
+  <section class="pet-page">
+    <div class="pet-copy">
+      <a class="back-link" routerLink="/">{{ i18n.t('backHome') }}</a>
+      <p class="eyebrow">{{ i18n.t('mainGame') }}</p>
+      <h1>{{ i18n.t('adoptionTitle') }}</h1>
+      <p class="lead">{{ i18n.t('pocketPetIntro') }}</p>
+    </div>
 
+    <section class="selection-panel" [attr.aria-label]="i18n.t('petSessionTitle')">
+      <div class="section-heading">
+        <span>01</span>
+        <h2>{{ i18n.t('petSessionTitle') }}</h2>
+      </div>
+
+      <div class="session-grid">
+        @for (sessionLength of sessionLengths; track sessionLength.id) {
+          <button
+            type="button"
+            [class.active]="selectedSession().id === sessionLength.id"
+            [attr.aria-pressed]="selectedSession().id === sessionLength.id"
+            [disabled]="petStorage.commandPending()"
+            (click)="selectSession(sessionLength)"
+          >
+            <strong>{{ i18n.t(sessionLength.titleKey) }}</strong>
+            <span>{{ i18n.t(sessionLength.descriptionKey) }}</span>
+            <b>{{ sessionDurationLabel(sessionLength) }}</b>
+          </button>
+        }
+      </div>
+    </section>
+
+    <section class="selection-panel" [attr.aria-label]="i18n.t('petAnimalTitle')">
+      <div class="section-heading">
+        <span>02</span>
+        <h2>{{ i18n.t('petAnimalTitle') }}</h2>
+      </div>
+
+      <div class="pet-grid">
+        @for (pet of petOptions; track pet.id) {
+          <button
+            type="button"
+            class="pet-card"
+            [class.active]="selectedPet().id === pet.id"
+            [class.disabled]="pet.disabled"
+            [disabled]="pet.disabled || petStorage.commandPending()"
+            [attr.aria-pressed]="selectedPet().id === pet.id"
+            (click)="selectPet(pet)"
+          >
+            @if (pet.disabled || selectedPet().id === pet.id) {
+              <span class="selection-badge">{{ i18n.t(pet.disabled ? 'petComingLater' : 'petSelected') }}</span>
+            }
+            <app-pet-illustration
+              [species]="pet.id"
+              mood="joyful"
+              [appearance]="selectedPet().id === pet.id ? appearance() : defaultAppearance"
+            />
+            <strong>{{ i18n.t(pet.titleKey) }}</strong>
+            <small>{{ i18n.t(pet.descriptionKey) }}</small>
+          </button>
+        }
+      </div>
+    </section>
+
+    <section class="selection-panel" aria-labelledby="creation-appearance-title">
+      <div class="section-heading">
+        <span>03</span>
+        <h2 id="creation-appearance-title">{{ i18n.t('petAppearance') }}</h2>
+      </div>
+      <p class="appearance-intro">{{ i18n.t('appearanceCreateHint') }}</p>
+      <div class="appearance-preview">
+        <div class="appearance-portrait">
+          <span class="preview-label">{{ i18n.t('appearancePreview') }}</span>
+          <app-pet-illustration
+            [species]="selectedPet().id"
+            mood="joyful"
+            [calmJoy]="true"
+            [appearance]="appearance()"
+            [animated]="true"
+          />
+          <strong>{{ petName().trim() || i18n.t(selectedPet().titleKey) }}</strong>
+          <span class="appearance-caption" aria-live="polite">{{ appearanceLabel() }}</span>
+        </div>
+        <div class="appearance-controls">
+          <app-pet-appearance-picker
+            [value]="appearance()"
+            [disabled]="petStorage.commandPending()"
+            (valueChange)="appearance.set($event)"
+          />
+          <div class="appearance-actions">
+            <button type="button" [disabled]="petStorage.commandPending()" (click)="randomizeAppearance()">
+              {{ i18n.t('appearanceRandomize') }}
+            </button>
+            <button
+              type="button"
+              [disabled]="petStorage.commandPending() || isDefaultAppearance()"
+              (click)="resetAppearance()"
+            >
+              {{ i18n.t('appearanceReset') }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="selection-panel" [attr.aria-label]="i18n.t('petName')">
+      <div class="section-heading">
+        <span>04</span>
+        <h2>{{ i18n.t('petName') }}</h2>
+      </div>
+
+      <label class="name-field">
+        <span class="visually-hidden">{{ i18n.t('petName') }}</span>
+        <input
+          type="text"
+          [value]="petName()"
+          [disabled]="petStorage.commandPending()"
+          (input)="updatePetName($any($event.target).value)"
+          [placeholder]="i18n.t('petNamePlaceholder')"
+          required
+          maxlength="32"
+        />
+      </label>
+    </section>
+
+    <aside class="summary-panel">
+      <span>{{ i18n.t('petSelectionSummary') }}</span>
+      <strong
+        >{{ petName().trim() || i18n.t(selectedPet().titleKey) }} · {{ i18n.t(selectedSession().titleKey) }}</strong
+      >
+      <p>{{ i18n.t('petAppearance') }}: {{ appearanceLabel() }}</p>
+      <p>{{ i18n.t('petSelectionHint') }}</p>
+      @if (petStorage.activePet()) {
+        <p class="error-message">{{ i18n.t('activePetExists') }}</p>
+        <a
+          class="inline-profile-link"
+          [routerLink]="['/profile/pets', $safeNavigationMigration(petStorage.activePet()?.id)]"
+          >{{ i18n.t('viewPet') }}</a
+        >
+      }
+      @if (petStorage.loading()) {
+        <p class="success-message">{{ i18n.t('petLoading') }}</p>
+      }
+
+      @if (createdPetMessage(); as message) {
+        <p class="success-message" role="status">{{ i18n.t(message) }}</p>
+      }
+      @if (errorMessage(); as error) {
+        <p class="error-message" role="alert">{{ i18n.t(error) }}</p>
+      }
+      <div class="summary-actions">
+        <button type="button" [disabled]="!canCreatePet()" (click)="createPet()">
+          {{ i18n.t(petStorage.commandPending() ? 'petActionPending' : 'createPet') }}
+        </button>
+        <a routerLink="/profile">{{ i18n.t('goToProfile') }}</a>
+      </div>
+    </aside>
+  </section>
 }
