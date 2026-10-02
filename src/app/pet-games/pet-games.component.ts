@@ -1,20 +1,41 @@
-import { afterRenderEffect, ChangeDetectionStrategy, Component, computed, DestroyRef, effect, ElementRef, inject, input, signal, viewChild } from '@angular/core';
+import {
+  afterRenderEffect,
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  DestroyRef,
+  effect,
+  ElementRef,
+  inject,
+  input,
+  signal,
+  viewChild
+} from '@angular/core';
 import { I18nService } from '../i18n/i18n.service';
 import { TranslationKey } from '../i18n/translations';
 import { PetSnapshot, PetCareActionFailureReason } from '../pets/owned-pet.model';
 import { PetStorageService } from '../pets/pet-storage.service';
 import { PetTicTacToeComponent } from './pet-tic-tac-toe.component';
 import { WordCloudsComponent } from './word-clouds.component';
+import { ChessPuzzleComponent } from '../chess/chess-puzzle.component';
 
-type PetGame = 'word-clouds' | 'tic-tac-toe';
+type PetGame = 'word-clouds' | 'tic-tac-toe' | 'chess';
+const GAME_TITLE_KEYS: Record<PetGame, TranslationKey> = {
+  'word-clouds': 'wordCloudsTitle',
+  'tic-tac-toe': 'ticTacToe',
+  chess: 'petChessTitle'
+};
 const FAILURE_KEYS: Record<PetCareActionFailureReason, TranslationKey> = {
-  inactive: 'careActionInactive', sleeping: 'careActionSleeping', away: 'careActionAway',
-  cooldown: 'careActionCoolingDown', 'player-energy': 'careActionNoPlayerEnergy'
+  inactive: 'careActionInactive',
+  sleeping: 'careActionSleeping',
+  away: 'careActionAway',
+  cooldown: 'careActionCoolingDown',
+  'player-energy': 'careActionNoPlayerEnergy'
 };
 
 @Component({
   selector: 'app-pet-games',
-  imports: [WordCloudsComponent, PetTicTacToeComponent],
+  imports: [WordCloudsComponent, PetTicTacToeComponent, ChessPuzzleComponent],
   templateUrl: './pet-games.component.html',
   styleUrl: './pet-games.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -32,12 +53,22 @@ export class PetGamesComponent {
   private readonly focusHeading = signal(false);
   readonly opened = signal(false);
   readonly selected = signal<PetGame | null>(null);
+  readonly titleKey = computed(() => {
+    const game = this.selected();
+    return game ? GAME_TITLE_KEYS[game] : 'petGamesTitle';
+  });
   readonly started = signal(false);
   readonly busy = signal(false);
   readonly message = signal<TranslationKey | null>(null);
   readonly unavailable = computed<TranslationKey | null>(() => {
     const pet = this.pet();
-    return pet.status !== 'pet' ? 'careActionInactive' : pet.awayUntil ? 'careActionAway' : !pet.isLightOn ? 'careActionSleeping' : null;
+    return pet.status !== 'pet'
+      ? 'careActionInactive'
+      : pet.awayUntil
+        ? 'careActionAway'
+        : !pet.isLightOn
+          ? 'careActionSleeping'
+          : null;
   });
   readonly startBlocked = computed<TranslationKey | null>(() => {
     if (this.unavailable()) return this.unavailable();
@@ -46,7 +77,11 @@ export class PetGamesComponent {
     if (this.storage.syncError()) return this.storage.syncError();
     if (this.started()) return null;
     const availability = this.pet().actions.play;
-    return availability.available ? null : availability.reason && availability.reason !== 'no-content' ? FAILURE_KEYS[availability.reason] : 'careActionInactive';
+    return availability.available
+      ? null
+      : availability.reason && availability.reason !== 'no-content'
+        ? FAILURE_KEYS[availability.reason]
+        : 'careActionInactive';
   });
 
   constructor() {
@@ -84,8 +119,14 @@ export class PetGamesComponent {
       const response = await this.storage.careForPet(petId, 'play');
       if (this.destroyRef.destroyed || version !== this.version || petId !== this.pet().id) return;
       this.busy.set(false);
-      if (!response) { this.message.set(this.storage.commandError() ?? 'petGamesStartError'); return; }
-      if (!response.applied) { this.message.set(response.reason ? FAILURE_KEYS[response.reason] : 'petGamesStartError'); return; }
+      if (!response) {
+        this.message.set(this.storage.commandError() ?? 'petGamesStartError');
+        return;
+      }
+      if (!response.applied) {
+        this.message.set(response.reason ? FAILURE_KEYS[response.reason] : 'petGamesStartError');
+        return;
+      }
       this.started.set(true);
     }
     if (this.unavailable()) return;
@@ -99,7 +140,10 @@ export class PetGamesComponent {
     this.focusHeading.set(true);
   }
 
-  cancel(event: Event): void { event.preventDefault(); this.close(); }
+  cancel(event: Event): void {
+    event.preventDefault();
+    this.close();
+  }
 
   close(): void {
     this.version++;
