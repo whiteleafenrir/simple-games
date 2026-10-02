@@ -29,6 +29,8 @@
 | Тексты и настройки             | `docs/specs/ux-polish.md` и spec соответствующего экрана                                                       | `src/app/i18n/`, `src/app/settings/`                                                                                                              | Frontend build; RU/EN на затронутом экране                              |
 | Локальный запуск и инструменты | `docs/backend-guide.md`, specs `local-development.md`, `agent-tooling.md`                                      | `scripts/`, `package.json`, `.github/workflows/check.yml`, конфиги lint/format/MCP                                                                | Затронутая команда; `npm run dev:doctor` для работающего dev            |
 
+Для SVG/3D дополнительно прочитай [прототип кота](../specs/pet-3d-prototype.md): `pet-illustration.component.ts` выбирает способ отрисовки; `pet-svg.component.*` сохраняет плоский вид; `pet-cat-3d.component.ts` управляет WebGL, а `cat-3d-model.ts` — процедурной моделью и движениями. Общие параметры — `pet-visual-state.ts`.
+
 Все specs перечислены в [индексе](../specs/README.md). После изменения решения обнови его исходную спецификацию; при добавлении/завершении системы — её статус и индекс. Исторические результаты проверки в `docs/reports/` не подтверждают работоспособность нового коммита.
 
 ## Lint и форматирование

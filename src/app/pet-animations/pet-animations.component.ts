@@ -8,6 +8,7 @@ import { PET_OPTIONS } from '../pocket-pet/pocket-pet.config';
 import { PetAppearancePickerComponent } from '../pets/pet-appearance-picker.component';
 import { DEFAULT_APPEARANCE } from '../pets/pet-appearance';
 import { PET_REACTIONS, PetReactionKind, PetReactionService } from '../pets/pet-reaction';
+import { PetPose, PetRenderer } from '../pets/pet-visual-state';
 
 const MOOD_DESCRIPTIONS = {
   joyful: 'animationJoyfulHint',
@@ -33,16 +34,32 @@ export class PetAnimationsComponent {
   readonly paused = signal(false);
   readonly appearance = signal({ ...DEFAULT_APPEARANCE });
   readonly cleanliness = signal(100);
+  readonly renderer = signal<PetRenderer>('3d');
+  readonly pose = signal<PetPose>('prowl');
+  readonly yaw = signal(-35);
+  readonly poses: readonly { id: PetPose; label: TranslationKey }[] = [
+    { id: 'default', label: 'catPoseRest' },
+    { id: 'prowl', label: 'catPoseProwl' },
+    { id: 'walk', label: 'catPoseWalk' }
+  ];
+  readonly angles: readonly { value: number; label: TranslationKey }[] = [
+    { value: 0, label: 'catViewFront' },
+    { value: -35, label: 'catViewQuarter' },
+    { value: -90, label: 'catViewSide' },
+    { value: 180, label: 'catViewBack' }
+  ];
   readonly reactions = inject(PetReactionService);
   readonly reactionDefinitions = PET_REACTIONS;
   readonly previews: readonly { kind: PetReactionKind; label: TranslationKey }[] = [
-    { kind: 'joy', label: 'reactionTryPlay' }, { kind: 'content', label: 'reactionTryFeed' }, { kind: 'clean', label: 'reactionTryClean' }
+    { kind: 'joy', label: 'reactionTryPlay' },
+    { kind: 'content', label: 'reactionTryFeed' },
+    { kind: 'clean', label: 'reactionTryClean' }
   ];
   preview(kind: PetReactionKind): void {
     this.paused.set(false);
     this.reactions.play('preview', kind);
   }
-  readonly moods = (Object.keys(MOOD_DESCRIPTIONS) as PetMood[]).map(mood => ({
+  readonly moods = (Object.keys(MOOD_DESCRIPTIONS) as PetMood[]).map((mood) => ({
     id: mood,
     titleKey: petMoodKey(mood),
     descriptionKey: MOOD_DESCRIPTIONS[mood]
