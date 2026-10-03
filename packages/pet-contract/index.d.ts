@@ -2,7 +2,10 @@
 export type PetId = 'cat' | 'dog' | 'parrot' | 'dinosaur' | 'dragon';
 export type PetCoatColor = 'natural' | 'honey' | 'ash' | 'rose' | 'lavender' | 'mint';
 export type PetCoatPattern = 'plain' | 'spots' | 'stripes';
-export interface PetAppearance { color: PetCoatColor; pattern: PetCoatPattern; }
+export interface PetAppearance {
+  color: PetCoatColor;
+  pattern: PetCoatPattern;
+}
 export type PetMode = 'easy' | 'medium' | 'insane';
 export type SessionLengthId = 'short' | 'standard' | 'long';
 
@@ -170,9 +173,30 @@ export interface PetQuestionResponse {
   nextAvailableAt: string | null;
 }
 
-export interface StartQuestionRequest { language: QuestionLanguage; }
-export interface AnswerQuestionRequest { optionId: string | null; }
+export interface StartQuestionRequest {
+  language: QuestionLanguage;
+}
+export interface AnswerQuestionRequest {
+  optionId: string | null;
+}
 export interface PetQuestionHistoryPage {
   items: PetQuestionResult[];
   nextCursor: string | null;
+}
+/** Shared public chess catalogue; no guest or pet state. */
+export type ChessDifficulty = 'easy' | 'medium' | 'hard';
+
+export interface ChessPuzzleDto {
+  readonly id: string;
+  /** Position after the opponent's setup move. */
+  readonly fen: string;
+  /** UCI moves, starting and ending with the player's move. */
+  readonly solution: readonly string[];
+  readonly rating: number;
+  readonly themes: readonly string[];
+  readonly sourceUrl: string;
+}
+
+export interface ChessPuzzleResponse {
+  readonly puzzle: ChessPuzzleDto | null;
 }

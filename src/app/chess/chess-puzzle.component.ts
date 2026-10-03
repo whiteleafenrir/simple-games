@@ -3,6 +3,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  DestroyRef,
   ElementRef,
   inject,
   signal,
@@ -12,7 +13,10 @@ import { I18nService } from '../i18n/i18n.service';
 import type { TranslationKey } from '../i18n/translations';
 import { inspectChessGame } from './chess-engine';
 import type { ChessCell, ChessMove, ChessPieceType, ChessSquare } from './chess-engine';
-import { chooseChessPuzzle, createPuzzleRound, findMatingMoves, revealPuzzle, submitPuzzleMove } from './chess-puzzles';
+import { createPuzzleRound, nextPuzzleMove, revealPuzzle, submitPuzzleMove } from './chess-puzzles';
+import type { ChessPuzzleRound } from './chess-puzzles';
+import type { ChessDifficulty } from '@simple-games/pet-contract';
+import { ChessApiService } from './chess-api.service';
 
 const PIECE_KEYS: Record<ChessPieceType, TranslationKey> = {
   k: 'chessKing',
@@ -32,24 +36,36 @@ const PIECE_GLYPHS: Record<ChessPieceType, string> = { k: '♚', q: '♛', r: '�
 })
 export class ChessPuzzleComponent {
   readonly i18n = inject(I18nService);
-  readonly round = signal(createPuzzleRound(chooseChessPuzzle()));
+  private readonly api = inject(ChessApiService);
+  private readonly destroyRef = inject(DestroyRef);
+  readonly round = signal<ChessPuzzleRound | null>(null);
+  readonly difficulty = signal<ChessDifficulty>('easy');
+  readonly levels: readonly { value: ChessDifficulty; label: TranslationKey }[] = [
+    { value: 'easy', label: 'chessEasy' },
+    { value: 'medium', label: 'chessMedium' },
+    { value: 'hard', label: 'chessHard' }
+  ];
+  readonly loading = signal(false);
+  readonly loadMessage = signal<TranslationKey | null>(null);
   readonly selected = signal<ChessSquare | null>(null);
   readonly hintSquare = signal<ChessSquare | null>(null);
   readonly feedback = signal<TranslationKey>('chessReady');
   readonly promotionMoves = signal<readonly ChessMove[]>([]);
-  readonly view = computed(() => inspectChessGame(this.round().game));
-  readonly cells = computed(() => (this.round().player === 'w' ? this.view().board : [...this.view().board].reverse()));
-  readonly focused = signal<ChessSquare>(this.cells()[0].square);
-  readonly finished = computed(() => this.round().outcome !== 'playing');
+  readonly view = computed(() => {
+    const round = this.round();
+    return round ? inspectChessGame(round.game) : null;
+  });
+  readonly cells = computed(() => {
+    const board = this.view()?.board ?? [];
+    return this.round()?.player === 'b' ? [...board].reverse() : board;
+  });
+  readonly focused = signal<ChessSquare>('a8');
+  readonly finished = computed(() => this.round()?.outcome !== 'playing');
   readonly targets = computed(
     () =>
-      new Set(
-        this.view()
-          .legalMoves.filter((move) => move.from === this.selected())
-          .map((move) => move.to)
-      )
+      new Set((this.view()?.legalMoves ?? []).filter((move) => move.from === this.selected()).map((move) => move.to))
   );
-  readonly lastMove = computed(() => this.round().game.moves.at(-1));
+  readonly lastMove = computed(() => this.round()?.game.moves.at(-1));
   private readonly squareButtons = viewChildren<ElementRef<HTMLButtonElement>>('squareButton');
   private readonly promotionButtons = viewChildren<ElementRef<HTMLButtonElement>>('promotionButton');
 
@@ -57,10 +73,11 @@ export class ChessPuzzleComponent {
     afterRenderEffect(() => {
       if (this.promotionMoves().length) this.promotionButtons()[0]?.nativeElement.focus();
     });
+    void this.next();
   }
 
   selectSquare(square: ChessSquare): void {
-    if (this.finished() || this.promotionMoves().length) return;
+    if (this.loading() || this.finished() || this.promotionMoves().length) return;
     this.focused.set(square);
     this.hintSquare.set(null);
     if (this.selected() === square) {
@@ -68,15 +85,15 @@ export class ChessPuzzleComponent {
       this.feedback.set('chessReady');
       return;
     }
-    const piece = this.view().board.find((cell) => cell.square === square)?.piece;
-    if (piece?.color === this.round().player) {
+    const piece = this.view()?.board.find((cell) => cell.square === square)?.piece;
+    if (piece?.color === this.round()?.player) {
       this.selected.set(square);
       this.feedback.set('chessChooseTarget');
       return;
     }
     const from = this.selected();
     if (!from) return;
-    const promotions = this.view().legalMoves.filter(
+    const promotions = (this.view()?.legalMoves ?? []).filter(
       (move) => move.from === from && move.to === square && move.promotion
     );
     if (promotions.length) {
@@ -88,15 +105,19 @@ export class ChessPuzzleComponent {
   }
 
   move(move: ChessMove): void {
-    const result = submitPuzzleMove(this.round(), move);
+    const round = this.round();
+    if (!round || this.loading()) return;
+    const result = submitPuzzleMove(round, move);
     this.round.set(result.round);
     if (result.feedback !== 'finished') {
       this.feedback.set(
         result.feedback === 'solved'
           ? 'chessSolved'
-          : result.feedback === 'try-again'
-            ? 'chessTryAgain'
-            : 'chessIllegal'
+          : result.feedback === 'correct'
+            ? 'chessCorrect'
+            : result.feedback === 'try-again'
+              ? 'chessTryAgain'
+              : 'chessIllegal'
       );
     }
     this.promotionMoves.set([]);
@@ -106,8 +127,9 @@ export class ChessPuzzleComponent {
   }
 
   hint(): void {
-    if (this.finished()) return;
-    const move = findMatingMoves(this.round().game)[0];
+    const round = this.round();
+    if (!round || this.loading() || this.finished()) return;
+    const move = nextPuzzleMove(round);
     if (!move) return;
     this.cancelPromotion();
     this.hintSquare.set(move.from);
@@ -117,16 +139,36 @@ export class ChessPuzzleComponent {
   }
 
   reveal(): void {
-    this.round.update((round) => revealPuzzle(round));
+    const round = this.round();
+    if (!round || this.loading()) return;
+    this.round.set(revealPuzzle(round));
     this.clearSelection();
-    this.feedback.set(this.round().outcome === 'solved' ? 'chessSolved' : 'chessRevealed');
+    this.feedback.set(this.round()?.outcome === 'solved' ? 'chessSolved' : 'chessRevealed');
   }
 
   restart(): void {
-    this.start(false);
+    const round = this.round();
+    if (!round || this.loading()) return;
+    this.round.set(createPuzzleRound(round.puzzle));
+    this.resetBoard();
   }
-  next(): void {
-    this.start(true);
+  async next(level = this.difficulty()): Promise<void> {
+    if (this.loading()) return;
+    this.loading.set(true);
+    this.loadMessage.set(null);
+    try {
+      const response = await this.api.random(level, this.round()?.puzzle.id);
+      if (this.destroyRef.destroyed) return;
+      const round = response.puzzle ? createPuzzleRound(response.puzzle) : null;
+      this.round.set(round);
+      this.difficulty.set(level);
+      this.resetBoard();
+      if (!round) this.loadMessage.set('chessEmptyCatalog');
+    } catch {
+      if (!this.destroyRef.destroyed) this.loadMessage.set('chessLoadError');
+    } finally {
+      if (!this.destroyRef.destroyed) this.loading.set(false);
+    }
   }
 
   cancelPromotion(event?: Event): void {
@@ -195,12 +237,10 @@ export class ChessPuzzleComponent {
     return (square.charCodeAt(0) + Number(square[1])) % 2 === 0;
   }
 
-  private start(next: boolean): void {
-    const puzzle = next ? chooseChessPuzzle(this.round().puzzle.id) : this.round().puzzle;
-    this.round.set(createPuzzleRound(puzzle));
+  private resetBoard(): void {
     this.clearSelection();
     this.feedback.set('chessReady');
-    this.focused.set(this.cells()[0].square);
+    this.focused.set(this.cells()[0]?.square ?? 'a8');
   }
 
   private clearSelection(): void {

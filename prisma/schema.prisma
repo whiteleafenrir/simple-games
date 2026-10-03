@@ -7,6 +7,21 @@ datasource db {
   provider = "postgresql"
 }
 
+model ChessPuzzle {
+  id              String   @id
+  fen             String
+  moves           String[]
+  rating          Int
+  ratingDeviation Int
+  popularity      Int
+  plays           Int
+  themes          String[]
+  gameUrl         String
+  openingTags     String[]
+
+  @@index([rating, id])
+}
+
 model GuestSession {
   id             String   @id @default(uuid())
   createdAt      DateTime @default(now())

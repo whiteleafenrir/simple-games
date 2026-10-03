@@ -188,7 +188,26 @@ h2 {
 }
 .notation strong {
   color: var(--text);
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+}
+.difficulty {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+  font-size: 0.85rem;
+}
+.difficulty button.active {
+  background: var(--primary);
+  color: var(--primary-contrast);
+}
+.load-message {
+  margin-bottom: 20px;
+}
+.source-link {
+  color: var(--primary);
+  font-size: 0.8rem;
 }
 .actions {
   display: grid;

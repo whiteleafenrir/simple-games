@@ -1,98 +1,135 @@
 <section class="puzzle" [attr.aria-label]="i18n.t('chessTitle')">
-  <div class="puzzle-header">
-    <div>
-      <p class="eyebrow">{{ i18n.t('chessGoal') }}</p>
-      <h2>{{ i18n.t(round().player === 'w' ? 'chessWhiteToMove' : 'chessBlackToMove') }}</h2>
-    </div>
-    <span class="side-chip"
-      ><span class="side-dot" [class.black]="round().player === 'b'"></span>{{ i18n.t('chessOneMove') }}</span
-    >
+  <div class="difficulty" role="group" [attr.aria-label]="i18n.t('chessDifficulty')">
+    <span>{{ i18n.t('chessDifficulty') }}</span>
+    @for (level of levels; track level.value) {
+      <button
+        type="button"
+        [class.active]="difficulty() === level.value"
+        [attr.aria-pressed]="difficulty() === level.value"
+        [disabled]="loading()"
+        (click)="next(level.value)"
+      >
+        {{ i18n.t(level.label) }}
+      </button>
+    }
   </div>
-  <div class="puzzle-layout">
-    <div class="board-area">
-      <div class="board" role="group" [attr.aria-label]="i18n.t('chessBoard')" aria-describedby="chess-board-help">
-        @for (cell of cells(); track cell.square; let index = $index) {
-          <button
-            #squareButton
-            type="button"
-            class="square"
-            [class.dark]="isDark(cell.square)"
-            [class.selected]="selected() === cell.square"
-            [class.hinted]="hintSquare() === cell.square"
-            [class.last-move]="lastMove()?.from === cell.square || lastMove()?.to === cell.square"
-            [class.target]="targets().has(cell.square)"
-            [class.occupied]="!!cell.piece"
-            [attr.aria-label]="cellLabel(cell)"
-            [attr.aria-pressed]="selected() === cell.square"
-            [attr.aria-disabled]="finished() || promotionMoves().length > 0"
-            [tabIndex]="focused() === cell.square ? 0 : -1"
-            (focus)="focused.set(cell.square)"
-            (click)="selectSquare(cell.square)"
-            (keydown)="onBoardKey($event, cell.square)"
-          >
-            @if (index % 8 === 0) {
-              <span class="rank" aria-hidden="true">{{ cell.square[1] }}</span>
-            }
-            @if (index >= 56) {
-              <span class="file" aria-hidden="true">{{ cell.square[0] }}</span>
-            }
-            @if (cell.piece; as piece) {
-              <span class="piece" [class.white-piece]="piece.color === 'w'" aria-hidden="true">{{
-                glyph(piece.type)
-              }}</span>
-            }
-          </button>
-        }
-      </div>
-      <p id="chess-board-help" class="board-help">{{ i18n.t('chessBoardHelp') }}</p>
+  @if (loading()) {
+    <p role="status">{{ i18n.t('chessLoading') }}</p>
+  }
+  @if (loadMessage(); as message) {
+    <div class="load-message" role="status">
+      <p>{{ i18n.t(message) }}</p>
+      <button type="button" [disabled]="loading()" (click)="next()">{{ i18n.t('chessRetryLoad') }}</button>
     </div>
-    <div class="puzzle-sidebar">
-      <div class="status-card" [class.completed]="finished()">
-        <span class="status-icon" aria-hidden="true">{{ finished() ? '✦' : '♞' }}</span>
-        <p role="status" aria-live="polite" aria-atomic="true">
-          {{ i18n.t(feedback()) }}
-          @if (hintSquare(); as square) {
-            <strong>{{ square }}</strong>
-          }
-        </p>
-        @if (view().notation.length) {
-          <p class="notation">
-            <span>{{ i18n.t('chessMovePlayed') }}</span> <strong>{{ view().notation.join(' ') }}</strong>
-          </p>
-        }
-      </div>
-      @if (promotionMoves().length) {
-        <div
-          class="promotion"
-          role="group"
-          [attr.aria-label]="i18n.t('chessPromotion')"
-          (keydown.escape)="cancelPromotion($event)"
+  }
+  @if (round(); as currentRound) {
+    @if (view(); as currentView) {
+      <div class="puzzle-header">
+        <div>
+          <p class="eyebrow">{{ i18n.t('chessGoal') }}</p>
+          <h2>{{ i18n.t(currentRound.player === 'w' ? 'chessWhiteToMove' : 'chessBlackToMove') }}</h2>
+        </div>
+        <span class="side-chip"
+          ><span class="side-dot" [class.black]="currentRound.player === 'b'"></span>{{ i18n.t('chessRating') }}
+          {{ currentRound.puzzle.rating }}</span
         >
-          <h3>{{ i18n.t('chessPromotion') }}</h3>
-          <div class="promotion-options">
-            @for (moveOption of promotionMoves(); track moveOption.promotion) {
-              @if (moveOption.promotion; as piece) {
-                <button #promotionButton type="button" (click)="move(moveOption)">
-                  <span aria-hidden="true">{{ glyph(piece) }}</span
-                  >{{ pieceName(piece) }}
-                </button>
-              }
+      </div>
+      <div class="puzzle-layout">
+        <div class="board-area">
+          <div class="board" role="group" [attr.aria-label]="i18n.t('chessBoard')" aria-describedby="chess-board-help">
+            @for (cell of cells(); track cell.square; let index = $index) {
+              <button
+                #squareButton
+                type="button"
+                class="square"
+                [class.dark]="isDark(cell.square)"
+                [class.selected]="selected() === cell.square"
+                [class.hinted]="hintSquare() === cell.square"
+                [class.last-move]="lastMove()?.from === cell.square || lastMove()?.to === cell.square"
+                [class.target]="targets().has(cell.square)"
+                [class.occupied]="!!cell.piece"
+                [attr.aria-label]="cellLabel(cell)"
+                [attr.aria-pressed]="selected() === cell.square"
+                [attr.aria-disabled]="loading() || finished() || promotionMoves().length > 0"
+                [tabIndex]="focused() === cell.square ? 0 : -1"
+                (focus)="focused.set(cell.square)"
+                (click)="selectSquare(cell.square)"
+                (keydown)="onBoardKey($event, cell.square)"
+              >
+                @if (index % 8 === 0) {
+                  <span class="rank" aria-hidden="true">{{ cell.square[1] }}</span>
+                }
+                @if (index >= 56) {
+                  <span class="file" aria-hidden="true">{{ cell.square[0] }}</span>
+                }
+                @if (cell.piece; as piece) {
+                  <span class="piece" [class.white-piece]="piece.color === 'w'" aria-hidden="true">{{
+                    glyph(piece.type)
+                  }}</span>
+                }
+              </button>
             }
           </div>
-          <button class="text-button" type="button" (click)="cancelPromotion()">
-            {{ i18n.t('chessCancelPromotion') }}
-          </button>
+          <p id="chess-board-help" class="board-help">{{ i18n.t('chessBoardHelp') }}</p>
         </div>
-      }
-      <div class="actions">
-        <button type="button" class="primary" (click)="next()">
-          {{ i18n.t('chessNext') }} <span aria-hidden="true">↗</span>
-        </button>
-        <button type="button" [disabled]="finished()" (click)="hint()">{{ i18n.t('chessHint') }}</button>
-        <button type="button" [disabled]="finished()" (click)="reveal()">{{ i18n.t('chessShowSolution') }}</button>
-        <button type="button" class="text-button" (click)="restart()">{{ i18n.t('chessRestart') }}</button>
+        <div class="puzzle-sidebar">
+          <div class="status-card" [class.completed]="finished()">
+            <span class="status-icon" aria-hidden="true">{{ finished() ? '✦' : '♞' }}</span>
+            <p role="status" aria-live="polite" aria-atomic="true">
+              {{ i18n.t(feedback()) }}
+              @if (hintSquare(); as square) {
+                <strong>{{ square }}</strong>
+              }
+            </p>
+            @if (currentView.notation.length) {
+              <p class="notation">
+                <span>{{ i18n.t('chessMovePlayed') }}</span> <strong>{{ currentView.notation.join(' ') }}</strong>
+              </p>
+            }
+          </div>
+          @if (promotionMoves().length) {
+            <div
+              class="promotion"
+              role="group"
+              [attr.aria-label]="i18n.t('chessPromotion')"
+              (keydown.escape)="cancelPromotion($event)"
+            >
+              <h3>{{ i18n.t('chessPromotion') }}</h3>
+              <div class="promotion-options">
+                @for (moveOption of promotionMoves(); track moveOption.promotion) {
+                  @if (moveOption.promotion; as piece) {
+                    <button #promotionButton type="button" [disabled]="loading()" (click)="move(moveOption)">
+                      <span aria-hidden="true">{{ glyph(piece) }}</span
+                      >{{ pieceName(piece) }}
+                    </button>
+                  }
+                }
+              </div>
+              <button class="text-button" type="button" (click)="cancelPromotion()">
+                {{ i18n.t('chessCancelPromotion') }}
+              </button>
+            </div>
+          }
+          <div class="actions">
+            <button type="button" class="primary" [disabled]="loading()" (click)="next()">
+              {{ i18n.t('chessNext') }} <span aria-hidden="true">↗</span>
+            </button>
+            <button type="button" [disabled]="loading() || finished()" (click)="hint()">
+              {{ i18n.t('chessHint') }}
+            </button>
+            <button type="button" [disabled]="loading() || finished()" (click)="reveal()">
+              {{ i18n.t('chessShowSolution') }}
+            </button>
+            <button type="button" class="text-button" [disabled]="loading()" (click)="restart()">
+              {{ i18n.t('chessRestart') }}
+            </button>
+          </div>
+          <p class="quiet-note">{{ i18n.t('chessNoRush') }}</p>
+          <a class="source-link" [href]="currentRound.puzzle.sourceUrl" target="_blank" rel="noopener noreferrer"
+            >{{ i18n.t('chessSource') }} · {{ currentRound.puzzle.id }}</a
+          >
+        </div>
       </div>
-      <p class="quiet-note">{{ i18n.t('chessNoRush') }}</p>
-    </div>
-  </div>
+    }
+  }
 </section>
