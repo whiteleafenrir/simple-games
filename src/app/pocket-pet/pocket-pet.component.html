@@ -52,6 +52,9 @@
           </div>
           <p class="care-hint">{{ i18n.t('playerEnergyHint') }}</p>
         </section>
+        @if (pet.dailyFact; as fact) {
+          <app-pet-daily-fact [fact]="fact" />
+        }
       </aside>
     </div>
     @if (pet.status === 'pet') {

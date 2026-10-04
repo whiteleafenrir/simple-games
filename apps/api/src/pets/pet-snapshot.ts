@@ -1,11 +1,22 @@
 import { OwnedPet, PetActionAvailability, PetCareActionId, PetSnapshot } from './pet-domain.types';
-import { careActionCooldownRemainingMs, careActionFailureReason, PET_CARE_ACTIONS, PET_CARE_ACTION_IDS, petAwayRemainingMs, playerEnergyRecoveryRemainingMs } from './pet-engine';
+import {
+  careActionCooldownRemainingMs,
+  careActionFailureReason,
+  PET_CARE_ACTIONS,
+  PET_CARE_ACTION_IDS,
+  petAwayRemainingMs,
+  playerEnergyRecoveryRemainingMs
+} from './pet-engine';
 import { QUESTION_ACTIVITY_RULES, questionFailureReason, questionReadyAt } from './pet-question-rules';
 import { PocketPetTransaction } from './pocket-pet.repository';
+import { petDailyFact } from './pet-daily-facts';
 
 // Presentation only: call after resolve, and never persist this snapshot.
 export async function petSnapshot(tx: PocketPetTransaction, pet: OwnedPet, now: Date): Promise<PetSnapshot> {
-  const care = Object.fromEntries(PET_CARE_ACTION_IDS.map(id => [id, careAvailability(pet, id, now)])) as Record<PetCareActionId, PetActionAvailability>;
+  const care = Object.fromEntries(PET_CARE_ACTION_IDS.map((id) => [id, careAvailability(pet, id, now)])) as Record<
+    PetCareActionId,
+    PetActionAvailability
+  >;
   let reason = questionFailureReason(pet);
   let nextAvailableAt = reason === 'away' ? pet.awayUntil : null;
   if (!reason) {
@@ -20,10 +31,13 @@ export async function petSnapshot(tx: PocketPetTransaction, pet: OwnedPet, now: 
   }
   return {
     ...pet,
+    dailyFact: petDailyFact(pet, now),
     actions: {
       ...care,
       questions: {
-        available: !reason, reason, nextAvailableAt,
+        available: !reason,
+        reason,
+        nextAvailableAt,
         playerEnergyCost: QUESTION_ACTIVITY_RULES.playerEnergyCost,
         cooldownMinutes: QUESTION_ACTIVITY_RULES.cooldownMinutes
       }
@@ -34,14 +48,17 @@ export async function petSnapshot(tx: PocketPetTransaction, pet: OwnedPet, now: 
 function careAvailability(pet: OwnedPet, id: PetCareActionId, now: Date): PetActionAvailability {
   const action = PET_CARE_ACTIONS[id];
   const reason = careActionFailureReason(pet, id, now);
-  const remaining = reason && reason !== 'inactive' && reason !== 'sleeping'
-    ? Math.max(
-      careActionCooldownRemainingMs(pet, id, now),
-      playerEnergyRecoveryRemainingMs(pet, id, now),
-      action.allowWhenAway ? 0 : petAwayRemainingMs(pet, now)
-    ) : 0;
+  const remaining =
+    reason && reason !== 'inactive' && reason !== 'sleeping'
+      ? Math.max(
+          careActionCooldownRemainingMs(pet, id, now),
+          playerEnergyRecoveryRemainingMs(pet, id, now),
+          action.allowWhenAway ? 0 : petAwayRemainingMs(pet, now)
+        )
+      : 0;
   return {
-    available: !reason, reason,
+    available: !reason,
+    reason,
     playerEnergyCost: action.playerEnergyCost,
     cooldownMinutes: action.cooldownMinutes,
     nextAvailableAt: remaining > 0 ? new Date(now.getTime() + remaining).toISOString() : null

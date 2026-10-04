@@ -100,9 +100,20 @@ export interface PetActionAvailability {
   nextAvailableAt: string | null;
 }
 
-/** Вычисляемое представление API; actions не сохраняются в БД. */
+export type PetDailyFactId = `${Exclude<PetId, 'dragon'>}Fact${1 | 2 | 3 | 4 | 5 | 6 | 7 | 8}`;
+
+export interface PetDailyFact {
+  id: PetDailyFactId;
+  /** Календарная дата YYYY-MM-DD по серверным суткам UTC. */
+  day: string;
+  sourceName: string;
+  sourceUrl: string;
+}
+
+/** Вычисляемое представление API; actions и dailyFact не сохраняются в БД. */
 export interface PetSnapshot extends OwnedPet {
   actions: Record<PetSceneActionId, PetActionAvailability>;
+  dailyFact: PetDailyFact | null;
 }
 
 export interface PetCareActionResult {

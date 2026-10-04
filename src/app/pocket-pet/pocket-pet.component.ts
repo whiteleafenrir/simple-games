@@ -7,6 +7,7 @@ import { I18nService } from '../i18n/i18n.service';
 import { TranslationKey } from '../i18n/translations';
 import { PetIllustrationComponent } from '../pets/pet-illustration.component';
 import { PetStatsComponent } from '../pets/pet-stats.component';
+import { PetDailyFactComponent } from '../pets/pet-daily-fact.component';
 import { PetSceneComponent, PetSceneActionEvent } from '../pets/pet-scene.component';
 import { PetQuestionsComponent } from '../pets/pet-questions.component';
 import { PetGamesComponent } from '../pet-games/pet-games.component';
@@ -41,6 +42,7 @@ import { PetOption, SessionLength } from './pocket-pet.model';
   imports: [
     RouterLink,
     PetStatsComponent,
+    PetDailyFactComponent,
     PetIllustrationComponent,
     PetQuestionsComponent,
     PetGamesComponent,
@@ -58,22 +60,39 @@ export class PocketPetComponent {
   public readonly petStorage = inject(PetStorageService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
-  private readonly viewedPetId = toSignal(
-    this.route.paramMap.pipe(map((paramMap) => paramMap.get('petId'))),
-    { initialValue: this.route.snapshot.paramMap.get('petId') }
-  );
+  private readonly viewedPetId = toSignal(this.route.paramMap.pipe(map((paramMap) => paramMap.get('petId'))), {
+    initialValue: this.route.snapshot.paramMap.get('petId')
+  });
 
   readonly viewedPet = computed((): PetSnapshot | null => {
     const id = this.viewedPetId();
     return id ? this.petStorage.petById(id) : this.petStorage.activePet();
   });
 
-  readonly sceneBlocked = computed<TranslationKey | null>(() => this.petStorage.commandPending() ? 'petActionPending' : this.petStorage.loading() ? 'petLoading' : this.petStorage.syncError());
+  readonly sceneBlocked = computed<TranslationKey | null>(() =>
+    this.petStorage.commandPending()
+      ? 'petActionPending'
+      : this.petStorage.loading()
+        ? 'petLoading'
+        : this.petStorage.syncError()
+  );
 
-  async onSceneAction(event: PetSceneActionEvent, questions: PetQuestionsComponent, games: PetGamesComponent): Promise<void> {
+  async onSceneAction(
+    event: PetSceneActionEvent,
+    questions: PetQuestionsComponent,
+    games: PetGamesComponent
+  ): Promise<void> {
     if (this.sceneBlocked()) return;
-    if (event.id === 'questions') { this.careMessage.set(null); await questions.open(event.trigger); return; }
-    if (event.id === 'play') { this.careMessage.set(null); games.open(event.trigger); return; }
+    if (event.id === 'questions') {
+      this.careMessage.set(null);
+      await questions.open(event.trigger);
+      return;
+    }
+    if (event.id === 'play') {
+      this.careMessage.set(null);
+      games.open(event.trigger);
+      return;
+    }
     const pet = this.viewedPet();
     if (pet && pet.actions[event.id].available) {
       await this.careForPet(pet, event.id);
@@ -84,26 +103,31 @@ export class PocketPetComponent {
   readonly sessionLengths: readonly SessionLength[] = SESSION_LENGTHS;
   readonly petOptions: readonly PetOption[] = PET_OPTIONS;
   readonly selectedSession = signal<SessionLength>(SESSION_LENGTHS[1]);
-  readonly selectedPet = signal<PetOption>(PET_OPTIONS.find(pet => !pet.disabled && pet.id === this.route.snapshot.queryParamMap.get('species')) ?? PET_OPTIONS[0]);
+  readonly selectedPet = signal<PetOption>(
+    PET_OPTIONS.find((pet) => !pet.disabled && pet.id === this.route.snapshot.queryParamMap.get('species')) ??
+      PET_OPTIONS[0]
+  );
   readonly petName = signal<string>('');
   readonly appearance = signal({ ...DEFAULT_APPEARANCE });
   readonly defaultAppearance = DEFAULT_APPEARANCE;
   readonly appearanceLabel = computed(() => {
     const { color, pattern } = this.appearance();
-    return `${this.i18n.t(COAT_COLORS.find(option => option.id === color)!.label)} · ${this.i18n.t(COAT_PATTERNS.find(option => option.id === pattern)!.label)}`;
+    return `${this.i18n.t(COAT_COLORS.find((option) => option.id === color)!.label)} · ${this.i18n.t(COAT_PATTERNS.find((option) => option.id === pattern)!.label)}`;
   });
-  readonly isDefaultAppearance = computed(() =>
-    this.appearance().color === DEFAULT_APPEARANCE.color && this.appearance().pattern === DEFAULT_APPEARANCE.pattern
+  readonly isDefaultAppearance = computed(
+    () =>
+      this.appearance().color === DEFAULT_APPEARANCE.color && this.appearance().pattern === DEFAULT_APPEARANCE.pattern
   );
   readonly createdPetMessage = signal<TranslationKey | null>(null);
   readonly errorMessage = signal<TranslationKey | null>(null);
   readonly careMessage = signal<TranslationKey | null>(null);
-  readonly canCreatePet = computed((): boolean =>
-    this.petName().trim().length > 0 &&
-    !this.petStorage.activePet() &&
-    !this.petStorage.loading() &&
-    !this.petStorage.commandPending() &&
-    !this.petStorage.syncError()
+  readonly canCreatePet = computed(
+    (): boolean =>
+      this.petName().trim().length > 0 &&
+      !this.petStorage.activePet() &&
+      !this.petStorage.loading() &&
+      !this.petStorage.commandPending() &&
+      !this.petStorage.syncError()
   );
   selectSession(sessionLength: SessionLength): void {
     this.selectedSession.set(sessionLength);
@@ -254,6 +278,4 @@ export class PocketPetComponent {
     }
     return `${minutes} ${this.i18n.t('minutesShort')}`;
   }
-
-
 }

@@ -1,0 +1,58 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+.daily-fact {
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--surface);
+  color: var(--text);
+}
+header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px 16px;
+}
+h2 {
+  margin: 0;
+  color: var(--primary);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+time {
+  color: var(--muted-text);
+  font-size: 0.75rem;
+}
+p {
+  margin: 12px 0 8px;
+  font-size: 0.9rem;
+  line-height: 1.65;
+}
+a {
+  display: inline-block;
+  padding: 6px 0;
+  color: var(--muted-text);
+  font-size: 0.75rem;
+  line-height: 1.5;
+  text-underline-offset: 3px;
+  overflow-wrap: anywhere;
+}
+a:hover {
+  color: var(--primary);
+}
+a:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 4px;
+  border-radius: 2px;
+}
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
