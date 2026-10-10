@@ -30,6 +30,10 @@
         <p>{{ i18n.t('guestModeHint') }}</p>
       </div>
 
+      <a class="profile-link" routerLink="/profile" fragment="notifications" (click)="close()">
+        {{ i18n.t('profileNotificationsLink') }} <span aria-hidden="true">↗</span>
+      </a>
+
       <div class="control-group">
         <span>{{ i18n.t('theme') }}</span>
         <div class="segmented-control">

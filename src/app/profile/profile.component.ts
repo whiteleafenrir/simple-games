@@ -5,10 +5,11 @@ import { PetIllustrationComponent } from '../pets/pet-illustration.component';
 import { PetDatePipe } from '../pets/pet-date.pipe';
 import { petFarewellPhraseKey, petOption, petPeriodOfLifeKey } from '../pets/pet-display.utils';
 import { PetStorageService } from '../pets/pet-storage.service';
+import { TelegramNotificationsComponent } from './telegram-notifications.component';
 
 @Component({
   selector: 'app-profile',
-  imports: [RouterLink, PetIllustrationComponent, PetDatePipe],
+  imports: [RouterLink, PetIllustrationComponent, PetDatePipe, TelegramNotificationsComponent],
   templateUrl: './profile.component.html',
   styleUrl: './profile.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -16,8 +17,12 @@ import { PetStorageService } from '../pets/pet-storage.service';
 export class ProfileComponent {
   readonly i18n = inject(I18nService);
   readonly pets = inject(PetStorageService);
-  readonly albumPets = computed(() => [...this.pets.pets()].sort((a, b) =>
-    Number(b.status === 'pet') - Number(a.status === 'pet') || Date.parse(b.createdAt) - Date.parse(a.createdAt)));
+  readonly albumPets = computed(() =>
+    [...this.pets.pets()].sort(
+      (a, b) =>
+        Number(b.status === 'pet') - Number(a.status === 'pet') || Date.parse(b.createdAt) - Date.parse(a.createdAt)
+    )
+  );
   readonly petOption = petOption;
   readonly petPeriodOfLifeKey = petPeriodOfLifeKey;
   readonly petFarewellPhraseKey = petFarewellPhraseKey;

@@ -1,0 +1,93 @@
+<section id="notifications" class="notifications" aria-labelledby="notifications-title">
+  <div class="section-heading">
+    <div>
+      <h2 id="notifications-title">{{ i18n.t('notificationsTitle') }}</h2>
+      <p>{{ i18n.t('notificationsIntro') }}</p>
+    </div>
+    <span class="status-pill">{{ i18n.t('telegramNotConnected') }}</span>
+  </div>
+
+  <div class="telegram-card">
+    <div class="telegram-heading">
+      <span class="telegram-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none">
+          <path d="m21 3-7 18-4-8-8-4 19-6Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" />
+          <path d="m10 13 5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+        </svg>
+      </span>
+      <div>
+        <h3>{{ i18n.t('telegramTitle') }}</h3>
+        <p>{{ i18n.t('telegramIntro') }}</p>
+      </div>
+    </div>
+
+    <p class="availability-note">{{ i18n.t('telegramComingSoon') }}</p>
+
+    <details>
+      <summary>{{ i18n.t('telegramHowToConnect') }}</summary>
+      <ol>
+        <li>{{ i18n.t('telegramStepCode') }}</li>
+        <li>{{ i18n.t('telegramStepBot') }}</li>
+        <li>{{ i18n.t('telegramStepConfirmation') }}</li>
+      </ol>
+    </details>
+
+    @if (busy()) {
+      <p role="status" class="message">{{ i18n.t('telegramPending') }}</p>
+    }
+    @if (error(); as errorKey) {
+      <div class="error" role="alert">
+        <span>{{ i18n.t(errorKey) }}</span>
+        <button type="button" class="secondary-button" [disabled]="busy()" (click)="refresh()">
+          {{ i18n.t('petRetry') }}
+        </button>
+      </div>
+    }
+
+    @if (status()) {
+      @if (expiresAt()) {
+        <div class="code-panel">
+          @if (remainingSeconds() > 0) {
+            @if (code(); as currentCode) {
+              <label for="telegram-code">{{ i18n.t('telegramCodeLabel') }}</label>
+              <div class="code-row">
+                <input
+                  id="telegram-code"
+                  readonly
+                  [value]="currentCode.token"
+                  spellcheck="false"
+                  autocomplete="off"
+                  aria-describedby="telegram-code-hint"
+                />
+                <button type="button" class="secondary-button" [disabled]="busy()" (click)="copyCode()">
+                  {{ i18n.t('telegramCopyCode') }}
+                </button>
+              </div>
+            } @else {
+              <p>{{ i18n.t('telegramCodeHidden') }}</p>
+            }
+            <p class="expiry">
+              {{ i18n.t('telegramCodeRemaining') }} <strong>{{ remainingTime() }}</strong>
+            </p>
+            <p id="telegram-code-hint" class="code-hint">{{ i18n.t('telegramCodeHint') }}</p>
+          } @else {
+            <p role="status">{{ i18n.t('telegramCodeExpired') }}</p>
+          }
+        </div>
+      }
+      <div class="actions">
+        <button type="button" class="primary-button" [disabled]="busy()" (click)="createCode()">
+          {{ i18n.t(expiresAt() ? 'telegramNewCode' : 'telegramCreateCode') }}
+        </button>
+        @if (expiresAt()) {
+          <button type="button" class="text-button" [disabled]="busy()" (click)="revokeCode()">
+            {{ i18n.t('telegramRevokeCode') }}
+          </button>
+        }
+      </div>
+    }
+    @if (feedback(); as feedbackKey) {
+      <p class="message" role="status">{{ i18n.t(feedbackKey) }}</p>
+    }
+  </div>
+</section>

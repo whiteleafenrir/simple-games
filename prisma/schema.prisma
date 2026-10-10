@@ -23,12 +23,20 @@ model ChessPuzzle {
 }
 
 model GuestSession {
-  id             String   @id @default(uuid())
-  createdAt      DateTime @default(now())
-  lastSeenAt     DateTime @default(now())
-  tokenHash      String?  @unique
-  tokenExpiresAt DateTime?
-  pets           Pet[]
+  id               String            @id @default(uuid())
+  createdAt        DateTime          @default(now())
+  lastSeenAt       DateTime          @default(now())
+  tokenHash        String?           @unique
+  tokenExpiresAt   DateTime?
+  pets             Pet[]
+  telegramLinkCode TelegramLinkCode?
+}
+
+model TelegramLinkCode {
+  guestSessionId String       @id
+  guestSession   GuestSession @relation(fields: [guestSessionId], references: [id], onDelete: Cascade)
+  tokenHash      String       @unique
+  expiresAt      DateTime
 }
 
 model Pet {

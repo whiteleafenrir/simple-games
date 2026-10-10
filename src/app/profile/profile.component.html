@@ -4,8 +4,14 @@
     <h1>{{ i18n.t('profileTitle') }}</h1>
     <p class="lead">{{ i18n.t('profileIntro') }}</p>
   </header>
+  <app-telegram-notifications />
   @if (pets.syncError(); as error) {
-    <div class="pet-feedback" role="alert"><span>{{ i18n.t(error) }}</span><button type="button" [disabled]="pets.refreshing()" (click)="pets.resolvePets()">{{ i18n.t('petRetry') }}</button></div>
+    <div class="pet-feedback" role="alert">
+      <span>{{ i18n.t(error) }}</span
+      ><button type="button" [disabled]="pets.refreshing()" (click)="pets.resolvePets()">
+        {{ i18n.t('petRetry') }}
+      </button>
+    </div>
   }
   @if (pets.loading()) {
     <div class="empty-state" role="status">{{ i18n.t('petLoading') }}</div>
@@ -14,39 +20,66 @@
       <app-pet-illustration species="dog" mood="joyful" />
       <h2>{{ i18n.t('noPetsTitle') }}</h2>
       <p>{{ i18n.t('noPetsText') }}</p>
-      <a class="primary-link" routerLink="/games/pocket-pet">{{ i18n.t('openFirstGame') }} <span aria-hidden="true">↗</span></a>
+      <a class="primary-link" routerLink="/games/pocket-pet"
+        >{{ i18n.t('openFirstGame') }} <span aria-hidden="true">↗</span></a
+      >
     </div>
   } @else if (pets.pets().length > 0) {
-    <div class="album-heading"><h2>{{ i18n.t('ownedPets') }}</h2><span>{{ pets.pets().length }}</span></div>
+    <div class="album-heading">
+      <h2>{{ i18n.t('ownedPets') }}</h2>
+      <span>{{ pets.pets().length }}</span>
+    </div>
     <div class="pets-grid">
       @for (ownedPet of albumPets(); track ownedPet.id) {
         <article class="owned-pet-card" [class.is-active]="ownedPet.status === 'pet'">
           <div class="portrait">
             <span class="status-badge">{{ i18n.t(ownedPet.status === 'pet' ? 'albumWithYou' : 'albumMemory') }}</span>
-            <app-pet-illustration [species]="ownedPet.petId" [appearance]="ownedPet.appearance" [cleanliness]="ownedPet.stats.cleanliness" [mood]="ownedPet.mood" [sleeping]="ownedPet.status === 'pet' && !ownedPet.isLightOn" />
+            <app-pet-illustration
+              [species]="ownedPet.petId"
+              [appearance]="ownedPet.appearance"
+              [cleanliness]="ownedPet.stats.cleanliness"
+              [mood]="ownedPet.mood"
+              [sleeping]="ownedPet.status === 'pet' && !ownedPet.isLightOn"
+            />
           </div>
           <div class="card-copy">
             <h3>{{ ownedPet.name }}</h3>
-            <p class="species">{{ i18n.t(petOption(ownedPet).titleKey) }} · {{ i18n.t(petPeriodOfLifeKey(ownedPet.periodOfLife)) }}</p>
+            <p class="species">
+              {{ i18n.t(petOption(ownedPet).titleKey) }} · {{ i18n.t(petPeriodOfLifeKey(ownedPet.periodOfLife)) }}
+            </p>
             @if (ownedPet.farewell; as farewell) {
               <p class="memory-note">{{ i18n.t(petFarewellPhraseKey(farewell.phraseId)) }}</p>
-              <div class="card-fact"><span>{{ i18n.t('petFinalCareScore') }}</span><strong>{{ farewell.finalCareScore }}</strong></div>
+              <div class="card-fact">
+                <span>{{ i18n.t('petFinalCareScore') }}</span
+                ><strong>{{ farewell.finalCareScore }}</strong>
+              </div>
             } @else {
-              <p class="memory-note">{{ i18n.t(ownedPet.awayUntil ? 'homePetAway' : !ownedPet.isLightOn ? 'homePetSleeping' : 'homePetHere') }}</p>
-              <div class="card-fact"><span>{{ i18n.t('sessionEnds') }}</span><time [attr.datetime]="ownedPet.endsAt">{{ ownedPet.endsAt | petDate:i18n.language() }}</time></div>
+              <p class="memory-note">
+                {{
+                  i18n.t(ownedPet.awayUntil ? 'homePetAway' : !ownedPet.isLightOn ? 'homePetSleeping' : 'homePetHere')
+                }}
+              </p>
+              <div class="card-fact">
+                <span>{{ i18n.t('sessionEnds') }}</span
+                ><time [attr.datetime]="ownedPet.endsAt">{{ ownedPet.endsAt | petDate: i18n.language() }}</time>
+              </div>
             }
             <div class="card-actions">
               @if (ownedPet.status === 'pet') {
                 <a class="primary-link" [routerLink]="['/games/pocket-pet', ownedPet.id]">{{ i18n.t('homeReturn') }}</a>
               }
-              <a class="details-link" [routerLink]="['/profile/pets', ownedPet.id]">{{ i18n.t('albumOpenStory') }} <span aria-hidden="true">↗</span></a>
+              <a class="details-link" [routerLink]="['/profile/pets', ownedPet.id]"
+                >{{ i18n.t('albumOpenStory') }} <span aria-hidden="true">↗</span></a
+              >
             </div>
           </div>
         </article>
       }
     </div>
     @if (!pets.activePet() && !pets.syncError()) {
-      <a class="new-friend" routerLink="/games/pocket-pet">{{ i18n.t('albumNewFriend') }} <span aria-hidden="true">↗</span></a>
+      <a class="new-friend" routerLink="/games/pocket-pet"
+        >{{ i18n.t('albumNewFriend') }} <span aria-hidden="true">↗</span></a
+      >
     }
   }
 </section>

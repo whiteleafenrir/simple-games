@@ -25,6 +25,17 @@ export interface GuestSession {
   lastSeenAt: string;
 }
 
+// Первый этап: выдача кода готова, сервер Telegram-бота ещё не подключён.
+export interface TelegramLinkStatus {
+  availability: 'coming-soon';
+  pendingCodeExpiresAt: string | null;
+}
+
+export interface TelegramLinkCode {
+  token: string;
+  expiresAt: string;
+}
+
 export interface PetStats {
   satiety: number;
   cleanliness: number;

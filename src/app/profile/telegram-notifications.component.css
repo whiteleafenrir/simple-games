@@ -1,0 +1,204 @@
+:host {
+  display: block;
+}
+.notifications {
+  scroll-margin-top: 24px;
+}
+.section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+h2 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 650;
+  color: var(--text);
+}
+.section-heading p {
+  margin: 8px 0 0;
+  color: var(--muted-text);
+  font-size: 0.83rem;
+  line-height: 1.6;
+}
+.status-pill {
+  flex-shrink: 0;
+  border-radius: 99px;
+  background: var(--soft-surface);
+  padding: 7px 12px;
+  color: var(--muted-text);
+  font-size: 0.72rem;
+}
+.telegram-card {
+  padding: 26px;
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  background: var(--surface);
+}
+.telegram-heading {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.telegram-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 48px;
+  height: 48px;
+  border-radius: 16px;
+  background: var(--primary-soft-fill);
+  color: var(--primary);
+}
+svg {
+  width: 25px;
+  height: 25px;
+}
+h3 {
+  margin: 0;
+  color: var(--text);
+  font-size: 1.1rem;
+}
+.telegram-heading p {
+  margin: 7px 0 0;
+  color: var(--muted-text);
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+.availability-note {
+  margin: 22px 0 18px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: var(--tile-bg);
+  font-size: 0.85rem;
+  line-height: 1.7;
+  color: var(--body-text);
+}
+summary {
+  width: fit-content;
+  min-height: 44px;
+  padding: 12px 0;
+  cursor: pointer;
+  color: var(--primary);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+ol {
+  margin: 4px 0 18px;
+  padding-left: 22px;
+  color: var(--muted-text);
+  font-size: 0.85rem;
+  line-height: 1.8;
+}
+li + li {
+  margin-top: 7px;
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 16px;
+}
+button {
+  min-height: 44px;
+  border-radius: 99px;
+  padding: 10px 18px;
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+button:disabled {
+  opacity: 0.6;
+}
+.primary-button {
+  border: 1px solid transparent;
+  background: var(--primary);
+  color: var(--primary-contrast);
+}
+.secondary-button {
+  border: 1px solid var(--border);
+  background: var(--secondary);
+  color: var(--secondary-text);
+}
+.text-button {
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--primary);
+}
+@media (hover: hover) {
+  .primary-button:hover:not(:disabled) {
+    background: var(--primary-hover);
+  }
+  .secondary-button:hover:not(:disabled) {
+    background: var(--secondary-hover);
+  }
+  .text-button:hover:not(:disabled) {
+    text-decoration: underline;
+  }
+}
+.code-panel {
+  margin-top: 12px;
+  border-top: 1px solid var(--border);
+  padding-top: 20px;
+}
+label {
+  display: block;
+  margin-bottom: 10px;
+  color: var(--text);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+.code-row {
+  display: flex;
+  gap: 10px;
+}
+input {
+  min-width: 0;
+  width: 100%;
+  padding: 13px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--page-bg);
+  color: var(--text);
+  font-family: ui-monospace, monospace;
+  font-size: 0.9rem;
+}
+.code-row button {
+  flex-shrink: 0;
+}
+.code-panel p,
+.message {
+  margin: 12px 0 0;
+  font-size: 0.82rem;
+  line-height: 1.6;
+  color: var(--muted-text);
+}
+.expiry strong {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.error {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 12px;
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+@media (max-width: 600px) {
+  .section-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .telegram-card {
+    padding: 20px;
+  }
+  .code-row {
+    flex-direction: column;
+  }
+  .code-row button {
+    align-self: flex-start;
+  }
+}

@@ -25,7 +25,7 @@
 }
 
 .settings-trigger:hover,
-.settings-trigger[aria-expanded="true"] {
+.settings-trigger[aria-expanded='true'] {
   border-color: var(--primary);
 }
 
@@ -76,6 +76,21 @@
   font-size: 0.82rem;
   font-weight: 650;
   text-transform: uppercase;
+}
+
+.profile-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+  color: var(--primary);
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.profile-link:hover {
+  text-decoration: underline;
 }
 
 .control-group {

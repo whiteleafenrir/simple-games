@@ -10,28 +10,25 @@ import { PocketPetService } from './pocket-pet.service';
 import { PrismaPocketPetRepository } from './prisma-pocket-pet.repository';
 import { PetQuestionService } from './pet-question.service';
 import { PetQuestionsController } from './pet-questions.controller';
+import { TelegramLinkController } from './telegram-link.controller';
+import { TelegramLinkService } from './telegram-link.service';
+import { TelegramLinkRepository } from './telegram-link.repository';
 
 @Module({
-  imports: [
-    PrismaModule
-  ],
-  controllers: [
-    GuestSessionsController,
-    PetsController,
-    PetQuestionsController
-  ],
+  imports: [PrismaModule],
+  controllers: [GuestSessionsController, PetsController, PetQuestionsController, TelegramLinkController],
   providers: [
     PocketPetService,
     PetQuestionService,
     GuestSessionAuthService,
     GuestSessionGuard,
+    TelegramLinkService,
+    TelegramLinkRepository,
     {
       provide: POCKET_PET_REPOSITORY,
       useClass: PrismaPocketPetRepository
     }
   ],
-  exports: [
-    PocketPetService
-  ]
+  exports: [PocketPetService]
 })
 export class PetsModule {}
