@@ -80,8 +80,7 @@
       <p class="session-note">{{ i18n.t(started() ? 'petGamesFreeReplay' : 'petGamesCareNote') }}</p>
       @if (!started()) {
         <p class="cost">
-          {{ i18n.t('sceneEnergyCost') }}: {{ pet().actions.play.playerEnergyCost }} · {{ i18n.t('careCooldown') }}:
-          {{ pet().actions.play.cooldownMinutes }} {{ i18n.t('minutesShort') }}
+          {{ i18n.t('careCooldown') }}: {{ pet().actions.play.cooldownMinutes }} {{ i18n.t('minutesShort') }}
         </p>
       }
     }

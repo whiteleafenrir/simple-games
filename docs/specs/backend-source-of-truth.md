@@ -14,6 +14,10 @@ Pocket Pet не использует localStorage. Старые localStorage-д�
 
 ## MVP-допущения
 
+**Решение владельца, 2026-10-10 — энергия игрока:** структура `PlayerEnergy`, восстановление, общий контракт и сохранённые значения остаются. Стоимость всех текущих действий ухода равна `0`; вопросы уже бесплатны. Даже при нулевом запасе игрок может выполнить доступное действие. UI скрывает шкалу и стоимость энергии игрока. Энергия питомца, эффекты ухода, cooldown, сон и прогулка сохраняют действующие правила. Для дракона отдельные стоимости пока не определены.
+
+Инкремент не требует миграции. Формат событий истории не меняется: стоимость энергии в них не хранится. Старые события и финалы не переписываются. Доступность в snapshot использует тот же серверный конфиг, поэтому отдельного исключения во frontend нет. Проверка: действия и snapshot при пустой энергии, сохранение cooldown/сна/прогулки и истории, обе сборки и скрытие ресурса на затронутых экранах.
+
 - Регистрации и профиля игрока на backend нет.
 - У гостя может быть несколько завершенных питомцев, но только один активный питомец со статусом `pet`.
 - Виды питомцев в MVP механически нейтральны, даже если infrastructure traits существует.
@@ -27,18 +31,18 @@ Base path: `/api`.
 
 Локальный запуск: [инструкция](../backend-guide.md), [спецификация workflow](local-development.md). Swagger доступен вне production по `/api/docs`, OpenAPI JSON — `/api/docs-json`. `GET /api/health` проверяет соединение с базой без изменения pet state. API по умолчанию слушает `127.0.0.1`, Angular использует same-origin proxy.
 
-| Метод | Endpoint | Назначение |
-| --- | --- | --- |
-| `POST` | `/guest-sessions` | Создать гостевую сессию или восстановить сессию из HttpOnly-cookie. |
-| `GET` | `/guest-sessions/:guestId` | Получить гостевую сессию и обновить `lastSeenAt`. |
-| `GET` | `/guest-sessions/:guestId/pets` | Получить всех питомцев гостя с актуализированным состоянием. |
-| `POST` | `/guest-sessions/:guestId/pets` | Создать питомца, если нет активного. |
-| `GET` | `/guest-sessions/:guestId/pets/:petId` | Получить одного питомца с актуализированным состоянием. |
-| `GET` | `/guest-sessions/:guestId/pets/:petId/history?cursor=...` | Получить страницу истории: 50 событий от новых к старым и `nextCursor`. |
-| `POST` | `/guest-sessions/:guestId/pets/:petId/actions` | Применить care action и вернуть authoritative result. |
-| `POST` | `/guest-sessions/:guestId/pets/:petId/questions` | Открыть сохранённый или новый вопрос RU/EN по возрасту. |
-| `POST` | `/guest-sessions/:guestId/pets/:petId/questions/:attemptId/answer` | Сохранить ответ/отказ и применить эффект ровно один раз. |
-| `GET` | `/guest-sessions/:guestId/pets/:petId/questions/history?cursor=...` | История вопросов по 20 исходов, новые первыми. |
+| Метод  | Endpoint                                                            | Назначение                                                              |
+| ------ | ------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| `POST` | `/guest-sessions`                                                   | Создать гостевую сессию или восстановить сессию из HttpOnly-cookie.     |
+| `GET`  | `/guest-sessions/:guestId`                                          | Получить гостевую сессию и обновить `lastSeenAt`.                       |
+| `GET`  | `/guest-sessions/:guestId/pets`                                     | Получить всех питомцев гостя с актуализированным состоянием.            |
+| `POST` | `/guest-sessions/:guestId/pets`                                     | Создать питомца, если нет активного.                                    |
+| `GET`  | `/guest-sessions/:guestId/pets/:petId`                              | Получить одного питомца с актуализированным состоянием.                 |
+| `GET`  | `/guest-sessions/:guestId/pets/:petId/history?cursor=...`           | Получить страницу истории: 50 событий от новых к старым и `nextCursor`. |
+| `POST` | `/guest-sessions/:guestId/pets/:petId/actions`                      | Применить care action и вернуть authoritative result.                   |
+| `POST` | `/guest-sessions/:guestId/pets/:petId/questions`                    | Открыть сохранённый или новый вопрос RU/EN по возрасту.                 |
+| `POST` | `/guest-sessions/:guestId/pets/:petId/questions/:attemptId/answer`  | Сохранить ответ/отказ и применить эффект ровно один раз.                |
+| `GET`  | `/guest-sessions/:guestId/pets/:petId/questions/history?cursor=...` | История вопросов по 20 исходов, новые первыми.                          |
 
 Snapshot питомца содержит `careHistoryCount`, без массива истории. Результат действия содержит snapshot и одно `historyEntry` либо `null` при игровом отказе. История загружается отдельно при открытии профиля питомца.
 

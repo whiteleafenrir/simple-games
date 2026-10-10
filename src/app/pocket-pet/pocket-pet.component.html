@@ -42,16 +42,6 @@
           <app-pet-stats [stats]="pet.stats" [compact]="true" />
           <p class="care-hint">{{ i18n.t('petEnergyHint') }}</p>
         </section>
-        <section class="player-energy-panel" aria-labelledby="player-energy-title">
-          <div class="player-energy-heading">
-            <h2 id="player-energy-title">{{ i18n.t('playerEnergy') }}</h2>
-            <strong>{{ playerEnergyValue(pet) }}/{{ playerEnergyMax(pet) }}</strong>
-          </div>
-          <div class="player-energy-meter" aria-hidden="true">
-            <span [style.width.%]="playerEnergyPercent(pet)"></span>
-          </div>
-          <p class="care-hint">{{ i18n.t('playerEnergyHint') }}</p>
-        </section>
         @if (pet.dailyFact; as fact) {
           <app-pet-daily-fact [fact]="fact" />
         }

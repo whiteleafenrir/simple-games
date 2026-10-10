@@ -294,8 +294,7 @@ h1 {
   gap: 16px;
   min-width: 0;
 }
-.session-vitals,
-.player-energy-panel {
+.session-vitals {
   display: grid;
   align-content: start;
   gap: 18px;
@@ -313,32 +312,6 @@ h1 {
   color: var(--muted-text);
   font-size: 0.75rem;
   line-height: 1.7;
-}
-.player-energy-panel {
-  gap: 12px;
-}
-.player-energy-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-.player-energy-heading strong {
-  font-size: 0.85rem;
-  white-space: nowrap;
-}
-.player-energy-meter {
-  height: 7px;
-  border-radius: 99px;
-  background: var(--secondary);
-  overflow: hidden;
-}
-.player-energy-meter span {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: var(--primary);
 }
 .care-message {
   line-height: 1.5;

@@ -283,7 +283,7 @@ export const TRANSLATIONS = {
     petTrust: 'Доверие',
     questionTitle: 'Вопросы',
     questionMemoryHint: 'Наши разговоры и то, чему мы научились вместе.',
-    questionHint: 'Подумаем вместе? Короткий разговор без затрат энергии.',
+    questionHint: 'Подумаем вместе? Короткий разговор с питомцем.',
     questionOpen: 'Ответить на вопрос',
     questionDecline: 'Закрыть и отказаться от ответа',
     questionDeclineHint:
@@ -748,7 +748,7 @@ export const TRANSLATIONS = {
     petTrust: 'Trust',
     questionTitle: 'Questions',
     questionMemoryHint: 'Our conversations and the things we learned together.',
-    questionHint: 'Shall we think together? A short chat that costs no energy.',
+    questionHint: 'Shall we think together? A short chat with your pet.',
     questionOpen: 'Answer a question',
     questionDecline: 'Close and decline to answer',
     questionDeclineHint:

@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal, ChangeDetectionStrategy } from '@angular/core';
+import { Component, computed, effect, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
@@ -68,6 +68,16 @@ export class PocketPetComponent {
     const id = this.viewedPetId();
     return id ? this.petStorage.petById(id) : this.petStorage.activePet();
   });
+
+  constructor() {
+    effect(() => {
+      const pet = this.petStorage.activePet();
+      // Keep the room on this pet when polling resolves its farewell.
+      if (!this.viewedPetId() && pet && !this.petStorage.commandPending()) {
+        void this.router.navigate(['/games/pocket-pet', pet.id], { replaceUrl: true });
+      }
+    });
+  }
 
   readonly sceneBlocked = computed<TranslationKey | null>(() =>
     this.petStorage.commandPending()
@@ -243,24 +253,6 @@ export class PocketPetComponent {
 
   farewellPhraseLabel(phraseId: PetFarewellPhraseId): string {
     return this.i18n.t(petFarewellPhraseKey(phraseId));
-  }
-
-  playerEnergyValue(pet: OwnedPet): number {
-    return Math.floor(pet.playerEnergy.current);
-  }
-
-  playerEnergyMax(pet: OwnedPet): number {
-    return Math.round(pet.playerEnergy.max);
-  }
-
-  playerEnergyPercent(pet: OwnedPet): number {
-    const max = this.playerEnergyMax(pet);
-
-    if (max <= 0) {
-      return 0;
-    }
-
-    return Math.min(100, Math.max(0, (this.playerEnergyValue(pet) / max) * 100));
   }
 
   lightLabel(pet: OwnedPet): string {
